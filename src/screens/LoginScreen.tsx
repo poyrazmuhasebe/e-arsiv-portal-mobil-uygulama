@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -8,9 +8,16 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Checkbox, Text, TextInput, useTheme } from 'react-native-paper';
 
 import { useAuthStore } from '../store/useAuthStore';
+import { deleteSecureItem, getSecureItem, setSecureItem } from '../utils/secureStorage';
+
+// Bunlar useAuthStore'un oturum (token) için kullandığı anahtarlardan
+// AYRI: yalnızca giriş FORMUNU önceden doldurmak için, oturum açık
+// olsun/olmasın (çıkış yapılsa bile) kalıcı olarak saklanır.
+const HATIRLANAN_KULLANICI_KODU_KEY = 'gib_hatirlanan_kullanici_kodu';
+const HATIRLANAN_SIFRE_KEY = 'gib_hatirlanan_sifre';
 
 export default function LoginScreen() {
   const theme = useTheme();
@@ -20,6 +27,23 @@ export default function LoginScreen() {
   const [kullaniciKodu, setKullaniciKodu] = useState('');
   const [kullaniciSifresi, setKullaniciSifresi] = useState('');
   const [sifreGorunur, setSifreGorunur] = useState(false);
+  const [kullaniciKoduHatirla, setKullaniciKoduHatirla] = useState(true);
+  const [sifreyiHatirla, setSifreyiHatirla] = useState(true);
+
+  // Daha önce "hatırla" işaretlenmiş bir kullanıcı kodu/şifre varsa formu
+  // otomatik doldur. NOT: Gerçek bir kimlik bilgisini kaynak koduna
+  // gömmüyoruz — bu yalnızca cihazda SecureStore'a (şifrelenmiş) kaydedilmiş,
+  // kullanıcının kendi rızasıyla oluşturduğu bir kayıttır.
+  useEffect(() => {
+    (async () => {
+      const [kayitliKullaniciKodu, kayitliSifre] = await Promise.all([
+        getSecureItem(HATIRLANAN_KULLANICI_KODU_KEY),
+        getSecureItem(HATIRLANAN_SIFRE_KEY),
+      ]);
+      if (kayitliKullaniciKodu) setKullaniciKodu(kayitliKullaniciKodu);
+      if (kayitliSifre) setKullaniciSifresi(kayitliSifre);
+    })();
+  }, []);
 
   const girisYapDisabled = isLoading || !kullaniciKodu.trim() || !kullaniciSifresi;
 
@@ -30,6 +54,17 @@ export default function LoginScreen() {
       // Başarılı girişte store'daki token güncellenir; App.tsx bunu
       // dinleyip otomatik olarak Dashboard yığınına geçer (bkz. App.tsx).
       await login(kullaniciKodu.trim(), kullaniciSifresi);
+
+      if (kullaniciKoduHatirla) {
+        await setSecureItem(HATIRLANAN_KULLANICI_KODU_KEY, kullaniciKodu.trim());
+      } else {
+        await deleteSecureItem(HATIRLANAN_KULLANICI_KODU_KEY);
+      }
+      if (sifreyiHatirla) {
+        await setSecureItem(HATIRLANAN_SIFRE_KEY, kullaniciSifresi);
+      } else {
+        await deleteSecureItem(HATIRLANAN_SIFRE_KEY);
+      }
     } catch (err) {
       // GİB'den dönen Türkçe hata mesajını (varsa) doğrudan göster,
       // yoksa genel bir bağlantı hatası mesajı ver.
@@ -54,18 +89,18 @@ export default function LoginScreen() {
           keyboardDismissMode="on-drag"
         >
           <View style={styles.header}>
-            <Text variant="headlineMedium" style={styles.title}>
-              GİB e-Arşiv Girişi
+            <Text variant="headlineSmall" style={styles.title}>
+              E-ARŞİV PORTAL İNTERAKTİF ŞİFRE İLE GİRİŞ EKRANI
             </Text>
             <Text variant="bodyMedium" style={styles.subtitle}>
-              e-Arşiv portalı kullanıcı kodunuz ve şifrenizle giriş yapın.
+              Kullanıcı Bilgileri
             </Text>
           </View>
 
           <View style={styles.form}>
             <TextInput
               mode="outlined"
-              label="Kullanıcı Kodu / VKN-TCKN"
+              label="Kullanıcı Kodu"
               value={kullaniciKodu}
               onChangeText={setKullaniciKodu}
               autoCapitalize="none"
@@ -98,6 +133,23 @@ export default function LoginScreen() {
                 />
               }
             />
+
+            <View style={styles.hatirlaGrubu}>
+              <Checkbox.Item
+                label="Kullanıcı Kodunu Hatırla"
+                status={kullaniciKoduHatirla ? 'checked' : 'unchecked'}
+                onPress={() => setKullaniciKoduHatirla((v) => !v)}
+                style={styles.hatirlaOgesi}
+                labelStyle={styles.hatirlaEtiket}
+              />
+              <Checkbox.Item
+                label="Şifreyi Hatırla"
+                status={sifreyiHatirla ? 'checked' : 'unchecked'}
+                onPress={() => setSifreyiHatirla((v) => !v)}
+                style={styles.hatirlaOgesi}
+                labelStyle={styles.hatirlaEtiket}
+              />
+            </View>
 
             <Button
               mode="contained"
@@ -134,6 +186,9 @@ const styles = StyleSheet.create({
   subtitle: { opacity: 0.6 },
   form: { gap: 16 },
   input: { width: '100%' },
+  hatirlaGrubu: { marginTop: -8, marginBottom: -8 },
+  hatirlaOgesi: { paddingHorizontal: 0 },
+  hatirlaEtiket: { fontSize: 14 },
   button: { marginTop: 8, borderRadius: 8 },
   buttonContent: { paddingVertical: 6 },
   disclaimer: { marginTop: 16, opacity: 0.5, textAlign: 'center' },

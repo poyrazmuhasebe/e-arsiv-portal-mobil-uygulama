@@ -1,149 +1,112 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  Appbar,
-  Button,
-  Card,
-  Divider,
-  IconButton,
-  SegmentedButtons,
-  Text,
-  TextInput,
-  useTheme,
-} from 'react-native-paper';
+import { Appbar, Button, useTheme } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
-import { faturaKaydet, mukellefBilgisiGetir } from '../services/gibApi';
+import { faturaKaydet } from '../services/gibApi';
 import { useAuthStore } from '../store/useAuthStore';
-import type { FaturaTaslagi, KdvOrani } from '../types/gib';
+import { aliciKaydet } from '../utils/aliciDefteri';
+import { faturaOzetiHesapla, kalemHesapla, parseNumara } from '../utils/faturaHesap';
+import {
+  VARSAYILAN_BIRIM,
+  VARSAYILAN_FATURA_TIPI,
+  VARSAYILAN_PARA_BIRIMI,
+  VARSAYILAN_ULKE,
+} from '../constants/faturaConstants';
+import FaturaBilgileriKarti from './fatura/FaturaBilgileriKarti';
+import AliciBilgileriKarti from './fatura/AliciBilgileriKarti';
+import IrsaliyeBilgileriKarti from './fatura/IrsaliyeBilgileriKarti';
+import MalHizmetKarti from './fatura/MalHizmetKarti';
+import ToplamlarKarti from './fatura/ToplamlarKarti';
+import type { AliciFormu, FaturaFormState, KalemFormu } from '../types/faturaForm';
+import type { FaturaTaslagi } from '../types/gib';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FaturaKesim'>;
-
-const KDV_ORANLARI: KdvOrani[] = [0, 1, 10, 20];
-
-interface KalemFormu {
-  id: string;
-  malHizmet: string;
-  miktar: string;
-  birimFiyat: string;
-  kdvOrani: KdvOrani;
-}
 
 function bosKalem(): KalemFormu {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     malHizmet: '',
     miktar: '1',
+    birim: VARSAYILAN_BIRIM,
     birimFiyat: '',
+    iskontoOrani: '0',
     kdvOrani: 20,
   };
 }
 
-// Girdi "12,5" veya "12.5" olarak yazılabilir; ikisini de kabul ediyoruz.
-function parseNumara(deger: string): number {
-  const normalized = deger.trim().replace(',', '.');
-  const n = Number(normalized);
-  return Number.isFinite(n) ? n : NaN;
+function bosAlici(): AliciFormu {
+  return { vknTckn: '', unvan: '', ad: '', soyad: '', vergiDairesi: '', ulke: VARSAYILAN_ULKE, adres: '' };
 }
 
-function paraFormatla(n: number): string {
-  return n.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-function bugununTarihi(): string {
-  const d = new Date();
+function ggAaYyyy(d: Date): string {
   const gg = String(d.getDate()).padStart(2, '0');
   const aa = String(d.getMonth() + 1).padStart(2, '0');
   return `${gg}/${aa}/${d.getFullYear()}`;
+}
+
+function saatFormatla(d: Date): string {
+  const ss = String(d.getHours()).padStart(2, '0');
+  const dd = String(d.getMinutes()).padStart(2, '0');
+  const sn = String(d.getSeconds()).padStart(2, '0');
+  return `${ss}:${dd}:${sn}`;
 }
 
 export default function FaturaKesimScreen({ navigation }: Props) {
   const theme = useTheme();
   const token = useAuthStore((s) => s.token);
 
-  const [vknTckn, setVknTckn] = useState('');
-  const [unvan, setUnvan] = useState('');
-  const [vergiDairesi, setVergiDairesi] = useState('');
-  const [adres, setAdres] = useState('');
-  const [mukellefSorgulaniyor, setMukellefSorgulaniyor] = useState(false);
+  const [form, setForm] = useState<FaturaFormState>(() => ({
+    faturaTarihi: new Date(),
+    faturaSaati: new Date(),
+    paraBirimi: VARSAYILAN_PARA_BIRIMI,
+    dovizKuru: '0',
+    faturaTipi: VARSAYILAN_FATURA_TIPI,
+    alici: bosAlici(),
+    irsaliyeNo: '',
+    irsaliyeTarihi: null,
+    kalemler: [bosKalem()],
+    not: '',
+  }));
 
-  const [kalemler, setKalemler] = useState<KalemFormu[]>([bosKalem()]);
+  const [kaydediliyor, setKaydediliyor] = useState(false);
 
-  // VKN (10 hane) veya TCKN (11 hane) tamamlandığında GİB'den mükellef
-  // bilgisini sorgulayıp Unvan/Vergi Dairesi'ni otomatik dolduruyoruz.
-  // Kullanıcı hâlâ yazıyorken gereksiz istek atmamak için kısa bir debounce
-  // uyguluyoruz.
-  useEffect(() => {
-    const temiz = vknTckn.trim();
-    if (!token || (temiz.length !== 10 && temiz.length !== 11) || !/^\d+$/.test(temiz)) {
-      return;
-    }
-
-    let iptalEdildi = false;
-    const zamanlayici = setTimeout(async () => {
-      setMukellefSorgulaniyor(true);
-      try {
-        const bilgi = await mukellefBilgisiGetir(token, temiz);
-        if (!iptalEdildi) {
-          if (bilgi && typeof bilgi.unvan === 'string' && bilgi.unvan.length > 0) {
-            setUnvan(bilgi.unvan);
-            if (bilgi.vergiDairesi) setVergiDairesi(bilgi.vergiDairesi);
-          } else {
-            // GİB'den beklenmeyen bir şekil (ör. yanlış cmd/alan adı) geldiğinde
-            // sessizce yanlış/boş veri basmak yerine burada durup logluyoruz.
-            console.warn('MÜKELLEF SORGU: beklenmeyen yanıt şekli:', JSON.stringify(bilgi));
-          }
-        }
-      } catch (err) {
-        // Otomatik doldurma en iyi çaba (best-effort); başarısız olursa
-        // kullanıcı alanları elle doldurmaya devam edebilir, akışı Alert
-        // ile kesmiyoruz — ama terminalde teşhis edilebilsin diye logluyoruz.
-        console.warn('MÜKELLEF SORGU BAŞARISIZ:', err instanceof Error ? err.message : err);
-      } finally {
-        if (!iptalEdildi) setMukellefSorgulaniyor(false);
-      }
-    }, 400);
-
-    return () => {
-      iptalEdildi = true;
-      clearTimeout(zamanlayici);
-    };
-  }, [vknTckn, token]);
+  const aliciGuncelle = (patch: Partial<AliciFormu>) => {
+    setForm((prev) => ({ ...prev, alici: { ...prev.alici, ...patch } }));
+  };
 
   const kalemGuncelle = (id: string, patch: Partial<KalemFormu>) => {
-    setKalemler((prev) => prev.map((k) => (k.id === id ? { ...k, ...patch } : k)));
+    setForm((prev) => ({
+      ...prev,
+      kalemler: prev.kalemler.map((k) => (k.id === id ? { ...k, ...patch } : k)),
+    }));
   };
 
   const kalemEkle = () => {
-    setKalemler((prev) => [...prev, bosKalem()]);
+    setForm((prev) => ({ ...prev, kalemler: [...prev.kalemler, bosKalem()] }));
   };
 
   const kalemSil = (id: string) => {
-    setKalemler((prev) => (prev.length > 1 ? prev.filter((k) => k.id !== id) : prev));
+    setForm((prev) => ({
+      ...prev,
+      kalemler: prev.kalemler.length > 1 ? prev.kalemler.filter((k) => k.id !== id) : prev.kalemler,
+    }));
   };
 
-  const ozet = useMemo(() => {
-    let altToplam = 0;
-    let kdvToplam = 0;
-    for (const k of kalemler) {
-      const miktar = parseNumara(k.miktar);
-      const birimFiyat = parseNumara(k.birimFiyat);
-      if (!Number.isFinite(miktar) || !Number.isFinite(birimFiyat)) continue;
-      const satirTutari = miktar * birimFiyat;
-      altToplam += satirTutari;
-      kdvToplam += satirTutari * (k.kdvOrani / 100);
-    }
-    return { altToplam, kdvToplam, genelToplam: altToplam + kdvToplam };
-  }, [kalemler]);
+  const ozet = faturaOzetiHesapla(form.kalemler);
 
   const aliciGecerli =
-    vknTckn.trim().length >= 10 && vknTckn.trim().length <= 11 && unvan.trim().length > 0 && adres.trim().length > 0;
+    form.alici.vknTckn.trim().length >= 10 &&
+    form.alici.vknTckn.trim().length <= 11 &&
+    (form.alici.unvan.trim().length > 0 ||
+      (form.alici.ad.trim().length > 0 && form.alici.soyad.trim().length > 0)) &&
+    form.alici.adres.trim().length > 0;
 
   const kalemlerGecerli =
-    kalemler.length > 0 &&
-    kalemler.every((k) => {
+    form.kalemler.length > 0 &&
+    form.kalemler.every((k) => {
       const miktar = parseNumara(k.miktar);
       const birimFiyat = parseNumara(k.birimFiyat);
       return k.malHizmet.trim().length > 0 && miktar > 0 && birimFiyat > 0;
@@ -151,33 +114,49 @@ export default function FaturaKesimScreen({ navigation }: Props) {
 
   const formGecerli = aliciGecerli && kalemlerGecerli;
 
-  const [kaydediliyor, setKaydediliyor] = useState(false);
-
-  const handleTaslakOlarakKaydet = async () => {
+  const handleOlustur = async () => {
     if (!formGecerli || !token || kaydediliyor) return;
 
     const taslak: FaturaTaslagi = {
       alici: {
-        vknTckn: vknTckn.trim(),
-        unvan: unvan.trim(),
-        vergiDairesi: vergiDairesi.trim() || undefined,
-        adres: adres.trim(),
+        vknTckn: form.alici.vknTckn.trim(),
+        unvan: form.alici.unvan,
+        ad: form.alici.ad,
+        soyad: form.alici.soyad,
+        vergiDairesi: form.alici.vergiDairesi || undefined,
+        adres: form.alici.adres.trim(),
+        ulke: form.alici.ulke,
       },
-      satirlar: kalemler.map((k) => ({
-        malHizmet: k.malHizmet.trim(),
-        miktar: parseNumara(k.miktar),
-        // Form birim seçimi istemiyor; GİB'in beklediği zorunlu alan için
-        // sabit "Adet" kullanıyoruz.
-        birim: 'Adet',
-        birimFiyat: parseNumara(k.birimFiyat),
-        kdvOrani: k.kdvOrani,
-      })),
-      faturaTarihi: bugununTarihi(),
+      satirlar: form.kalemler.map((k) => {
+        const hesap = kalemHesapla(k);
+        return {
+          malHizmet: k.malHizmet.trim(),
+          miktar: parseNumara(k.miktar),
+          birim: k.birim,
+          birimFiyat: parseNumara(k.birimFiyat),
+          iskontoOrani: parseNumara(k.iskontoOrani),
+          kdvOrani: k.kdvOrani,
+          kdvTevkifatKodu: k.ekVergi?.tevkifatKodu,
+          kdvTevkifatOrani: hesap.tevkifatOrani,
+        };
+      }),
+      faturaTarihi: ggAaYyyy(form.faturaTarihi),
+      saat: saatFormatla(form.faturaSaati),
+      paraBirimi: form.paraBirimi,
+      dovizKuru: parseNumara(form.dovizKuru),
+      faturaTipi: form.faturaTipi,
+      irsaliyeNo: form.irsaliyeNo || undefined,
+      irsaliyeTarihi: form.irsaliyeTarihi ? ggAaYyyy(form.irsaliyeTarihi) : undefined,
+      not: form.not || undefined,
     };
 
     setKaydediliyor(true);
     try {
       const sonuc = await faturaKaydet(token, taslak);
+      // Fatura başarıyla kaydedildiğinde alıcıyı adres defterine yaz —
+      // bir sonraki faturada "Kayıtlı Alıcılardan Seç" ile tekrar
+      // kullanılabilsin.
+      await aliciKaydet(form.alici);
       Alert.alert('Taslak Kaydedildi', `Belge No: ${sonuc.ettn}`, [
         { text: 'Tamam', onPress: () => navigation.navigate('Taslaklar') },
       ]);
@@ -190,7 +169,10 @@ export default function FaturaKesimScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom', 'left', 'right']}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: theme.colors.background }]}
+      edges={['top', 'bottom', 'left', 'right']}
+    >
       <Appbar.Header elevated>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title="Yeni Fatura Kes" />
@@ -206,131 +188,47 @@ export default function FaturaKesimScreen({ navigation }: Props) {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Alıcı Bilgileri
-          </Text>
-          <View style={styles.form}>
-            <TextInput
-              mode="outlined"
-              label="VKN / TCKN"
-              value={vknTckn}
-              onChangeText={setVknTckn}
-              keyboardType="number-pad"
-              maxLength={11}
-              right={mukellefSorgulaniyor ? <TextInput.Icon icon="loading" /> : undefined}
-              style={styles.input}
-            />
-            <TextInput mode="outlined" label="Unvan" value={unvan} onChangeText={setUnvan} style={styles.input} />
-            <TextInput
-              mode="outlined"
-              label="Vergi Dairesi"
-              value={vergiDairesi}
-              onChangeText={setVergiDairesi}
-              style={styles.input}
-            />
-            <TextInput
-              mode="outlined"
-              label="Adres"
-              value={adres}
-              onChangeText={setAdres}
-              multiline
-              numberOfLines={2}
-              style={styles.input}
-            />
-          </View>
+          <FaturaBilgileriKarti
+            faturaTarihi={form.faturaTarihi}
+            faturaSaati={form.faturaSaati}
+            paraBirimi={form.paraBirimi}
+            dovizKuru={form.dovizKuru}
+            faturaTipi={form.faturaTipi}
+            onFaturaTarihiChange={(v) => setForm((p) => ({ ...p, faturaTarihi: v }))}
+            onFaturaSaatiChange={(v) => setForm((p) => ({ ...p, faturaSaati: v }))}
+            onParaBirimiChange={(v) => setForm((p) => ({ ...p, paraBirimi: v }))}
+            onDovizKuruChange={(v) => setForm((p) => ({ ...p, dovizKuru: v }))}
+            onFaturaTipiChange={(v) => setForm((p) => ({ ...p, faturaTipi: v }))}
+          />
 
-          <Divider style={styles.divider} />
+          <AliciBilgileriKarti token={token} alici={form.alici} onAliciChange={aliciGuncelle} />
 
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Fatura Kalemleri
-          </Text>
-          <View style={styles.form}>
-            {kalemler.map((kalem, index) => (
-              <Card key={kalem.id} mode="outlined" style={styles.kalemCard}>
-                <Card.Content style={styles.form}>
-                  <View style={styles.kalemHeader}>
-                    <Text variant="labelLarge">Kalem {index + 1}</Text>
-                    {kalemler.length > 1 && (
-                      <IconButton
-                        icon="delete-outline"
-                        size={20}
-                        onPress={() => kalemSil(kalem.id)}
-                        accessibilityLabel={`Kalem ${index + 1} sil`}
-                      />
-                    )}
-                  </View>
+          <IrsaliyeBilgileriKarti
+            irsaliyeNo={form.irsaliyeNo}
+            irsaliyeTarihi={form.irsaliyeTarihi}
+            onIrsaliyeNoChange={(v) => setForm((p) => ({ ...p, irsaliyeNo: v }))}
+            onIrsaliyeTarihiChange={(v) => setForm((p) => ({ ...p, irsaliyeTarihi: v }))}
+          />
 
-                  <TextInput
-                    mode="outlined"
-                    label="Mal/Hizmet Adı"
-                    value={kalem.malHizmet}
-                    onChangeText={(v) => kalemGuncelle(kalem.id, { malHizmet: v })}
-                    style={styles.input}
-                  />
+          <MalHizmetKarti
+            kalemler={form.kalemler}
+            faturaTipi={form.faturaTipi}
+            onKalemGuncelle={kalemGuncelle}
+            onKalemEkle={kalemEkle}
+            onKalemSil={kalemSil}
+          />
 
-                  <View style={styles.row}>
-                    <TextInput
-                      mode="outlined"
-                      label="Miktar"
-                      value={kalem.miktar}
-                      onChangeText={(v) => kalemGuncelle(kalem.id, { miktar: v })}
-                      keyboardType="decimal-pad"
-                      style={[styles.input, styles.rowItem]}
-                    />
-                    <TextInput
-                      mode="outlined"
-                      label="Birim Fiyat"
-                      value={kalem.birimFiyat}
-                      onChangeText={(v) => kalemGuncelle(kalem.id, { birimFiyat: v })}
-                      keyboardType="decimal-pad"
-                      style={[styles.input, styles.rowItem]}
-                    />
-                  </View>
-
-                  <Text variant="bodySmall" style={styles.kdvLabel}>
-                    KDV Oranı
-                  </Text>
-                  <SegmentedButtons
-                    value={String(kalem.kdvOrani)}
-                    onValueChange={(v) => kalemGuncelle(kalem.id, { kdvOrani: Number(v) as KdvOrani })}
-                    buttons={KDV_ORANLARI.map((oran) => ({ value: String(oran), label: `%${oran}` }))}
-                  />
-                </Card.Content>
-              </Card>
-            ))}
-
-            <Button mode="outlined" icon="plus" onPress={kalemEkle} style={styles.kalemEkleButton}>
-              Kalem Ekle
-            </Button>
-          </View>
-
-          <Card mode="elevated" style={styles.ozetCard}>
-            <Card.Content style={styles.form}>
-              <View style={styles.ozetSatir}>
-                <Text variant="bodyMedium">Ara Toplam</Text>
-                <Text variant="bodyMedium">{paraFormatla(ozet.altToplam)} ₺</Text>
-              </View>
-              <View style={styles.ozetSatir}>
-                <Text variant="bodyMedium">KDV Toplamı</Text>
-                <Text variant="bodyMedium">{paraFormatla(ozet.kdvToplam)} ₺</Text>
-              </View>
-              <Divider />
-              <View style={styles.ozetSatir}>
-                <Text variant="titleMedium">Genel Toplam</Text>
-                <Text variant="titleMedium">{paraFormatla(ozet.genelToplam)} ₺</Text>
-              </View>
-            </Card.Content>
-          </Card>
+          <ToplamlarKarti ozet={ozet} not={form.not} onNotChange={(v) => setForm((p) => ({ ...p, not: v }))} />
 
           <Button
             mode="contained"
-            onPress={handleTaslakOlarakKaydet}
+            onPress={handleOlustur}
             disabled={!formGecerli || kaydediliyor}
             loading={kaydediliyor}
-            style={styles.kaydetButton}
-            contentStyle={styles.kaydetButtonContent}
+            style={styles.olusturButonu}
+            contentStyle={styles.olusturButonuIcerik}
           >
-            Taslak Olarak Kaydet
+            Oluştur
           </Button>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -341,19 +239,7 @@ export default function FaturaKesimScreen({ navigation }: Props) {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   flex: { flex: 1 },
-  scrollContent: { padding: 20, gap: 16 },
-  sectionTitle: { marginBottom: 4 },
-  form: { gap: 12 },
-  input: { width: '100%' },
-  divider: { marginVertical: 8 },
-  row: { flexDirection: 'row', gap: 12 },
-  rowItem: { flex: 1 },
-  kalemCard: { borderRadius: 12 },
-  kalemHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  kdvLabel: { opacity: 0.6, marginTop: 4 },
-  kalemEkleButton: { alignSelf: 'flex-start' },
-  ozetCard: { borderRadius: 16 },
-  ozetSatir: { flexDirection: 'row', justifyContent: 'space-between' },
-  kaydetButton: { borderRadius: 8, marginTop: 4 },
-  kaydetButtonContent: { paddingVertical: 6 },
+  scrollContent: { padding: 16, gap: 16 },
+  olusturButonu: { borderRadius: 8, marginTop: 4 },
+  olusturButonuIcerik: { paddingVertical: 6 },
 });

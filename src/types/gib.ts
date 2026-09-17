@@ -5,9 +5,11 @@
 
 export type KdvOrani = 0 | 1 | 8 | 10 | 18 | 20;
 
-export type ParaBirimi = 'TRY' | 'USD' | 'EUR' | 'GBP';
-
-export type FaturaTipi = 'SATIS' | 'IADE' | 'TEVKIFAT' | 'ISTISNA' | 'OZELMATRAH' | 'IHRACKAYITLI';
+// Tam liste artık src/constants/faturaConstants.ts'te (PARA_BIRIMLERI,
+// FATURA_TIPLERI) tutuluyor; burada geniş bir string olarak bırakıldı ki iki
+// yerde aynı listeyi eş zamanlı güncel tutma yükü olmasın.
+export type ParaBirimi = string;
+export type FaturaTipi = string;
 
 export interface FaturaSatiri {
   malHizmet: string;
@@ -16,11 +18,18 @@ export interface FaturaSatiri {
   birimFiyat: number;
   iskontoOrani?: number;
   kdvOrani: KdvOrani;
+  // DOĞRULANMADI: tevkifat alan adları canlı FATURA_KAYDET yanıtıyla henüz
+  // teyit edilmedi.
+  kdvTevkifatKodu?: string;
+  kdvTevkifatOrani?: number;
 }
 
 export interface AliciBilgisi {
   vknTckn: string;
+  /** VKN (şirket) alıcılarda dolu; TCKN (şahıs) alıcılarda boş, onun yerine ad/soyad kullanılır. */
   unvan: string;
+  ad?: string;
+  soyad?: string;
   vergiDairesi?: string;
   adres: string;
   ilce?: string;
@@ -34,9 +43,12 @@ export interface FaturaTaslagi {
   alici: AliciBilgisi;
   satirlar: FaturaSatiri[];
   faturaTarihi: string; // "GG/AA/YYYY"
-  saat?: string; // "SS:DD"
+  saat?: string; // "SS:DD:SS"
   faturaTipi?: FaturaTipi;
   paraBirimi?: ParaBirimi;
+  dovizKuru?: number;
+  irsaliyeNo?: string;
+  irsaliyeTarihi?: string; // "GG/AA/YYYY"
   not?: string;
 }
 
@@ -54,6 +66,17 @@ export interface KullaniciBilgisi {
 
 export interface TaslakFatura {
   ettn: string;
+  // Canlı GİB yanıtıyla doğrulandı (gerçek Network yakalaması):
+  // belgeNumarasi, aliciVknTckn, aliciUnvanAdSoyad, belgeTarihi ("GG-AA-YYYY",
+  // tireli — sorgu parametreleri "GG/AA/YYYY" ile karıştırılmamalı),
+  // belgeTuru ("FATURA"), onayDurumu ("Onaylandı" | "Onaylanmadı" | "Silinmiş").
+  belgeTarihi?: string;
+  aliciUnvanAdSoyad?: string;
+  aliciVknTckn?: string;
+  belgeNumarasi?: string;
+  belgeTuru?: string;
+  onayDurumu?: string;
+  // Aşağıdakiler henüz doğrulanmadı / eski isim uyumluluğu için tutuluyor.
   faturaTarihi?: string;
   aliciUnvan?: string;
   genelToplam?: number;

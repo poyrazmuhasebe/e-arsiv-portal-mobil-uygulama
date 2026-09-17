@@ -265,9 +265,34 @@ export async function login(kullaniciKodu: string, kullaniciSifresi: string): Pr
  * değildir; GİB tarafında oturum askıda kalırsa sonraki girişler
  * engellenebilir. Bu çağrı başarısız olsa da (ağ hatası vb.) çağıran taraf
  * yerel oturumu temizlemeye devam etmelidir.
+ *
+ * DOĞRULANMADI (ama bir kez elendi): "EARSIV_PORTAL_LOGOUT" dispatch
+ * komutu tanınmıyordu ("yetkiniz yok"). login()'in gerçekte dispatch/jp
+ * değil assos-login uç noktasını kullandığını keşfedip logout'u da oraya
+ * taşımıştık — ancak `assoscmd=anologin` GİB tarafından LOGIN komutu olarak
+ * yorumlanıp "Sisteme giriş için eksik bilgi verildi" hatası verdi (çünkü
+ * kullanıcı adı/şifre eksikti). Şimdi `assoscmd=logout` deniyoruz. Konsoldaki
+ * "GİB ASSOS LOGOUT YANITI" ile teyit edin; bu da tutmazsa GİB'in çıkış için
+ * hiç ayrı bir servis çağrısı istemiyor olması (yalnızca token'ı istemci
+ * tarafında silmek yeterli) ihtimalini de değerlendirmemiz gerekebilir.
  */
 export async function logout(token: string): Promise<void> {
-  await dispatch('EARSIV_PORTAL_LOGOUT', 'RG_GIRIS', {}, token);
+  if (IS_TEST_MODE) {
+    console.log('MOCK LOGOUT');
+    return Promise.resolve();
+  }
+
+  const body = buildFormBody({ assoscmd: 'logout', rtype: 'json', token });
+  console.log('GÖNDERİLEN DATA (assos-logout):', JSON.stringify({ url: ASSOS_LOGIN_URL, body }));
+
+  let res: AxiosResponse<unknown>;
+  try {
+    res = await client.post<unknown>(ASSOS_LOGIN_URL, body);
+  } catch (err) {
+    throw new GibApiError('Çıkış isteği gönderilemedi.', err);
+  }
+
+  console.log('GİB ASSOS LOGOUT YANITI:', JSON.stringify(res.data));
 }
 
 // ---------------------------------------------------------------------------
@@ -312,8 +337,12 @@ export async function getKullaniciBilgileri(token: string): Promise<KullaniciBil
 // ---------------------------------------------------------------------------
 
 export interface MukellefBilgisi {
+  /** VKN (şirket) sorgusunda dolu; TCKN (şahıs) sorgusunda genelde boş gelir. */
   unvan: string;
   vergiDairesi?: string;
+  /** Yalnızca TCKN (şahıs) sorgusunda dolu gelir — Ad/Soyad'ı ayrı alanlara koymak isteyen ekranlar için. */
+  ad?: string;
+  soyad?: string;
 }
 
 export async function mukellefBilgisiGetir(
@@ -324,9 +353,13 @@ export async function mukellefBilgisiGetir(
   if (!/^\d{10}(\d)?$/.test(temiz)) return undefined;
 
   if (IS_TEST_MODE) {
-    // Test modunda gerçek bir mükellef veritabanı yok; 10-11 haneli her
-    // numara için aynı örnek kaydı döndürüyoruz.
+    // Test modunda gerçek bir mükellef veritabanı yok; VKN (10 hane) için
+    // sahte bir şirket, TCKN (11 hane) için sahte bir şahıs kaydı dönüyoruz
+    // ki FaturaKesimScreen'in iki farklı doldurma davranışı da test edilebilsin.
     console.log('MOCK MÜKELLEF BİLGİSİ GETİR:', { vknTckn: temiz });
+    if (temiz.length === 11) {
+      return Promise.resolve({ unvan: '', ad: 'TEST', soyad: 'KULLANICI', vergiDairesi: 'Marmara Kurumlar' });
+    }
     return Promise.resolve({ unvan: 'TEST LİMİTED ŞİRKETİ', vergiDairesi: 'Marmara Kurumlar' });
   }
 
@@ -360,7 +393,7 @@ export async function mukellefBilgisiGetir(
 
   const vergiDairesi = asString(veri.vergiDairesi);
 
-  return { unvan, vergiDairesi };
+  return { unvan, vergiDairesi, ad: adi, soyad: soyadi };
 }
 
 // ---------------------------------------------------------------------------
@@ -377,6 +410,10 @@ function toGibAlici(alici: AliciBilgisi) {
   return {
     vknTckn: alici.vknTckn,
     aliciUnvan: alici.unvan,
+    // DOĞRULANMADI: aliciAdi/aliciSoyadi alan adları, kısmen doğrulanmış
+    // açık kaynak referansla uyumlu (TCKN/şahıs alıcılar için).
+    aliciAdi: alici.ad ?? '',
+    aliciSoyadi: alici.soyad ?? '',
     vergiDairesi: alici.vergiDairesi ?? '',
     aliciAdres: alici.adres,
     ilce: alici.ilce ?? '',
@@ -408,9 +445,13 @@ export async function faturaKaydet(
   const payload = {
     ...toGibAlici(taslak.alici),
     faturaTarihi: taslak.faturaTarihi,
-    saat: taslak.saat ?? new Date().toTimeString().slice(0, 5),
+    saat: taslak.saat ?? new Date().toTimeString().slice(0, 8),
     paraBirimi: taslak.paraBirimi ?? 'TRY',
+    dovizKuru: taslak.dovizKuru ?? 0,
     faturaTipi: taslak.faturaTipi ?? 'SATIS',
+    siparisNumarasi: '',
+    irsaliyeNumarasi: taslak.irsaliyeNo ?? '',
+    irsaliyeTarihi: taslak.irsaliyeTarihi ?? '',
     not: taslak.not ?? '',
     malHizmetTable: taslak.satirlar.map((satir) => ({
       malHizmet: satir.malHizmet,
@@ -419,6 +460,9 @@ export async function faturaKaydet(
       birimFiyat: satir.birimFiyat,
       iskontoOrani: satir.iskontoOrani ?? 0,
       kdvOrani: satir.kdvOrani,
+      // DOĞRULANMADI — bkz. FaturaSatiri yorumları.
+      kdvTevkifatKodu: satir.kdvTevkifatKodu ?? '',
+      kdvTevkifatOrani: satir.kdvTevkifatOrani ?? 0,
     })),
   };
 
@@ -451,22 +495,49 @@ const MOCK_TASLAKLAR: TaslakFatura[] = [
   { ettn: 'MOCK-ETTN-0003', faturaTarihi: '05/09/2026', aliciUnvan: 'XYZ Danışmanlık A.Ş.', genelToplam: 2450.75, durum: 'Onaylandı' },
 ];
 
+function ggAaYyyy(d: Date): string {
+  const gg = String(d.getDate()).padStart(2, '0');
+  const aa = String(d.getMonth() + 1).padStart(2, '0');
+  return `${gg}/${aa}/${d.getFullYear()}`;
+}
+
 export async function taslakGetir(
   token: string,
   filtre: TaslakGetirFiltre = {},
 ): Promise<TaslakFatura[]> {
+  // GİB, tarih aralığı filtresi olmadan (boş jp: {}) "Bu işlem için yetkiniz
+  // yok" hatası veriyor — filtre verilmezse son 7 günü varsayılan alıyoruz.
+  const bugun = new Date();
+  const yediGunOnce = new Date(bugun);
+  yediGunOnce.setDate(bugun.getDate() - 7);
+
+  const baslangic = filtre.baslangicTarihi ?? ggAaYyyy(yediGunOnce);
+  const bitis = filtre.bitisTarihi ?? ggAaYyyy(bugun);
+
   if (IS_TEST_MODE) {
-    console.log('MOCK TASLAK GETIR:', filtre);
+    console.log('MOCK TASLAK GETIR:', { baslangic, bitis });
     return Promise.resolve(MOCK_TASLAKLAR);
   }
 
-  const result = await dispatch<TaslakFatura[] | { data: TaslakFatura[] }>(
-    'EARSIV_PORTAL_TASLAK_GETIR',
-    'RG_BASITFATURA',
-    { ...filtre },
+  // cmd/pageName ve "baslangic"/"bitis" alan adları, önceki turda incelediğim
+  // (kısmen doğrulanmış, kısmen şüpheli bulduğum) açık kaynak referansla
+  // uyumlu; "hangiTip"/"table" de aynı kaynaktan — GİB'in doğrulaması katı
+  // olduğundan bilinen çalışan gövdeye birebir uyduk. Yine de canlı yanıtla
+  // teyit edilmesi gerekiyor.
+  const result = await dispatch<TaslakFatura[] | { data: TaslakFatura[] } | Record<string, unknown>>(
+    'EARSIV_PORTAL_TASLAKLARI_GETIR',
+    'RG_BASITTASLAKLAR',
+    { baslangic, bitis, hangiTip: '5000/30000', table: [] },
     token,
   );
-  return Array.isArray(result) ? result : result?.data ?? [];
+
+  console.log('GİB TASLAK HAM YANIT:', JSON.stringify(result));
+
+  if (Array.isArray(result)) return result;
+  if (result && typeof result === 'object' && Array.isArray((result as { data?: unknown }).data)) {
+    return (result as { data: TaslakFatura[] }).data;
+  }
+  return [];
 }
 
 // ---------------------------------------------------------------------------
@@ -496,6 +567,54 @@ export async function smsSifreOnayla(
     { ettn, sifre: smsKodu },
     token,
   );
+}
+
+// ---------------------------------------------------------------------------
+// Fatura HTML görüntüleme (WebView'de göstermek için)
+// ---------------------------------------------------------------------------
+
+const MOCK_FATURA_HTML = (ettn: string) => `
+  <html><body style="font-family:sans-serif;padding:24px;background:#111;color:#eee;">
+    <h2>Mock Fatura Önizleme</h2>
+    <p>ETTN: ${ettn}</p>
+    <p>IS_TEST_MODE=true olduğundan bu içerik GİB'den değil, sahte veriden gelir.</p>
+  </body></html>
+`;
+
+/**
+ * DOĞRULANMADI: cmd adı ("EARSIV_PORTAL_FATURA_GOSTER") ve payload
+ * ("onayDurumu" alanı) canlı ortamda henüz sizin gerçek Network
+ * yakalamanızla teyit edilmedi — önceki turlarda incelediğim (kısmen
+ * doğrulanmış) açık kaynak referansla uyumlu bir tahmindir. "Görüntüle"yi
+ * denediğinizde terminaldeki "GİB FATURA HTML HAM YANIT" logunu kontrol edin.
+ */
+export async function faturaHTMLGetir(
+  token: string,
+  ettn: string,
+  onayDurumu?: string,
+): Promise<string> {
+  if (IS_TEST_MODE) {
+    console.log('MOCK FATURA HTML GETIR:', { ettn });
+    return Promise.resolve(MOCK_FATURA_HTML(ettn));
+  }
+
+  const result = await dispatch<string | { data?: string } | Record<string, unknown>>(
+    'EARSIV_PORTAL_FATURA_GOSTER',
+    'RG_BASITTASLAKLAR',
+    { ettn, onayDurumu: onayDurumu ?? 'Onaylanmadı' },
+    token,
+  );
+
+  // HTML gövdesi çok uzun olabileceğinden konsolu boğmamak için kısaltıyoruz.
+  const onizleme = typeof result === 'string' ? result : JSON.stringify(result);
+  console.log('GİB FATURA HTML HAM YANIT (ilk 300 karakter):', onizleme.slice(0, 300));
+
+  if (typeof result === 'string' && result.length > 0) return result;
+  if (result && typeof result === 'object') {
+    const veri = (result as { data?: unknown }).data;
+    if (typeof veri === 'string' && veri.length > 0) return veri;
+  }
+  throw new GibApiError('Fatura HTML içeriği alınamadı.', result);
 }
 
 // ---------------------------------------------------------------------------
@@ -537,6 +656,7 @@ export const gibApi = {
   taslakGetir,
   smsSifreGonder,
   smsSifreOnayla,
+  faturaHTMLGetir,
   faturaIndir,
 };
 
