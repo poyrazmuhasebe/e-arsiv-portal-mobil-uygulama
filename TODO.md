@@ -24,12 +24,14 @@
 - [x] Merkezi oturum-hatası yönetimi (`gibHatasiniIsle`) — GİB yanıtı oturum/token'a işaret eden anahtar kelimeler içeriyorsa otomatik `logout()` + Login'e dönüş
 - [x] Tevkifat kodları tablosu (`faturaConstants.ts`) — GİB'in resmi KDV Genel Uygulama Tebliği oranlarıyla ve kullanıcının paylaştığı kod↔oran referans tablosuyla tam doğrulanıp **52 koda** (601-627 kısmi + 801-825 tam tevkifat) çıkarıldı
 - [x] Test modu (`IS_TEST_MODE`) — mock login/kullanıcı/mükellef/taslak/fatura kaydet/SMS/HTML
+- [x] `faturaConstants.ts` — GİB'in gerçek "e-Arşiv Fatura Oluştur" ekranından DevTools ile yakalanan ham `<select>` verileriyle birebir güncellendi: **Para Birimi** (8→185 gerçek kod), **Ülke** (12→250 gerçek değer, bir tekrar eden "Faroe Adaları" ayıklandı), **Fatura Tipi** (`IADE`/`YTBSATIS`/`YTBISTISNA`/`YTBIADE`/`YTBTEVKIFAT`/`YTBTEVKIFATIADE` — eskiden icat edilmiş `GENELIADE`/`YATIRIMTESVIK*` değerleri yanlıştı), **Vergi Türü** (gerçek 29 `V####` kodu; en kritik olarak KDV Tevkifat = `V9015`, eskiden icat edilmiş `'KDVTEVKIFAT'` string'i hiçbir zaman gerçek bir GİB gönderimiyle eşleşmeyecekti). Bağımlı tüm dosyalar (`faturaHesap.ts`, `MalHizmetKarti.tsx`, `faturaForm.ts`) `V9015` sentinel'ine geçirildi.
 
 ## Doğrulanması Gerekenler
 
 - [ ] `faturaKaydet` — `EARSIV_PORTAL_FATURA_KAYDET` de "yetkiniz yok" ile reddedildi (bu projede bu mesaj hep geçersiz cmd anlamına geldiğinden `EARSIV_PORTAL_FATURA_OLUSTUR`'a geri dönüldü — o cmd gerçek/tanınıyor, önceki reddi muhtemelen eksik `callid` ve yanlış `hangiTip` gibi alan hatalarındandı). Kullanıcı gerçek "e-Arşiv Fatura (interaktif) Oluştur" ekranından DevTools ile tam isteği yakaladı; payload artık **birebir o yakalamaya göre**. Sıradaki canlı denemenin gerçekten fatura oluşturup oluşturmadığı doğrulanmalı.
 - [ ] SMS gönder/onayla (`smsSifreGonder` / `smsSifreOnayla`) — cmd adları ve payload şekli canlı ortamda doğrulanmadı.
 - [ ] Tevkifat kodları: 623 sonrası olası "Kamu Özel İşbirliği/Sağlık Tesisleri" gibi karmaşık/tek orana indirgenemeyen kalemler listede yok (bilinçli olarak atlandı).
+- [ ] GİB'in gerçek tevkifat kodu listesinde ayrıca "627-Ex" adlı, 627'nin 01/11/2022 öncesi eski oranını temsil eden tarihsel bir seçenek var; bu varyantın doğrulanmış bir oranı elimizde olmadığından ve uygulama her zaman güncel tarihli fatura kestiğinden bilerek listeye eklenmedi.
 
 ## Yapılacaklar
 
