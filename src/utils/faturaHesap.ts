@@ -28,7 +28,7 @@ export function kalemHesapla(kalem: KalemFormu): KalemHesabi {
 
   let tevkifatOrani: number | undefined;
   let tevkifatTutari = 0;
-  if (kalem.ekVergi?.tur === 'KDVTEVKIFAT' && kalem.ekVergi.tevkifatKodu) {
+  if (kalem.ekVergi?.tur === 'V9015' && kalem.ekVergi.tevkifatKodu) {
     const kod = TEVKIFAT_KODLARI.find((k) => k.value === kalem.ekVergi?.tevkifatKodu);
     if (kod) {
       tevkifatOrani = kod.oran;

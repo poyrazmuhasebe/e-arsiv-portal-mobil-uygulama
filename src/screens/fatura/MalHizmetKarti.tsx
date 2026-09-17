@@ -20,8 +20,8 @@ interface Props {
 const TEVKIFAT_DESTEKLEYEN_FATURA_TIPLERI = new Set([
   'TEVKIFAT',
   'TEVKIFATIADE',
-  'YATIRIMTESVIKTEVKIFAT',
-  'YATIRIMTESVIKTEVKIFATIADE',
+  'YTBTEVKIFAT',
+  'YTBTEVKIFATIADE',
 ]);
 
 export default function MalHizmetKarti({
@@ -148,7 +148,7 @@ export default function MalHizmetKarti({
                       />
                     </View>
 
-                    {kalem.ekVergi?.tur === 'KDVTEVKIFAT' && tevkifatDesteklenir && (
+                    {kalem.ekVergi?.tur === 'V9015' && tevkifatDesteklenir && (
                       <>
                         <SecimAlani
                           label="Tevkifat Kodu"
@@ -156,7 +156,7 @@ export default function MalHizmetKarti({
                           secenekler={TEVKIFAT_KODLARI}
                           onSelect={(v) =>
                             onKalemGuncelle(kalem.id, {
-                              ekVergi: { ...kalem.ekVergi, tur: 'KDVTEVKIFAT', tevkifatKodu: v },
+                              ekVergi: { ...kalem.ekVergi, tur: 'V9015', tevkifatKodu: v },
                             })
                           }
                         />
@@ -179,7 +179,7 @@ export default function MalHizmetKarti({
                       </>
                     )}
 
-                    {kalem.ekVergi?.tur === 'KDVTEVKIFAT' && !tevkifatDesteklenir && (
+                    {kalem.ekVergi?.tur === 'V9015' && !tevkifatDesteklenir && (
                       <Text variant="bodySmall" style={styles.uyariMetni}>
                         KDV Tevkifat, yalnızca Fatura Tipi "TEVKİFAT" (veya ilgili yatırım teşvik
                         varyantı) olduğunda hesaba katılır. Şu an Fatura Bilgileri kartından tipi

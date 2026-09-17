@@ -1,7 +1,7 @@
 import type { KdvOrani } from './gib';
 
 export interface KalemVergisi {
-  tur: string; // VERGI_TURLERI value (ör. "KDVTEVKIFAT")
+  tur: string; // VERGI_TURLERI value (ör. "V9015" = KDV Tevkifat)
   tevkifatKodu?: string; // TEVKIFAT_KODLARI value (ör. "601")
   tevkifatOrani?: number; // % — seçilen tevkifat koduna göre otomatik dolar
 }
