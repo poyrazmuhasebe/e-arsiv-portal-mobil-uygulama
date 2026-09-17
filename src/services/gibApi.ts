@@ -128,6 +128,14 @@ function buildFormBody(params: Record<string, string | undefined>): string {
   return usp.toString();
 }
 
+// Gerçek portal isteklerinde her dispatch çağrısının yanında bir "callid"
+// parametresi gidiyor (DevTools yakalamasıyla doğrulandı). Tam formatı
+// önemli görünmüyor — GİB muhtemelen yalnızca isteği ayırt etmek için
+// kullanıyor — bu yüzden basit, her seferinde benzersiz bir değer üretiyoruz.
+function benzersizCallId(): string {
+  return `${Date.now().toString(36)}-${Math.floor(Math.random() * 10)}`;
+}
+
 function extractErrorMessage(payload: unknown): string | undefined {
   if (!payload || typeof payload !== 'object') return undefined;
   const messages = (payload as DispatchEnvelope).messages;
@@ -165,6 +173,7 @@ async function dispatch<T = unknown>(
 ): Promise<T> {
   const body = buildFormBody({
     cmd,
+    callid: benzersizCallId(),
     pageName,
     token,
     jp: JSON.stringify(payload),
@@ -442,34 +451,26 @@ export interface FaturaKaydetSonucu {
   uuid?: string;
 }
 
+// Tarayıcı DevTools > Network yakalamasıyla BİREBİR DOĞRULANDI (gerçek
+// "e-Arşiv Fatura (interaktif) Oluştur" ekranından gönderilen istek).
 function toGibAlici(alici: AliciBilgisi) {
   return {
     vknTckn: alici.vknTckn,
     aliciUnvan: alici.unvan,
-    // DOĞRULANMADI: aliciAdi/aliciSoyadi, kısmen doğrulanmış açık kaynak
-    // referansla uyumlu (TCKN/şahıs alıcılar için).
     aliciAdi: alici.ad ?? '',
     aliciSoyadi: alici.soyad ?? '',
-    vergiDairesi: alici.vergiDairesi ?? '',
-    // Formumuz adresi tek bir serbest metin alanı olarak topluyor; GİB'in
-    // gerçek DTO'sunun adresi cadde/bina/kapı/mahalle/şehir/posta kodu diye
-    // parçalara ayırdığına dair kanıt var (bkz. referans) ama biz bu kadar
-    // ayrıntılı toplamıyoruz. Hangi alan adı gerçekte kullanılıyorsa
-    // dolsun diye HEM eski (aliciAdres/ilce/il) HEM referanstaki
-    // (bulvarcaddesokak/mahalleSemtIlce/sehir) adları aynı değerle
-    // dolduruyoruz — tanınmayan alanlar GİB tarafında muhtemelen yok sayılır.
-    aliciAdres: alici.adres,
-    bulvarcaddesokak: alici.adres,
     binaAdi: '',
     binaNo: '',
     kapiNo: '',
     kasabaKoy: '',
-    ilce: alici.ilce ?? '',
-    mahalleSemtIlce: alici.ilce ?? '',
-    il: alici.il ?? '',
-    sehir: alici.il ?? '',
-    postaKodu: '',
+    vergiDairesi: alici.vergiDairesi ?? '',
     ulke: alici.ulke ?? 'Türkiye',
+    bulvarcaddesokak: alici.adres,
+    mahalleSemtIlce: alici.ilce ?? '',
+    // Gerçek yakalamada boşken tek boşluk karakteri (" ") gönderiliyordu,
+    // boş string değil.
+    sehir: alici.il || ' ',
+    postaKodu: '',
     tel: alici.telefon ?? '',
     fax: '',
     eposta: alici.eposta ?? '',
@@ -493,13 +494,12 @@ function satirHesapla(satir: FaturaSatiri): SatirHesabi {
 }
 
 /**
- * DOĞRULANMADI ama önceki turlarda incelediğim (bu projede assos-login,
- * SICIL_VEYA_MERNISTEN_BILGILERI_GETIR, EARSIV_PORTAL_TASLAKLARI_GETIR gibi
- * birçok kez doğru çıkan) açık kaynak referansla uyumlu. Minimal bir payload
- * ("yetkiniz yok" hatasını veren önceki deneme) muhtemelen GİB'in katı
- * DTO'sunun beklediği zorunlu-ama-bizim SATIŞ faturasında kullanmadığımız
- * (komisyon/navlun/hammaliye/nakliye/hal rüsumu vb.) alanları içermiyordu —
- * bu yüzden hepsi güvenli varsayılanlarla dolduruldu.
+ * Tarayıcı DevTools > Network yakalamasıyla BİREBİR DOĞRULANDI: gerçek
+ * "e-Arşiv Fatura (interaktif) Oluştur" ekranından atılan istek bu şekilde.
+ * Önceki sürümdeki komisyon/navlun/hammaliye/nakliye/hal rüsumu/ticaret
+ * borsası/milli savunma fonu/diğer/top-level özel matrah alanları hayaliydi
+ * (açık kaynak referanstan tahmin edilmişti) — gerçek istekte HİÇ YOKLAR,
+ * kaldırıldı.
  */
 function buildFaturaOlusturPayload(taslak: FaturaTaslagi) {
   let malHizmetToplam = 0;
@@ -519,21 +519,28 @@ function buildFaturaOlusturPayload(taslak: FaturaTaslagi) {
     hesaplananKdvTevkifat += hesap.tevkifatTutari;
 
     return {
-      iskontoArttm: 'İskonto',
       malHizmet: satir.malHizmet,
       miktar: satir.miktar,
       birim: satir.birim,
-      birimFiyat: satir.birimFiyat.toFixed(2),
+      birimFiyat: String(satir.birimFiyat),
       fiyat: brut.toFixed(2),
       iskontoOrani,
       iskontoTutari: iskontoTutari.toFixed(2),
       iskontoNedeni: '',
       malHizmetTutari: hesap.netTutar.toFixed(2),
-      kdvOrani: satir.kdvOrani,
-      vergiOrani: satir.kdvOrani,
+      // Gerçek yakalamada kdvOrani STRING'di ("20"), vergiOrani/
+      // vergininKdvTutari ise KDV'yi tekrar etmiyordu — hep "0" gönderiliyordu
+      // (muhtemelen ayrı bir vergi türü/ÖTV alanı, bizim akışımızda kullanılmıyor).
+      kdvOrani: String(satir.kdvOrani),
+      vergiOrani: 0,
       kdvTutari: hesap.kdvTutari.toFixed(2),
-      vergininKdvTutari: hesap.kdvTutari.toFixed(2),
-      // DOĞRULANMADI — bkz. FaturaSatiri yorumları.
+      vergininKdvTutari: '0',
+      ozelMatrahTutari: '0',
+      hesaplananotvtevkifatakatkisi: '0',
+      // DOĞRULANMADI: gerçek yakalamamız KDV Tevkifatsız (SATIŞ) bir fatura
+      // içindi, bu iki alan o istekte hiç yoktu. Tevkifatlı fatura tipinde
+      // (Fatura Tipi = TEVKİFAT) muhtemelen farklı/ek alanlar kullanılıyor —
+      // bir tevkifatlı deneme yakalanana kadar bu ikisi tahmindir.
       kdvTevkifatKodu: satir.kdvTevkifatKodu ?? '',
       kdvTevkifatOrani: satir.kdvTevkifatOrani ?? 0,
     };
@@ -543,69 +550,23 @@ function buildFaturaOlusturPayload(taslak: FaturaTaslagi) {
   const odenecekTutar = vergilerDahilToplam - hesaplananKdvTevkifat;
 
   return {
-    ...toGibAlici(taslak.alici),
+    faturaUuid: '',
+    belgeNumarasi: '',
     faturaTarihi: taslak.faturaTarihi,
     saat: taslak.saat ?? new Date().toTimeString().slice(0, 8),
     paraBirimi: taslak.paraBirimi ?? 'TRY',
-    // DOĞRULANMADI: alan adı "dovzTLkur" — referanstan; ilk tahminimiz
-    // "dovizKuru" idi, o hâlâ yanlış çıkabilir.
-    dovzTLkur: taslak.dovizKuru ?? 0,
+    dovzTLkur: String(taslak.dovizKuru ?? 0),
     faturaTipi: taslak.faturaTipi ?? 'SATIS',
-    hangiTip: 'Buyuk', // DOĞRULANMADI — referanstaki varsayılan, anlamı netleşmedi.
-    siparisNumarasi: '',
-    siparisTarihi: '',
+    // Gerçek yakalamada "Buyuk" değil "5000/30000" gönderiliyordu.
+    hangiTip: '5000/30000',
+    ...toGibAlici(taslak.alici),
     irsaliyeNumarasi: taslak.irsaliyeNo ?? '',
     irsaliyeTarihi: taslak.irsaliyeTarihi ?? '',
-    fisNo: '',
-    fisTarihi: '',
-    fisSaati: ' ',
-    fisTipi: ' ',
-    zRaporNo: '',
-    okcSeriNo: '',
-    // Komisyon/navlun/hammaliye/nakliye/hal rüsumu/ticaret borsası/milli
-    // savunma fonu/diğer alanları standart bir SATIŞ faturasında kullanılmaz,
-    // ama referansa göre GİB'in DTO'su bunları sıfır değerle de olsa bekliyor
-    // olabilir.
-    komisyonOrani: 0,
-    navlunOrani: 0,
-    hammaliyeOrani: 0,
-    nakliyeOrani: 0,
-    komisyonTutari: '0',
-    navlunTutari: '0',
-    hammaliyeTutari: '0',
-    nakliyeTutari: '0',
-    komisyonKDVOrani: 0,
-    navlunKDVOrani: 0,
-    hammaliyeKDVOrani: 0,
-    nakliyeKDVOrani: 0,
-    komisyonKDVTutari: '0',
-    navlunKDVTutari: '0',
-    hammaliyeKDVTutari: '0',
-    nakliyeKDVTutari: '0',
-    gelirVergisiOrani: 0,
-    bagkurTevkifatiOrani: 0,
-    gelirVergisiTevkifatiTutari: '0',
-    bagkurTevkifatiTutari: '0',
-    halRusumuOrani: 0,
-    ticaretBorsasiOrani: 0,
-    milliSavunmaFonuOrani: 0,
-    digerOrani: 0,
-    halRusumuTutari: '0',
-    ticaretBorsasiTutari: '0',
-    milliSavunmaFonuTutari: '0',
-    digerTutari: '0',
-    halRusumuKDVOrani: 0,
-    ticaretBorsasiKDVOrani: 0,
-    milliSavunmaFonuKDVOrani: 0,
-    digerKDVOrani: 0,
-    halRusumuKDVTutari: '0',
-    ticaretBorsasiKDVTutari: '0',
-    milliSavunmaFonuKDVTutari: '0',
-    digerKDVTutari: '0',
-    iadeTable: [] as unknown[],
-    ozelMatrahTutari: '0',
-    ozelMatrahOrani: 0,
-    ozelMatrahVergiTutari: '0.00',
+    ihracKayitliKarsiBelgeNo: '',
+    yatirimTesvikNumarasi: '',
+    // Gerçek yakalamada boşken bugünün tarihiyle doluydu (faturaTarihi ile aynı).
+    yatirimTesvikTarihi: taslak.faturaTarihi,
+    kdvOranKontrolMuafiyeti: false,
     vergiCesidi: ' ',
     malHizmetTable,
     tip: 'İskonto',
@@ -615,9 +576,16 @@ function buildFaturaOlusturPayload(taslak: FaturaTaslagi) {
     hesaplanankdv: hesaplananKdv.toFixed(2),
     vergilerToplami: hesaplananKdv.toFixed(2),
     vergilerDahilToplamTutar: vergilerDahilToplam.toFixed(2),
-    toplamMasraflar: '0',
     odenecekTutar: odenecekTutar.toFixed(2),
     not: taslak.not ?? '',
+    siparisNumarasi: '',
+    siparisTarihi: '',
+    fisNo: '',
+    fisTarihi: '',
+    fisSaati: ' ',
+    fisTipi: ' ',
+    zRaporNo: '',
+    okcSeriNo: '',
   };
 }
 
