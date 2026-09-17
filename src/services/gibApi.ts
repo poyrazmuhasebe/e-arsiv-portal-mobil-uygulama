@@ -20,6 +20,7 @@ import axios, { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
 import type {
   AliciBilgisi,
   DispatchEnvelope,
+  FaturaSatiri,
   FaturaTaslagi,
   KullaniciBilgisi,
   TaslakFatura,
@@ -61,12 +62,49 @@ const REQUEST_TIMEOUT_MS = 20000;
 export class GibApiError extends Error {
   /** GİB'in döndüğü ham mesaj listesi veya yakalanan alt hata. */
   raw?: unknown;
+  /** true ise mesaj oturum/token geçersizliğine işaret ediyor (bkz. oturumHatasiMi). */
+  oturumHatasi: boolean;
 
-  constructor(message: string, raw?: unknown) {
+  constructor(message: string, raw?: unknown, oturumHatasi = false) {
     super(message);
     this.name = 'GibApiError';
     this.raw = raw;
+    this.oturumHatasi = oturumHatasi;
   }
+}
+
+// DİKKAT: "Bu işlem için yetkiniz yok" (type 7) mesajını KASITLI OLARAK
+// buraya eklemedik. Bu projede aynı mesajı hem geçersiz bir dispatch cmd'i
+// (taslakGetir'in ilk hâli, logout'un ilk hâli) hem de eksik bir payload
+// (faturaKaydet) için gördük — yani muhtemelen GİB'in "cmd/istek geçersiz"
+// jenerik hatası, oturum süresi dolduğunu göstermiyor. Onu oturum hatası
+// sayıp kullanıcıyı otomatik çıkışa zorlamak, gerçek bir kod/payload
+// hatasını "tekrar giriş yapın" diye yanlış yorumlatabilir. Gerçek oturum
+// süresi dolma mesajının tam metnini gördükçe bu listeye ekleyin.
+const OTURUM_HATASI_ANAHTAR_KELIMELER = ['oturum sonland', 'token geçersiz', 'tekrar giriş yapınız', 'süresi dol'];
+
+function oturumHatasiMi(mesaj: string): boolean {
+  const kucukMesaj = mesaj.toLocaleLowerCase('tr-TR');
+  return OTURUM_HATASI_ANAHTAR_KELIMELER.some((kelime) => kucukMesaj.includes(kelime));
+}
+
+/**
+ * Merkezi hata işleyici: bir GibApiError oturum hatasıysa yerel oturumu
+ * temizler (useAuthStore token'ı sıfırlar, App.tsx otomatik olarak Login
+ * ekranına döner) ve kullanıcıya gösterilecek nihai mesajı döndürür.
+ * Ekranlar kendi catch bloklarında `Alert.alert(baslik, (await gibHatasiniIsle(err)).mesaj)`
+ * şeklinde kullanabilir.
+ */
+export async function gibHatasiniIsle(err: unknown): Promise<{ mesaj: string; oturumKapandi: boolean }> {
+  if (err instanceof GibApiError && err.oturumHatasi) {
+    // Döngüsel import'tan kaçınmak için dinamik import (gibApi <- useAuthStore
+    // zaten gibApi'ye bağımlı; useAuthStore'u burada statik import etmiyoruz).
+    const { useAuthStore } = await import('../store/useAuthStore');
+    await useAuthStore.getState().logout();
+    return { mesaj: 'Oturumunuz sona erdi, lütfen tekrar giriş yapın.', oturumKapandi: true };
+  }
+  const mesaj = err instanceof Error && err.message ? err.message : 'Beklenmeyen bir hata oluştu.';
+  return { mesaj, oturumKapandi: false };
 }
 
 function createClient(): AxiosInstance {
@@ -152,7 +190,7 @@ async function dispatch<T = unknown>(
 
     if (response.status >= 400) {
       const msg = extractErrorMessage(responseData) ?? `GİB portalı ${response.status} durum kodu döndürdü.`;
-      throw new GibApiError(msg, responseData);
+      throw new GibApiError(msg, responseData, oturumHatasiMi(msg));
     }
   } catch (err) {
     if (err instanceof GibApiError) throw err;
@@ -171,10 +209,8 @@ async function dispatch<T = unknown>(
     const envelope = responseData as DispatchEnvelope<T>;
 
     if ('error' in envelope && isGibHatasi(envelope.error)) {
-      throw new GibApiError(
-        extractErrorMessage(envelope) ?? 'GİB portalı işlemi reddetti.',
-        envelope,
-      );
+      const mesaj = extractErrorMessage(envelope) ?? 'GİB portalı işlemi reddetti.';
+      throw new GibApiError(mesaj, envelope, oturumHatasiMi(mesaj));
     }
 
     // ÖNEMLİ: Gerçek GİB yanıtları çoğunlukla "error" alanı İÇERMEDEN
@@ -410,17 +446,178 @@ function toGibAlici(alici: AliciBilgisi) {
   return {
     vknTckn: alici.vknTckn,
     aliciUnvan: alici.unvan,
-    // DOĞRULANMADI: aliciAdi/aliciSoyadi alan adları, kısmen doğrulanmış
-    // açık kaynak referansla uyumlu (TCKN/şahıs alıcılar için).
+    // DOĞRULANMADI: aliciAdi/aliciSoyadi, kısmen doğrulanmış açık kaynak
+    // referansla uyumlu (TCKN/şahıs alıcılar için).
     aliciAdi: alici.ad ?? '',
     aliciSoyadi: alici.soyad ?? '',
     vergiDairesi: alici.vergiDairesi ?? '',
+    // Formumuz adresi tek bir serbest metin alanı olarak topluyor; GİB'in
+    // gerçek DTO'sunun adresi cadde/bina/kapı/mahalle/şehir/posta kodu diye
+    // parçalara ayırdığına dair kanıt var (bkz. referans) ama biz bu kadar
+    // ayrıntılı toplamıyoruz. Hangi alan adı gerçekte kullanılıyorsa
+    // dolsun diye HEM eski (aliciAdres/ilce/il) HEM referanstaki
+    // (bulvarcaddesokak/mahalleSemtIlce/sehir) adları aynı değerle
+    // dolduruyoruz — tanınmayan alanlar GİB tarafında muhtemelen yok sayılır.
     aliciAdres: alici.adres,
+    bulvarcaddesokak: alici.adres,
+    binaAdi: '',
+    binaNo: '',
+    kapiNo: '',
+    kasabaKoy: '',
     ilce: alici.ilce ?? '',
+    mahalleSemtIlce: alici.ilce ?? '',
     il: alici.il ?? '',
+    sehir: alici.il ?? '',
+    postaKodu: '',
     ulke: alici.ulke ?? 'Türkiye',
     tel: alici.telefon ?? '',
+    fax: '',
     eposta: alici.eposta ?? '',
+    websitesi: '',
+  };
+}
+
+interface SatirHesabi {
+  netTutar: number;
+  kdvTutari: number;
+  tevkifatTutari: number;
+}
+
+function satirHesapla(satir: FaturaSatiri): SatirHesabi {
+  const brut = satir.miktar * satir.birimFiyat;
+  const iskontoTutari = brut * ((satir.iskontoOrani ?? 0) / 100);
+  const netTutar = brut - iskontoTutari;
+  const kdvTutari = netTutar * (satir.kdvOrani / 100);
+  const tevkifatTutari = satir.kdvTevkifatOrani ? kdvTutari * (satir.kdvTevkifatOrani / 10) : 0;
+  return { netTutar, kdvTutari, tevkifatTutari };
+}
+
+/**
+ * DOĞRULANMADI ama önceki turlarda incelediğim (bu projede assos-login,
+ * SICIL_VEYA_MERNISTEN_BILGILERI_GETIR, EARSIV_PORTAL_TASLAKLARI_GETIR gibi
+ * birçok kez doğru çıkan) açık kaynak referansla uyumlu. Minimal bir payload
+ * ("yetkiniz yok" hatasını veren önceki deneme) muhtemelen GİB'in katı
+ * DTO'sunun beklediği zorunlu-ama-bizim SATIŞ faturasında kullanmadığımız
+ * (komisyon/navlun/hammaliye/nakliye/hal rüsumu vb.) alanları içermiyordu —
+ * bu yüzden hepsi güvenli varsayılanlarla dolduruldu.
+ */
+function buildFaturaOlusturPayload(taslak: FaturaTaslagi) {
+  let malHizmetToplam = 0;
+  let toplamIskonto = 0;
+  let hesaplananKdv = 0;
+  let hesaplananKdvTevkifat = 0;
+
+  const malHizmetTable = taslak.satirlar.map((satir) => {
+    const brut = satir.miktar * satir.birimFiyat;
+    const iskontoOrani = satir.iskontoOrani ?? 0;
+    const iskontoTutari = brut * (iskontoOrani / 100);
+    const hesap = satirHesapla(satir);
+
+    malHizmetToplam += hesap.netTutar;
+    toplamIskonto += iskontoTutari;
+    hesaplananKdv += hesap.kdvTutari;
+    hesaplananKdvTevkifat += hesap.tevkifatTutari;
+
+    return {
+      iskontoArttm: 'İskonto',
+      malHizmet: satir.malHizmet,
+      miktar: satir.miktar,
+      birim: satir.birim,
+      birimFiyat: satir.birimFiyat.toFixed(2),
+      fiyat: brut.toFixed(2),
+      iskontoOrani,
+      iskontoTutari: iskontoTutari.toFixed(2),
+      iskontoNedeni: '',
+      malHizmetTutari: hesap.netTutar.toFixed(2),
+      kdvOrani: satir.kdvOrani,
+      vergiOrani: satir.kdvOrani,
+      kdvTutari: hesap.kdvTutari.toFixed(2),
+      vergininKdvTutari: hesap.kdvTutari.toFixed(2),
+      // DOĞRULANMADI — bkz. FaturaSatiri yorumları.
+      kdvTevkifatKodu: satir.kdvTevkifatKodu ?? '',
+      kdvTevkifatOrani: satir.kdvTevkifatOrani ?? 0,
+    };
+  });
+
+  const vergilerDahilToplam = malHizmetToplam + hesaplananKdv;
+  const odenecekTutar = vergilerDahilToplam - hesaplananKdvTevkifat;
+
+  return {
+    ...toGibAlici(taslak.alici),
+    faturaTarihi: taslak.faturaTarihi,
+    saat: taslak.saat ?? new Date().toTimeString().slice(0, 8),
+    paraBirimi: taslak.paraBirimi ?? 'TRY',
+    // DOĞRULANMADI: alan adı "dovzTLkur" — referanstan; ilk tahminimiz
+    // "dovizKuru" idi, o hâlâ yanlış çıkabilir.
+    dovzTLkur: taslak.dovizKuru ?? 0,
+    faturaTipi: taslak.faturaTipi ?? 'SATIS',
+    hangiTip: 'Buyuk', // DOĞRULANMADI — referanstaki varsayılan, anlamı netleşmedi.
+    siparisNumarasi: '',
+    siparisTarihi: '',
+    irsaliyeNumarasi: taslak.irsaliyeNo ?? '',
+    irsaliyeTarihi: taslak.irsaliyeTarihi ?? '',
+    fisNo: '',
+    fisTarihi: '',
+    fisSaati: ' ',
+    fisTipi: ' ',
+    zRaporNo: '',
+    okcSeriNo: '',
+    // Komisyon/navlun/hammaliye/nakliye/hal rüsumu/ticaret borsası/milli
+    // savunma fonu/diğer alanları standart bir SATIŞ faturasında kullanılmaz,
+    // ama referansa göre GİB'in DTO'su bunları sıfır değerle de olsa bekliyor
+    // olabilir.
+    komisyonOrani: 0,
+    navlunOrani: 0,
+    hammaliyeOrani: 0,
+    nakliyeOrani: 0,
+    komisyonTutari: '0',
+    navlunTutari: '0',
+    hammaliyeTutari: '0',
+    nakliyeTutari: '0',
+    komisyonKDVOrani: 0,
+    navlunKDVOrani: 0,
+    hammaliyeKDVOrani: 0,
+    nakliyeKDVOrani: 0,
+    komisyonKDVTutari: '0',
+    navlunKDVTutari: '0',
+    hammaliyeKDVTutari: '0',
+    nakliyeKDVTutari: '0',
+    gelirVergisiOrani: 0,
+    bagkurTevkifatiOrani: 0,
+    gelirVergisiTevkifatiTutari: '0',
+    bagkurTevkifatiTutari: '0',
+    halRusumuOrani: 0,
+    ticaretBorsasiOrani: 0,
+    milliSavunmaFonuOrani: 0,
+    digerOrani: 0,
+    halRusumuTutari: '0',
+    ticaretBorsasiTutari: '0',
+    milliSavunmaFonuTutari: '0',
+    digerTutari: '0',
+    halRusumuKDVOrani: 0,
+    ticaretBorsasiKDVOrani: 0,
+    milliSavunmaFonuKDVOrani: 0,
+    digerKDVOrani: 0,
+    halRusumuKDVTutari: '0',
+    ticaretBorsasiKDVTutari: '0',
+    milliSavunmaFonuKDVTutari: '0',
+    digerKDVTutari: '0',
+    iadeTable: [] as unknown[],
+    ozelMatrahTutari: '0',
+    ozelMatrahOrani: 0,
+    ozelMatrahVergiTutari: '0.00',
+    vergiCesidi: ' ',
+    malHizmetTable,
+    tip: 'İskonto',
+    matrah: malHizmetToplam.toFixed(2),
+    malhizmetToplamTutari: malHizmetToplam.toFixed(2),
+    toplamIskonto: toplamIskonto.toFixed(2),
+    hesaplanankdv: hesaplananKdv.toFixed(2),
+    vergilerToplami: hesaplananKdv.toFixed(2),
+    vergilerDahilToplamTutar: vergilerDahilToplam.toFixed(2),
+    toplamMasraflar: '0',
+    odenecekTutar: odenecekTutar.toFixed(2),
+    not: taslak.not ?? '',
   };
 }
 
@@ -433,51 +630,65 @@ export async function faturaKaydet(
     return Promise.resolve({ ettn: `MOCK-ETTN-${Date.now()}` });
   }
 
-  // DOĞRULANMADI: cmd adı ("EARSIV_PORTAL_FATURA_KAYDET") ve aşağıdaki
-  // payload alan adları GİB'in gerçek/canlı portalında henüz gerçek
-  // trafikle (DevTools > Network) teyit edilmedi — projenin en başında
-  // verilen komut adı kullanılıyor. Login'de yaşadığımız gibi (assos-login
-  // sürprizi) burada da gerçek uç nokta/alan adları farklı çıkabilir.
-  // Küçük/gerçek bir denemeden önce mutlaka portalda tarayıcıdan elle bir
-  // fatura kesip Network sekmesinden gerçek isteği bu fonksiyonla
-  // karşılaştırın; GİB'de kesilen bir e-Arşiv faturası düzeltilmesi zor,
-  // gerçek bir belgedir.
-  const payload = {
-    ...toGibAlici(taslak.alici),
-    faturaTarihi: taslak.faturaTarihi,
-    saat: taslak.saat ?? new Date().toTimeString().slice(0, 8),
-    paraBirimi: taslak.paraBirimi ?? 'TRY',
-    dovizKuru: taslak.dovizKuru ?? 0,
-    faturaTipi: taslak.faturaTipi ?? 'SATIS',
-    siparisNumarasi: '',
-    irsaliyeNumarasi: taslak.irsaliyeNo ?? '',
-    irsaliyeTarihi: taslak.irsaliyeTarihi ?? '',
-    not: taslak.not ?? '',
-    malHizmetTable: taslak.satirlar.map((satir) => ({
-      malHizmet: satir.malHizmet,
-      miktar: satir.miktar,
-      birim: satir.birim,
-      birimFiyat: satir.birimFiyat,
-      iskontoOrani: satir.iskontoOrani ?? 0,
-      kdvOrani: satir.kdvOrani,
-      // DOĞRULANMADI — bkz. FaturaSatiri yorumları.
-      kdvTevkifatKodu: satir.kdvTevkifatKodu ?? '',
-      kdvTevkifatOrani: satir.kdvTevkifatOrani ?? 0,
-    })),
-  };
+  // DOĞRULANDI (kullanıcı geri bildirimiyle): "EARSIV_PORTAL_FATURA_OLUSTUR"
+  // (f/fatura referansından) hesabın ERİŞEMEDİĞİ farklı bir ekrana/komuta
+  // gidiyor ("e-Arşiv Portal Fatura" — kullanıcı bu ekrandan değil,
+  // "e-Arşiv Fatura (interaktif) Oluştur" ekranından fatura kesebiliyor).
+  // Bu yüzden projenin en başında verilen orijinal komuta geri dönüldü.
+  // Payload'ı (buildFaturaOlusturPayload) DEĞİŞTİRMEDİK — o hâlâ en zengin/
+  // en olası doğru şekil; yalnızca hangi cmd'nin bu payload'ı kabul ettiğini
+  // netleştirmemiz gerekiyor.
+  //
+  // Yanıt şekli de artık belirsiz (FATURA_OLUSTUR'un "...başarıyla
+  // oluşturulmuştur" metni FATURA_KAYDET için geçerli olmayabilir), bu
+  // yüzden başarıyı METİN EŞLEŞMESİNE değil, oluşturmadan ÖNCE/SONRA taslak
+  // listesini karşılaştırıp yeni bir kayıt çıkıp çıkmadığına göre belirliyoruz
+  // — bu, cmd/yanıt formatı ne olursa olsun güvenilir bir yöntem.
+  let oncekiEttnler = new Set<string>();
+  try {
+    const oncekiListe = await taslakGetir(token, {
+      baslangicTarihi: taslak.faturaTarihi,
+      bitisTarihi: taslak.faturaTarihi,
+    });
+    oncekiEttnler = new Set(oncekiListe.map((t) => t.ettn));
+  } catch {
+    // Taslak listesi çekilemezse diff atlanır; sonuçta ettn bulunamayacak
+    // ve hataya (aşağıda) düşülecek.
+  }
 
-  const result = await dispatch<{ ettn?: string; uuid?: string } | string>(
+  const payload = buildFaturaOlusturPayload(taslak);
+
+  const result = await dispatch<string | { ettn?: string; uuid?: string }>(
     'EARSIV_PORTAL_FATURA_KAYDET',
     'RG_BASITFATURA',
     payload,
     token,
   );
 
-  const ettn = typeof result === 'string' ? result : result?.ettn ?? result?.uuid;
-  if (!ettn) {
-    throw new GibApiError('Fatura kaydedildi ancak belge numarası (ETTN) alınamadı.', result);
+  // Bazı GİB yanıtları doğrudan ettn/uuid içeren bir obje dönebilir —
+  // varsa taslak listesini karşılaştırmaya bile gerek kalmadan kullanılır.
+  if (result && typeof result === 'object') {
+    const dogrudanEttn = result.ettn ?? result.uuid;
+    if (dogrudanEttn) return { ettn: dogrudanEttn };
   }
-  return { ettn, uuid: typeof result === 'object' ? result?.uuid : undefined };
+
+  const hamMetin = typeof result === 'string' ? result : JSON.stringify(result);
+
+  let ettn: string | undefined;
+  try {
+    const sonrakiListe = await taslakGetir(token, {
+      baslangicTarihi: taslak.faturaTarihi,
+      bitisTarihi: taslak.faturaTarihi,
+    });
+    ettn = sonrakiListe.find((t) => !oncekiEttnler.has(t.ettn))?.ettn;
+  } catch {
+    // yoksay
+  }
+
+  if (ettn) return { ettn };
+
+  // Taslak listesinde yeni bir kayıt çıkmadıysa gerçekten başarısız demektir.
+  throw new GibApiError(hamMetin || 'GİB taslak faturayı oluşturmadı.', result);
 }
 
 // ---------------------------------------------------------------------------
@@ -658,6 +869,7 @@ export const gibApi = {
   smsSifreOnayla,
   faturaHTMLGetir,
   faturaIndir,
+  gibHatasiniIsle,
 };
 
 export default gibApi;

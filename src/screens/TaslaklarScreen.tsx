@@ -14,7 +14,7 @@ import {
   useTheme,
 } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { WebView } from 'react-native-webview';
 
 import type { RootStackParamList } from '../../App';
@@ -125,10 +125,9 @@ export default function TaslaklarScreen({ navigation }: Props) {
     setYenileniyor(false);
   };
 
-  const handleTarihSecildi = (event: DateTimePickerEvent, secilen?: Date) => {
+  const handleTarihSecildi = (_event: DateTimePickerChangeEvent, secilen: Date) => {
     const hedef = acikPicker;
     setAcikPicker(null); // Android'de picker modal olarak açılır, seçim sonrası kapanır
-    if (event.type === 'dismissed' || !secilen) return;
     if (hedef === 'baslangic') setBaslangicTarih(secilen);
     else if (hedef === 'bitis') setBitisTarih(secilen);
   };
@@ -392,7 +391,8 @@ export default function TaslaklarScreen({ navigation }: Props) {
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           maximumDate={new Date()}
-          onChange={handleTarihSecildi}
+          onValueChange={handleTarihSecildi}
+          onDismiss={() => setAcikPicker(null)}
         />
       )}
 

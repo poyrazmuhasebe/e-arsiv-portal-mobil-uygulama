@@ -5,7 +5,7 @@ import { Appbar, Button, useTheme } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
-import { faturaKaydet } from '../services/gibApi';
+import { faturaKaydet, gibHatasiniIsle } from '../services/gibApi';
 import { useAuthStore } from '../store/useAuthStore';
 import { aliciKaydet } from '../utils/aliciDefteri';
 import { faturaOzetiHesapla, kalemHesapla, parseNumara } from '../utils/faturaHesap';
@@ -161,8 +161,8 @@ export default function FaturaKesimScreen({ navigation }: Props) {
         { text: 'Tamam', onPress: () => navigation.navigate('Taslaklar') },
       ]);
     } catch (err) {
-      const message = err instanceof Error && err.message ? err.message : 'Taslak kaydedilemedi.';
-      Alert.alert('Kaydetme Başarısız', message);
+      const { mesaj, oturumKapandi } = await gibHatasiniIsle(err);
+      Alert.alert(oturumKapandi ? 'Oturum Sonlandı' : 'Kaydetme Başarısız', mesaj);
     } finally {
       setKaydediliyor(false);
     }

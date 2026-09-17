@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Platform, Pressable, StyleSheet } from 'react-native';
 import { Card, Text, TextInput, useTheme } from 'react-native-paper';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 
 function tarihFormatla(d: Date): string {
   const gg = String(d.getDate()).padStart(2, '0');
@@ -25,9 +25,8 @@ export default function IrsaliyeBilgileriKarti({
   const theme = useTheme();
   const [pickerAcik, setPickerAcik] = useState(false);
 
-  const handleTarihSecildi = (event: DateTimePickerEvent, secilen?: Date) => {
+  const handleTarihSecildi = (_event: DateTimePickerChangeEvent, secilen: Date) => {
     setPickerAcik(false);
-    if (event.type === 'dismissed' || !secilen) return;
     onIrsaliyeTarihiChange(secilen);
   };
 
@@ -54,7 +53,8 @@ export default function IrsaliyeBilgileriKarti({
             value={irsaliyeTarihi ?? new Date()}
             mode="date"
             display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            onChange={handleTarihSecildi}
+            onValueChange={handleTarihSecildi}
+            onDismiss={() => setPickerAcik(false)}
           />
         )}
       </Card.Content>

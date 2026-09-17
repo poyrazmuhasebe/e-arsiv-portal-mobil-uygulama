@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Card, Text, TextInput, useTheme } from 'react-native-paper';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 
 import SecimAlani from '../../components/SecimAlani';
 import { PARA_BIRIMLERI, FATURA_TIPLERI } from '../../constants/faturaConstants';
@@ -80,15 +80,15 @@ export default function FaturaBilgileriKarti({
   const theme = useTheme();
   const [acikPicker, setAcikPicker] = useState<'tarih' | 'saat' | null>(null);
 
-  const handleTarihSecildi = (event: DateTimePickerEvent, secilen?: Date) => {
+  // `onChange` bu paket sürümünde deprecated: onValueChange/onDismiss ile
+  // ayrıştırıldı (bkz. @react-native-community/datetimepicker BaseOptions).
+  const handleTarihSecildi = (_event: DateTimePickerChangeEvent, secilen: Date) => {
     setAcikPicker(null);
-    if (event.type === 'dismissed' || !secilen) return;
     yediGunKuraliUygula(secilen, onFaturaTarihiChange);
   };
 
-  const handleSaatSecildi = (event: DateTimePickerEvent, secilen?: Date) => {
+  const handleSaatSecildi = (_event: DateTimePickerChangeEvent, secilen: Date) => {
     setAcikPicker(null);
-    if (event.type === 'dismissed' || !secilen) return;
     onFaturaSaatiChange(secilen);
   };
 
@@ -123,7 +123,8 @@ export default function FaturaBilgileriKarti({
             mode="date"
             display={Platform.OS === 'ios' ? 'inline' : 'default'}
             maximumDate={new Date()}
-            onChange={handleTarihSecildi}
+            onValueChange={handleTarihSecildi}
+            onDismiss={() => setAcikPicker(null)}
           />
         )}
         {acikPicker === 'saat' && (
@@ -131,7 +132,8 @@ export default function FaturaBilgileriKarti({
             value={faturaSaati}
             mode="time"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={handleSaatSecildi}
+            onValueChange={handleSaatSecildi}
+            onDismiss={() => setAcikPicker(null)}
           />
         )}
 

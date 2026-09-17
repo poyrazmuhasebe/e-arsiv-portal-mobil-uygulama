@@ -19,17 +19,31 @@
 - [x] `taslakGetir` — cmd/pageName/tarih filtresi (`EARSIV_PORTAL_TASLAKLARI_GETIR`, `RG_BASITTASLAKLAR`, `baslangic`/`bitis`) canlı doğrulandı
 - [x] Fatura HTML görüntüleme (`faturaHTMLGetir`, `EARSIV_PORTAL_FATURA_GOSTER`) — canlı doğrulandı, tam ekran WebView modalı
 - [x] SMS ile onaylama akışı (gönder + kod girme modalı) — **uçtan uca canlı doğrulanmadı**
-- [x] PDF üretme/indirme/paylaşma (`src/utils/pdf.ts`) — `expo-print` Base64 + `expo-file-system` ile yazma (Android FileProvider okuma kısıtlamasını aşmak için); "Paylaş" `expo-sharing`, "İndir" Android'de `StorageAccessFramework` ile paylaşım penceresi açmadan doğrudan kaydediyor
+- [x] PDF üretme/indirme/paylaşma (`src/utils/pdf.ts`) — `expo-print` Base64 + `FileSystem.writeAsStringAsync` (Android'de `expo-print`'in kendi cache dizinini `expo-file-system` ile okumaya çalışmak "isn't readable" hatası verdiği için ham `uri` hiç okunmuyor, Base64 doğrudan yazılıyor); "Paylaş" `expo-sharing`, "İndir" Android'de `StorageAccessFramework` ile paylaşım penceresi açmadan doğrudan kaydediyor
+- [x] `@react-native-community/datetimepicker` v9 deprecation düzeltmesi — `onChange` yerine `onValueChange`/`onDismiss` (3 kullanım yerinde: FaturaBilgileriKarti, IrsaliyeBilgileriKarti, TaslaklarScreen)
+- [x] Merkezi oturum-hatası yönetimi (`gibHatasiniIsle`) — GİB yanıtı oturum/token'a işaret eden anahtar kelimeler içeriyorsa otomatik `logout()` + Login'e dönüş
+- [x] Tevkifat kodları tablosu (`faturaConstants.ts`) — GİB'in resmi KDV Genel Uygulama Tebliği oranlarıyla ve kullanıcının paylaştığı kod↔oran referans tablosuyla tam doğrulanıp **52 koda** (601-627 kısmi + 801-825 tam tevkifat) çıkarıldı
 - [x] Test modu (`IS_TEST_MODE`) — mock login/kullanıcı/mükellef/taslak/fatura kaydet/SMS/HTML
 
 ## Doğrulanması Gerekenler
 
-- [ ] `faturaKaydet` — cmd (`EARSIV_PORTAL_FATURA_KAYDET`) ve tüm payload alanları (özellikle `kdvTevkifatKodu`/`kdvTevkifatOrani`, `irsaliyeNumarasi`, `dovizKuru`) canlı ortamda **henüz doğrulanmadı**. Yeni modüler formla ilk gerçek/küçük denemeyi yapıp Network yakalamasıyla teyit edilmeli.
+- [ ] `faturaKaydet` — **hâlâ doğrulanmadı.** `EARSIV_PORTAL_FATURA_OLUSTUR` (açık kaynak referanstan) denendi, GİB "Bu mükellef ... e-Arşiv Portal Fatura'nın ekranından fatura kesemez" dedi; kullanıcı bu hesabın gerçekte e-Arşiv'den fatura kesebildiğini doğruladı — yani bu cmd hesabın kullandığı "e-Arşiv Fatura (interaktif) Oluştur" ekranından FARKLI bir ekrana gidiyor olabilir. Orijinal `EARSIV_PORTAL_FATURA_KAYDET`'e geri dönüldü, sıradaki canlı denemenin sonucu bekleniyor.
 - [ ] SMS gönder/onayla (`smsSifreGonder` / `smsSifreOnayla`) — cmd adları ve payload şekli canlı ortamda doğrulanmadı.
-- [ ] Tevkifat kodları ve oranları (`faturaConstants.ts` → `TEVKIFAT_KODLARI`) — kısaltılmış bir liste, GİB'in tam/güncel tebliğ oranlarıyla karşılaştırılmalı.
+- [ ] Tevkifat kodları: 623 sonrası olası "Kamu Özel İşbirliği/Sağlık Tesisleri" gibi karmaşık/tek orana indirgenemeyen kalemler listede yok (bilinçli olarak atlandı).
 
 ## Yapılacaklar
 
+- [ ] **Detaylı Alıcı Defteri yönetim ekranı** (şu an yalnızca fatura kesilince otomatik kayıt + seç-ve-doldur var; aşağıdakiler henüz yok):
+  - [ ] Kayıtlı alıcıyı düzenleme (Unvan/Ad-Soyad/Vergi Dairesi/Ülke/Adres güncelleme)
+  - [ ] Kayıtlı alıcıyı silme
+  - [ ] Fatura akışının dışında, defterden bağımsız olarak elle yeni alıcı ekleme
+  - [ ] Muhtemelen ayrı bir "Alıcı Defteri" listeleme ekranı (Dashboard'dan erişilebilir), `aliciDefteri.ts`'in mevcut `aliciListesiGetir`/`aliciKaydet` fonksiyonlarına `aliciGuncelle`/`aliciSil` eklenmesini gerektirir
+- [ ] **"Kayıtlı Mal/Hizmet Adı" defteri** — fatura kaleminde bir kere girilen Mal/Hizmet adı otomatik kaydedilecek; ayrı bir menüden:
+  - [ ] Listeleme
+  - [ ] Düzenleme
+  - [ ] Elle yeni kayıt ekleme
+  - [ ] Silme
+  - Alıcı Defteri ile aynı desen: `aliciDefteri.ts`'e benzer bir `malHizmetDefteri.ts` (SecureStore tabanlı) + `MalHizmetKarti.tsx`'te kalem girilirken bu defterden seçim/otomatik tamamlama
 - [ ] Taslak fatura silme/iptal akışı ve "Düzenle" (şu an `TaslaklarScreen`'de yalnızca `console.log` yer tutucular)
 - [ ] "İtiraz Talebi Oluştur" / "İptal Talebi Oluştur" butonlarının gerçek işlevi
 - [ ] Form doğrulamasını güçlendirme (gerçek VKN/TCKN checksum kontrolü)

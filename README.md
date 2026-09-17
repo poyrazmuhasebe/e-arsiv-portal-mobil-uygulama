@@ -20,7 +20,9 @@ Mali müşavirlerin mükelleflerinin GİB e-Arşiv Portal üzerinden kendi hesap
   - Mal/Hizmet Bilgileri — dinamik satır ekleme/silme, kalem başına KDV oranı ve isteğe bağlı "Vergi Ekle" (KDV Tevkifat kodu seçilince oran otomatik dolar, tutarlar anlık yeniden hesaplanır).
   - Toplamlar (Ara Toplam, İskonto, KDV, varsa Tevkifat kırılımı, Ödenecek Tutar) ve Not.
 - **Taslak / Kesilen Faturalar:** Tarih aralığı filtresi (varsayılan son 7 gün) ile listeleme, durum rozeti (Onaylı / Taslak / Silinmiş), SMS ile onaylama (imzalama), fatura HTML'ini tam ekran WebView'de görüntüleme, PDF olarak indirme/paylaşma.
-- **PDF İndir/Paylaş:** GİB'in döndürdüğü HTML, `expo-print` ile Base64 PDF'e çevrilir. "Paylaş" native paylaşım penceresini açar; "İndir" Android'de `StorageAccessFramework` ile kullanıcının seçtiği klasöre doğrudan yazar (paylaşım penceresi açılmadan), iOS'ta paylaşım sayfasına düşer (Apple'ın "Dosyalara Kaydet"i sunduğu tek yol).
+- **PDF İndir/Paylaş:** GİB'in döndürdüğü HTML, `expo-print` ile Base64 PDF'e çevrilir (Android'de ham dosya `uri`'sini ayrı bir modülle okumaya çalışmak "isn't readable" hatası verdiği için Base64 içerik doğrudan uygulamanın kendi dizinine yazılır). "Paylaş" native paylaşım penceresini açar; "İndir" Android'de `StorageAccessFramework` ile kullanıcının seçtiği klasöre **paylaşım penceresi açmadan** doğrudan yazar, iOS'ta paylaşım sayfasına düşer (Apple'ın "Dosyalara Kaydet"i sunduğu tek yol).
+- **Vergi/Tevkifat Kodları:** `faturaConstants.ts` içinde GİB'in resmi KDV Genel Uygulama Tebliği oranlarıyla doğrulanmış **52 tevkifat kodu** (601-627 kısmi tevkifat + 801-825 tam tevkifat/10 varyantları).
+- **Merkezi hata yönetimi:** `gibHatasiniIsle()` — bir GİB yanıtı oturum/token geçersizliğine işaret eden anahtar kelimeler içeriyorsa yerel oturumu otomatik temizleyip Login ekranına döner; diğer hatalarda GİB'in Türkçe mesajını olduğu gibi gösterir.
 - **Güvenli Çıkış:** Hem GİB tarafındaki oturumu hem yerel oturumu sonlandırır.
 - **Test Modu:** `IS_TEST_MODE` bayrağı ile GİB'e hiç istek atmadan (mock verilerle) arayüz geliştirmesi yapılabilir.
 
@@ -63,7 +65,7 @@ Expo Go ile QR kodu okutarak veya `npx expo start --web` ile tarayıcıda çalı
 | `mukellefBilgisiGetir` | `dispatch`, `SICIL_VEYA_MERNISTEN_BILGILERI_GETIR` | ✅ Canlı yanıtla doğrulandı |
 | `taslakGetir` | `dispatch`, `EARSIV_PORTAL_TASLAKLARI_GETIR` | ✅ Canlı yanıtla doğrulandı |
 | `faturaHTMLGetir` | `dispatch`, `EARSIV_PORTAL_FATURA_GOSTER` | ✅ Canlı yanıtla doğrulandı |
-| `faturaKaydet` | `dispatch`, `EARSIV_PORTAL_FATURA_KAYDET` | ⚠️ **Doğrulanmadı** |
+| `faturaKaydet` | `dispatch`, `EARSIV_PORTAL_FATURA_KAYDET` | ⚠️ **Doğrulanmadı** — `EARSIV_PORTAL_FATURA_OLUSTUR` (açık kaynak referanstan) denendi, hesabın erişemediği farklı bir ekrana ("e-Arşiv Portal Fatura") gittiği anlaşılınca orijinal komuta geri dönüldü. Payload zengin/muhtemelen doğru ama cmd hâlâ teyit bekliyor. Başarı artık metin eşleşmesine değil, taslak listesi diff'ine dayanıyor (cmd/yanıt formatından bağımsız çalışır). |
 | `smsSifreGonder` / `smsSifreOnayla` | `dispatch`, `EARSIV_PORTAL_SMSSIFRE_*` | ⚠️ **Doğrulanmadı** |
 | `faturaIndir` (ham base64/PDF indirme, HTML değil) | `dispatch`, `EARSIV_PORTAL_FATURA_INDIR` | ⚠️ **Doğrulanmadı**, kullanılmıyor (yerine `faturaHTMLGetir` + PDF üretimi kullanılıyor) |
 
