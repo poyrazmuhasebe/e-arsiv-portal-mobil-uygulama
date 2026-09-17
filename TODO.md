@@ -27,7 +27,7 @@
 
 ## Doğrulanması Gerekenler
 
-- [ ] `faturaKaydet` — **hâlâ doğrulanmadı.** `EARSIV_PORTAL_FATURA_OLUSTUR` (açık kaynak referanstan) denendi, GİB "Bu mükellef ... e-Arşiv Portal Fatura'nın ekranından fatura kesemez" dedi; kullanıcı bu hesabın gerçekte e-Arşiv'den fatura kesebildiğini doğruladı — yani bu cmd hesabın kullandığı "e-Arşiv Fatura (interaktif) Oluştur" ekranından FARKLI bir ekrana gidiyor olabilir. Orijinal `EARSIV_PORTAL_FATURA_KAYDET`'e geri dönüldü, sıradaki canlı denemenin sonucu bekleniyor.
+- [ ] `faturaKaydet` — `EARSIV_PORTAL_FATURA_KAYDET` de "yetkiniz yok" ile reddedildi (bu projede bu mesaj hep geçersiz cmd anlamına geldiğinden `EARSIV_PORTAL_FATURA_OLUSTUR`'a geri dönüldü — o cmd gerçek/tanınıyor, önceki reddi muhtemelen eksik `callid` ve yanlış `hangiTip` gibi alan hatalarındandı). Kullanıcı gerçek "e-Arşiv Fatura (interaktif) Oluştur" ekranından DevTools ile tam isteği yakaladı; payload artık **birebir o yakalamaya göre**. Sıradaki canlı denemenin gerçekten fatura oluşturup oluşturmadığı doğrulanmalı.
 - [ ] SMS gönder/onayla (`smsSifreGonder` / `smsSifreOnayla`) — cmd adları ve payload şekli canlı ortamda doğrulanmadı.
 - [ ] Tevkifat kodları: 623 sonrası olası "Kamu Özel İşbirliği/Sağlık Tesisleri" gibi karmaşık/tek orana indirgenemeyen kalemler listede yok (bilinçli olarak atlandı).
 

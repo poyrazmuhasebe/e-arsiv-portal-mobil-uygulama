@@ -65,7 +65,7 @@ Expo Go ile QR kodu okutarak veya `npx expo start --web` ile tarayıcıda çalı
 | `mukellefBilgisiGetir` | `dispatch`, `SICIL_VEYA_MERNISTEN_BILGILERI_GETIR` | ✅ Canlı yanıtla doğrulandı |
 | `taslakGetir` | `dispatch`, `EARSIV_PORTAL_TASLAKLARI_GETIR` | ✅ Canlı yanıtla doğrulandı |
 | `faturaHTMLGetir` | `dispatch`, `EARSIV_PORTAL_FATURA_GOSTER` | ✅ Canlı yanıtla doğrulandı |
-| `faturaKaydet` | `dispatch`, `EARSIV_PORTAL_FATURA_KAYDET` | ⚠️ **Doğrulanmadı** — `EARSIV_PORTAL_FATURA_OLUSTUR` (açık kaynak referanstan) denendi, hesabın erişemediği farklı bir ekrana ("e-Arşiv Portal Fatura") gittiği anlaşılınca orijinal komuta geri dönüldü. Payload zengin/muhtemelen doğru ama cmd hâlâ teyit bekliyor. Başarı artık metin eşleşmesine değil, taslak listesi diff'ine dayanıyor (cmd/yanıt formatından bağımsız çalışır). |
+| `faturaKaydet` | `dispatch`, `EARSIV_PORTAL_FATURA_OLUSTUR` | 🟡 **Payload gerçek DevTools yakalamasıyla birebir doğrulandı**, ama bu tam istekle bir fatura başarıyla oluşturulduğu henüz teyit edilmedi (bir önceki deneme "yetkiniz yok" ile reddedilmişti; bu sefer eksik olan `callid` parametresi ve hatalı `hangiTip`/tip uyumsuzlukları düzeltildi). Sıradaki canlı denemenin sonucu bekleniyor. |
 | `smsSifreGonder` / `smsSifreOnayla` | `dispatch`, `EARSIV_PORTAL_SMSSIFRE_*` | ⚠️ **Doğrulanmadı** |
 | `faturaIndir` (ham base64/PDF indirme, HTML değil) | `dispatch`, `EARSIV_PORTAL_FATURA_INDIR` | ⚠️ **Doğrulanmadı**, kullanılmıyor (yerine `faturaHTMLGetir` + PDF üretimi kullanılıyor) |
 
