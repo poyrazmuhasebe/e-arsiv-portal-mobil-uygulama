@@ -6,11 +6,11 @@ bu sayfa onların tematik bir özetidir.
 
 ## Doğrulama Gerektirenler
 
-- **SMS ile imzalama uçtan uca canlı doğrulandı** (bkz.
-  [gib-entegrasyonu.md](gib-entegrasyonu.md)); tek açık nokta, `smsSifreOnayla`'ya
-  geçirilen `OID`'nin `smsSifreGonder`'in yanıtından geldiği varsayımının
-  henüz bağımsız bir yanıt yakalamasıyla teyit edilmemiş olması.
-  ([Issue #6](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/6))
+- ~~SMS ile imzalama uçtan uca canlı doğrulandı, OID kaynağı belirsizdi~~ —
+  **artık tamamen doğrulandı ve düzeltildi**, bkz.
+  [gib-entegrasyonu.md](gib-entegrasyonu.md) ve
+  [Issue #6](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/6)
+  (kapatıldı).
 - **İptal/İtiraz Talebi "Reddet"** — `talepCevabi: 0` değeri henüz canlı
   doğrulanmadı ("Kabul" = `talepCevabi: 1` doğrulandı).
   ([Issue #18](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/18))

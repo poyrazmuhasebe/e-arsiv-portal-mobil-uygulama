@@ -366,9 +366,10 @@ alanı. SMS Onay ekranında maskeli gösterilir (ör. `(555) 123 45 67`).
    açıyor. `telefonnoSorgula()` artık bu isteği de GİB'in gerçek sırasıyla
    (asıl telefon değerini almadan ÖNCE) "ateşle ve unut" şeklinde ayrıca
    gönderiyor — yanıtı hâlâ ayrıştırılamıyor ama sırf GİB'in beklediği
-   sunucu tarafı state'i tetiklemek için gönderiliyor. **Bu düzeltme henüz
-   canlı bir denemeyle teyit edilmedi** — bir sonraki "GİB İmza" denemesinin
-   sonucu (başarılı mı, hâlâ NPE mi) bunu netleştirecek.
+   sunucu tarafı state'i tetiklemek için gönderiliyor. **Bu düzeltme canlı
+   olarak doğrulandı** — TELEFONNO_SORGULA isteği geri eklendikten sonra
+   NPE tamamen gitti ve `EARSIV_PORTAL_SMSSIFRE_GONDER` gerçekten başarılı
+   oldu (kullanıcının telefonuna SMS ulaştı).
 
 **2) SMS'i gönder — `EARSIV_PORTAL_SMSSIFRE_GONDER` (`RG_SMSONAY`)**
 
@@ -381,6 +382,14 @@ Kritik nokta: bu istekte **`ettn` hiç yok**. SMS, belirli bir faturaya değil,
 doğrudan GİB'e kayıtlı telefon numarasına gönderiliyor — fatura ile bağlantı
 yalnızca 3. adımda kuruluyor. `CEPTEL` alanı, 1. adımdaki telefon numarasının
 ham hâli (boşluksuz, parantezsiz rakamlar).
+
+Başarılı yanıt **canlı olarak doğrulandı**: `{"data": {"oid": "01mu3wkofj1sj6"}, "metadata": {...}}`
+— `dispatch()` `data`'yı açtıktan sonra `{"oid": "..."}` kalıyor. **Dikkat:**
+alan adı küçük harfli `oid` — isteğin kendisindeki büyük harfli `OID` (3.
+adımda kullanılan) ile karıştırılmamalı, GİB istek/yanıtta farklı büyük/
+küçük harf kullanıyor. (İlk implementasyon bu ayrımı kaçırıp büyük harfli
+`OID` arayınca "SMS gönderme yanıtından işlem kimliği okunamadı" hatası
+veriyordu — SMS GİB tarafında gerçekten gönderilmiş olsa bile.)
 
 **3) SMS kodunu onayla — opak bir cmd (`RG_SMSONAY`)**
 
@@ -414,12 +423,8 @@ Diğer alanlar:
 - `DATA` — imzalanacak taslak(lar), `EARSIV_PORTAL_FATURA_SIL`'deki
   `silinecekler` ile AYNI desende: `taslakGetir()`'den gelen ham satır, hiç
   değiştirilmeden bir dizi içinde gönderiliyor.
-- `OID` — `smsSifreGonder`'in (2. adım) yanıtından gelen bir işlem kimliği
-  olduğu düşünülüyor; `gibApi.ts`'teki `smsSifreGonder`, `dispatch()`'in
-  açtığı `data` değerini doğrudan bu OID olarak döndürüyor. **Bu tek bağlantı
-  henüz bağımsız bir yanıt yakalamasıyla teyit edilmedi** — sonraki canlı
-  denemede `smsSifreGonder`'in ham yanıtı (konsola zaten basılıyor) kontrol
-  edilmeli.
+- `OID` — **canlı olarak doğrulandı**: `smsSifreGonder`'in (2. adım)
+  yanıtındaki `oid` alanından geliyor (bkz. yukarıdaki 2. adım notu).
 - `OPR` — sabit `1` (muhtemelen "onayla" işlem tipi; başka değerler
   gözlemlenmedi).
 

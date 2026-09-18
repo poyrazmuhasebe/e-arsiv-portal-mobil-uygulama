@@ -1012,11 +1012,10 @@ export async function kullaniciBilgileriKaydet(
  * telefonu numarasına gönderiliyor — fatura ile bağlantı yalnızca 2. adımda
  * (`smsSifreOnayla`'nın `DATA` alanında) kuruluyor.
  *
- * Yanıt, `smsSifreOnayla`'da geçmesi gereken bir "OID" (işlem kimliği)
- * içeriyor olmalı — bkz. `smsSifreOnayla` üstündeki not. Bu fonksiyon, GİB'in
- * tek-değer döndüren diğer uçlarındaki kalıba uyarak `dispatch()`'in açtığı
- * `data`'yı doğrudan OID olarak döndürüyor; bu, HENÜZ bağımsız bir yanıt
- * yakalamasıyla teyit edilmedi.
+ * Yanıt, `smsSifreOnayla`'da geçmesi gereken işlem kimliğini GERÇEK YANITLA
+ * DOĞRULANDI: `{"oid": "01mu3wkofj1sj6"}` — dikkat, küçük harfli `oid`
+ * (isteğin kendisindeki büyük harfli `OID` alanıyla KARIŞTIRILMAMALI; GİB
+ * istek ve yanıtta farklı büyük/küçük harf kullanıyor).
  */
 export async function smsSifreGonder(token: string, cepTel: string): Promise<string> {
   if (IS_TEST_MODE) {
@@ -1024,7 +1023,7 @@ export async function smsSifreGonder(token: string, cepTel: string): Promise<str
     return Promise.resolve('MOCK-OID');
   }
 
-  const result = await dispatch<string | { data?: string } | Record<string, unknown>>(
+  const result = await dispatch<string | Record<string, unknown>>(
     'EARSIV_PORTAL_SMSSIFRE_GONDER',
     'RG_SMSONAY',
     { CEPTEL: cepTel, KCEPTEL: false, TIP: '' },
@@ -1035,7 +1034,7 @@ export async function smsSifreGonder(token: string, cepTel: string): Promise<str
 
   if (typeof result === 'string' && result.length > 0) return result;
   if (result && typeof result === 'object') {
-    const veri = (result as Record<string, unknown>).data ?? (result as Record<string, unknown>).OID;
+    const veri = (result as Record<string, unknown>).oid ?? (result as Record<string, unknown>).data;
     if (typeof veri === 'string' && veri.length > 0) return veri;
   }
   throw new GibApiError('SMS gönderme yanıtından işlem kimliği (OID) okunamadı.', result);
