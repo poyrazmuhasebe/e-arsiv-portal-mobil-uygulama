@@ -41,6 +41,16 @@ bu sayfa onların tematik bir özetidir.
   yakalanmadı.
   ([Issue #19](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/19))
 
+## Araştırılması Gerekenler
+
+- **İptal talebi süre kısıtları bilinmiyor** — faturanın düzenlenme
+  tarihinden itibaren en geç 7 gün içinde iptal talebi açılabildiği ve
+  talep açıldıktan sonra karşı tarafın yanıt vermesi için de belki 7 gün
+  olduğu düşünülüyor, ama bu GİB tarafından (gerçek hata mesajı veya
+  mevzuat referansıyla) henüz doğrulanmadı. `TaslaklarScreen.tsx`'teki
+  "İptal" butonuna bu yüzden herhangi bir tarih kısıtlaması eklenmedi.
+  ([Issue #21](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/21))
+
 ## Veri Kapsamı Eksikleri
 
 - **Tevkifat kodu listesi**: 623 sonrası bazı karmaşık/tek orana
