@@ -123,6 +123,11 @@ sağlanmadan aktif olmaz.
     onaylanmışsa)
   - 🟡 **Taslak** (`'Onaylanmadı'`)
   - 🔴 **Silinmiş** (`'Silinmiş'`)
+- Belgede bir iptal/itiraz talebi varsa (yalnızca o durumda `taslakGetir`
+  yanıtında `iptalItiraz`/`talepDurum` alanları geliyor — canlı konsol
+  yakalamasıyla doğrulandı), kartta ayrıca "İptal/İtiraz Durumu: ..." satırı
+  gösterilir (`iptalItirazDurumMetni()`, bkz.
+  [gib-entegrasyonu.md](gib-entegrasyonu.md)).
 - Yatay kaydırılabilir aksiyon butonları:
   - **Görüntüle** — `faturaHTMLGetir` ile HTML çekilip tam ekran WebView
     modalında gösterilir; modalın üst çubuğunda **İndir** (PDF, paylaşım

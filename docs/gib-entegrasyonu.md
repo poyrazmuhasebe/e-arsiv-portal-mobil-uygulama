@@ -237,10 +237,29 @@ onayı (işaretlenmeden buton devre dışı). Başarı mesajı: "İptal talebini
 başarıyla oluşturulmuştur."
 
 Başarılı bir iptal talebinden sonra, taslak listesindeki (`taslakGetir`)
-ilgili satırın "İptal/İtiraz Durumu" alanı "İptal Aşamasında" değerini
-alıyor — bu alanın GİB'in ham yanıtındaki gerçek adı (`iptalItirazDurumuColumn`
-mü, başka bir şey mi) henüz bağımsız bir yanıt yakalamasıyla teyit
-edilmedi; `TaslaklarScreen.tsx` üç aday alan adını sırayla deniyor.
+ilgili satırın gerçek alan adları **kullanıcının konsol yakalamasıyla
+doğrulandı**: `iptalItiraz` ve `talepDurum`. İkisi de yalnızca belgede bir
+iptal/itiraz talebi VARSA gelir (talepsiz belgelerde bu alanlar taslak
+listesi yanıtında hiç yok). Gözlemlenen tek somut örnek:
+
+```json
+{"iptalItiraz": "0", "talepDurum": "1"}
+```
+
+Bu, GİB'in kendi ekranında "İptal/İtiraz Durumu: İptal Kabul Edildi" olarak
+gösteriliyordu ve gerçekten bir İPTAL talebiydi (İtiraz değil). Buradan
+çıkarılan yorum: `iptalItiraz` talebin TÜRÜNÜ taşıyor (`"0"` = İptal
+doğrulandı, `"1"` = İtiraz **tahmin**), `talepDurum` ise
+`EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE`'ye gönderilen
+`talepCevabi`yi yansıtıyor (`"1"` = Kabul Edildi doğrulandı). "İptal
+Aşamasında" (henüz cevaplanmamış) durumunun ham `talepDurum` değeri henüz
+yakalanmadı — `TaslaklarScreen.tsx`'teki `iptalItirazDurumMetni()`, `"1"`
+dışındaki her değer için güvenli, genel bir "Aşamasında" metni gösteriyor.
+
+Ayrıca bu, `EARSIV_PORTAL_FATURA_SIL` payload'ındaki `iptalItiraz: "-99"` /
+`talepDurum: "-99"` varsayılan değerlerini de geriye dönük doğruluyor: "-99"
+gerçekten "hiç talep yok" sentinel değeriymiş — talep olmayan belgelerde bu
+alanlar zaten taslak listesi yanıtında hiç gelmiyor.
 
 ### İptal/İtiraz Talepleri ekranı — iki cmd
 

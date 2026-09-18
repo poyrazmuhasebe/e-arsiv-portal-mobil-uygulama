@@ -86,6 +86,14 @@ export interface TaslakFatura {
   saticiVknTckn?: string;
   saticiUnvanAdSoyad?: string;
   talepDurumColumn?: string;
+  // `iptalItiraz`/`talepDurum`: yalnızca belgede bir iptal/itiraz talebi
+  // VARSA gelen alanlar (talepsiz belgelerde bu iki alan hiç yok — canlı
+  // konsol yakalamasıyla doğrulandı). Gözlemlenen tek somut örnek:
+  // {"iptalItiraz":"0","talepDurum":"1"} → GİB ekranında "İptal Kabul
+  // Edildi" yazıyordu. Yorum: `iptalItiraz` talep türü ("0"=İptal doğrulandı,
+  // "1"=İtiraz tahmin), `talepDurum` ise TALEP_DURUM_GUNCELLE'ye gönderilen
+  // `talepCevabi`yi yansıtıyor ("1"=Kabul Edildi doğrulandı). Kullanım için
+  // bkz. TaslaklarScreen.tsx'teki iptalItirazDurumMetni().
   iptalItiraz?: string;
   talepDurum?: string;
   // Aşağıdakiler henüz doğrulanmadı / eski isim uyumluluğu için tutuluyor.

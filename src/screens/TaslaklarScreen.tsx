@@ -44,6 +44,33 @@ function taslakDurumu(item: TaslakFatura, onaylananlar: Set<string>): TaslakDuru
   return 'bilinmiyor';
 }
 
+/**
+ * Gerçek konsol yakalamasıyla DOĞRULANDI: bir belgede iptal/itiraz talebi
+ * hiç yoksa `iptalItiraz`/`talepDurum` alanları taslak listesi yanıtında hiç
+ * gelmiyor (ör. "Silinmiş" durumundaki kayıtlarda bu alanlar yok). Bir talep
+ * varsa ikisi de geliyor — gözlemlenen tek somut örnek:
+ * `{"iptalItiraz":"0","talepDurum":"1"}` → GİB'in kendi ekranında
+ * "İptal/İtiraz Durumu: İptal Kabul Edildi" yazıyordu, ve bu istek gerçekten
+ * bir İPTAL talebiydi (İtiraz değil).
+ *
+ * Buradan çıkarılan (ama başka durum kodlarıyla henüz teyit edilmeyen)
+ * yorum: `iptalItiraz` talebin TÜRÜNÜ taşıyor ("0" = İptal, "1" = İtiraz —
+ * ikincisi tahmindir), `talepDurum` ise `EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE`
+ * isteğine gönderilen `talepCevabi` değerini yansıtıyor ("1" = Kabul Edildi,
+ * canlı doğrulandı). "İptal Aşamasında" (henüz cevaplanmamış) durumunun ham
+ * değeri henüz yakalanmadı — bu yüzden "1" dışındaki her değer için güvenli,
+ * genel bir "Aşamasında" metni gösteriliyor.
+ */
+function iptalItirazDurumMetni(item: TaslakFatura): string | undefined {
+  const talepDurum = asString(item.talepDurum);
+  if (!talepDurum) return undefined;
+
+  const tur = item.iptalItiraz === '1' ? 'İtiraz' : 'İptal'; // "0"=İptal doğrulandı, "1"=İtiraz tahmin
+
+  if (talepDurum === '1') return `${tur} Kabul Edildi`;
+  return `${tur}/İtiraz Aşamasında`;
+}
+
 type Props = NativeStackScreenProps<RootStackParamList, 'Taslaklar'>;
 
 function paraFormatla(n: number): string {
@@ -403,13 +430,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
     const vknTckn = asString(item.aliciVknTckn);
     const belgeNo = asString(item.belgeNumarasi) ?? item.ettn;
     const belgeTuru = asString(item.belgeTuru);
-    // Alan adı henüz bağımsız bir yanıt yakalamasıyla teyit edilmedi (bkz.
-    // "İptal Talebi Oluştur" sonrası ekranda "İptal Aşamasında" yazdığı
-    // gözlemi) — "iptalItirazDurumuColumn" adının, İptal/İtiraz Talepleri
-    // ekranındaki aynı isimli sütunla tutarlı olduğu varsayımıyla en olası
-    // aday olarak eklendi; diğer ikisi eski/tahmini adlar.
-    const itirazIptalMetni =
-      asString(item.iptalItirazDurumuColumn) ?? asString(item.itirazDurumu) ?? asString(item.iptalDurumu);
+    const itirazIptalMetni = iptalItirazDurumMetni(item);
 
     const durumGorseli =
       durum === 'onaylandi'
