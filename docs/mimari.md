@@ -94,7 +94,8 @@ Android'e özgü bir kısıtlamayı aşıyor:
   (`filigranEkle`, `src/utils/pdf.ts`). Native bir PDF kütüphanesi/watermark
   API'si gerekmiyor — filigran GİB'in HTML'i PDF'e dönüştürülmeden ÖNCE
   ham HTML'e enjekte ediliyor, `expo-print`'in Chromium tabanlı motoru
-  onu normal sayfa içeriği gibi render edip PDF'e gömüyor.
+  onu normal sayfa içeriği gibi render edip PDF'e gömüyor. Cihazda canlı
+  denenip sorunsuz çalıştığı doğrulandı.
 
 ## Modüler kart mimarisinin amacı
 
