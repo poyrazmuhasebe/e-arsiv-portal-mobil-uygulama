@@ -87,6 +87,14 @@ Android'e özgü bir kısıtlamayı aşıyor:
   `writeAsStringAsync`/`EncodingType`/`documentDirectory` bu SDK
   sürümünde "classic" API ailesinin parçası; standart `expo-file-system`a
   dönmek aynı deprecation uyarısını geri getirir.
+- **Filigran:** `generatePDF`/`pdfPaylas`/`pdfIndir` isteğe bağlı bir
+  `filigranMetni` parametresi alıyor — verilirse, PDF'e çevrilecek HTML'in
+  `<body>` etiketinin hemen içine `position: fixed` + `rotate(-35deg)`
+  ile ortalanmış, yarı saydam kırmızı bir metin `<div>`'i ekleniyor
+  (`filigranEkle`, `src/utils/pdf.ts`). Native bir PDF kütüphanesi/watermark
+  API'si gerekmiyor — filigran GİB'in HTML'i PDF'e dönüştürülmeden ÖNCE
+  ham HTML'e enjekte ediliyor, `expo-print`'in Chromium tabanlı motoru
+  onu normal sayfa içeriği gibi render edip PDF'e gömüyor.
 
 ## Modüler kart mimarisinin amacı
 

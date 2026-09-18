@@ -20,6 +20,26 @@ function utf8MetaEkle(html: string): string {
   return `<meta charset="utf-8">${html}`;
 }
 
+// Sayfanın tam ortasına, çapraz (-35°), yarı saydam kırmızı bir filigran
+// metni ekler — ör. "İPTAL AŞAMASINDA" / "İPTAL KABUL EDİLDİ". `position:
+// fixed` her sayfada tekrar eder (expo-print/Chromium PDF motoru bunu
+// destekliyor); `pointer-events:none` metnin altındaki fatura içeriğinin
+// tıklanabilirliğini/seçilebilirliğini etkilemiyor (PDF çıktısında zaten
+// anlamsız ama HTML önizlemesinde bozulmasın diye).
+function filigranEkle(html: string, metin?: string): string {
+  if (!metin) return html;
+  const guvenliMetin = metin.toLocaleUpperCase('tr-TR');
+  const filigranDiv = `<div style="position:fixed;top:50%;left:50%;` +
+    `transform:translate(-50%,-50%) rotate(-35deg);` +
+    `font-size:54px;font-weight:800;color:rgba(200,0,0,0.32);` +
+    `white-space:nowrap;z-index:99999;pointer-events:none;` +
+    `font-family:Arial,sans-serif;letter-spacing:2px;">${guvenliMetin}</div>`;
+  if (/<body[^>]*>/i.test(html)) {
+    return html.replace(/<body([^>]*)>/i, `<body$1>${filigranDiv}`);
+  }
+  return filigranDiv + html;
+}
+
 /**
  * GİB'den gelen fatura HTML'ini PDF'e çevirip Base64 olarak döndürür.
  *
@@ -30,17 +50,22 @@ function utf8MetaEkle(html: string): string {
  * "okumaya" çalışmıyoruz — `printToFileAsync`'e `base64: true` verip PDF
  * içeriğini doğrudan Base64 metni olarak alıyoruz.
  */
-async function pdfBase64Uret(html: string): Promise<string> {
-  const { base64 } = await Print.printToFileAsync({ html: utf8MetaEkle(html), base64: true });
+async function pdfBase64Uret(html: string, filigranMetni?: string): Promise<string> {
+  const isaretliHtml = filigranEkle(utf8MetaEkle(html), filigranMetni);
+  const { base64 } = await Print.printToFileAsync({ html: isaretliHtml, base64: true });
   if (!base64) {
     throw new Error('PDF oluşturulamadı (Base64 verisi alınamadı).');
   }
   return base64;
 }
 
-/** PDF'i üretip uygulamanın kendi belge dizinine (paylaşım için) yazar. */
-export async function generatePDF(html: string): Promise<string> {
-  const base64 = await pdfBase64Uret(html);
+/**
+ * PDF'i üretip uygulamanın kendi belge dizinine (paylaşım için) yazar.
+ * `filigranMetni` verilirse (ör. "İptal Kabul Edildi") sayfanın ortasına
+ * çapraz bir filigran olarak eklenir.
+ */
+export async function generatePDF(html: string, filigranMetni?: string): Promise<string> {
+  const base64 = await pdfBase64Uret(html, filigranMetni);
   const yeniUri = `${FileSystem.documentDirectory}Fatura_${Date.now()}.pdf`;
   await FileSystem.writeAsStringAsync(yeniUri, base64, { encoding: FileSystem.EncodingType.Base64 });
   return yeniUri;
@@ -50,8 +75,8 @@ export async function generatePDF(html: string): Promise<string> {
  * PDF'i oluşturur ve native paylaşım penceresini (WhatsApp, Mail, "Dosyalara
  * Kaydet" vb.) açar.
  */
-export async function pdfPaylas(html: string, dialogTitle?: string): Promise<void> {
-  const uri = await generatePDF(html);
+export async function pdfPaylas(html: string, dialogTitle?: string, filigranMetni?: string): Promise<void> {
+  const uri = await generatePDF(html, filigranMetni);
   const kullanilabilir = await Sharing.isAvailableAsync();
   if (!kullanilabilir) {
     throw new Error('Bu cihazda paylaşım/kaydetme desteklenmiyor.');
@@ -70,10 +95,10 @@ export async function pdfPaylas(html: string, dialogTitle?: string): Promise<voi
  * sistemi "Dosyalara Kaydet"i yalnızca paylaşım sayfası üzerinden sunar)
  * orada paylaşım sayfasına düşülür — bu, iOS'un kendi standart yoludur.
  */
-export async function pdfIndir(html: string): Promise<void> {
+export async function pdfIndir(html: string, filigranMetni?: string): Promise<void> {
   console.log('pdfIndir çağrıldı, Platform.OS =', Platform.OS);
   if (Platform.OS !== 'android') {
-    await pdfPaylas(html, "PDF'i Kaydet");
+    await pdfPaylas(html, "PDF'i Kaydet", filigranMetni);
     return;
   }
 
@@ -82,7 +107,7 @@ export async function pdfIndir(html: string): Promise<void> {
     throw new Error('Kaydetmek için bir klasör seçmeniz gerekiyor.');
   }
 
-  const base64 = await pdfBase64Uret(html);
+  const base64 = await pdfBase64Uret(html, filigranMetni);
   const dosyaAdi = `Fatura_${Date.now()}`;
   const safUri = await FileSystem.StorageAccessFramework.createFileAsync(
     izin.directoryUri,

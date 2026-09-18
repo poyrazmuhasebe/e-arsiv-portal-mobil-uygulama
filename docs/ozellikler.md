@@ -187,6 +187,15 @@ sağlanmadan aktif olmaz.
     bildirimi gösterilir. GİB, zaten silinmiş bir belgede bu işlem
     denendiğinde "Silinmiş belgeler düzenlenemez!" ile reddediyor — bu,
     genel hata gösterimiyle otomatik olarak yakalanıyor.
+  - **İtiraz/İptal, zaten bir talep varsa gizlenir** — belgede
+    `iptalItirazDurumMetni(item)` dolu geliyorsa (ör. "İptal Kabul Edildi",
+    "İptal Aşamasında") her iki buton da kartta hiç gösterilmiyor; yeni bir
+    talep oluşturmanın anlamı yok.
+
+**PDF filigranı:** Bir belgede iptal/itiraz durumu varsa, "İndir"/"Paylaş"
+ile üretilen PDF'in tam ortasına çapraz, yarı saydam kırmızı bir filigran
+eklenir — metni, karttaki "İptal/İtiraz Durumu: ..." ile birebir aynı (ör.
+"İPTAL KABUL EDİLDİ"). Bkz. `src/utils/pdf.ts`'teki `filigranEkle`.
 
 ## İptal / İtiraz Talepleri (`src/screens/IptalItirazTalepleriScreen.tsx`)
 

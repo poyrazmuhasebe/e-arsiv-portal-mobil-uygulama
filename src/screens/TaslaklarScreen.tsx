@@ -137,6 +137,9 @@ export default function TaslaklarScreen({ navigation }: Props) {
   const [htmlModalGorunur, setHtmlModalGorunur] = useState(false);
   const [htmlYukleniyor, setHtmlYukleniyor] = useState(false);
   const [htmlIcerik, setHtmlIcerik] = useState<string | null>(null);
+  // Görüntüle modalındayken PDF İndir/Paylaş'ın filigran olarak kullanacağı
+  // metin — "İptal/İtiraz Durumu" varsa (bkz. iptalItirazDurumMetni).
+  const [goruntulenenFiligran, setGoruntulenenFiligran] = useState<string | undefined>(undefined);
   const [pdfIsleniyor, setPdfIsleniyor] = useState(false);
 
   // Listedeki "İndir" butonu için — hangi kartın HTML'i arka planda
@@ -357,6 +360,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
     setHtmlModalGorunur(true);
     setHtmlYukleniyor(true);
     setHtmlIcerik(null);
+    setGoruntulenenFiligran(iptalItirazDurumMetni(item));
     try {
       const html = await faturaHTMLGetir(token, item.ettn, item.onayDurumu);
       setHtmlIcerik(html);
@@ -373,7 +377,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
     if (!htmlIcerik) return;
     setPdfIsleniyor(true);
     try {
-      await pdfIndir(htmlIcerik);
+      await pdfIndir(htmlIcerik, goruntulenenFiligran);
       // Artık paylaşım penceresi açılmıyor (doğrudan indiriliyor), bu yüzden
       // başarı geri bildirimi yalnızca bu Alert.
       Alert.alert('İndirildi', 'Fatura PDF olarak cihazınıza kaydedildi.');
@@ -389,7 +393,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
     if (!htmlIcerik) return;
     setPdfIsleniyor(true);
     try {
-      await pdfPaylas(htmlIcerik);
+      await pdfPaylas(htmlIcerik, undefined, goruntulenenFiligran);
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'PDF paylaşılamadı.';
       Alert.alert('Hata', message);
@@ -404,7 +408,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
     setIndirilenEttn(item.ettn);
     try {
       const html = await faturaHTMLGetir(token, item.ettn, item.onayDurumu);
-      await pdfIndir(html);
+      await pdfIndir(html, iptalItirazDurumMetni(item));
       Alert.alert('İndirildi', 'Fatura PDF olarak cihazınıza kaydedildi.');
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'Fatura indirilemedi.';
@@ -420,17 +424,22 @@ export default function TaslaklarScreen({ navigation }: Props) {
     // GİB İmza/Düzenle/Sil yalnızca "Onaylanmadı" (henüz taslak) durumunda
     // anlamlı — onaylanmış veya silinmiş bir belgede gösterilmiyor.
     const duzenlenebilir = durum === 'onaylanmadi';
+    const itirazIptalMetni = iptalItirazDurumMetni(item);
+    // Belgede zaten bir iptal/itiraz talebi varsa (kabul edilmiş ya da hâlâ
+    // aşamasında) yeni bir İtiraz/İptal talebi oluşturmanın anlamı yok —
+    // GİB'in kendi arayüzü de bu durumda ilgili seçenekleri sunmuyor.
+    const talepVarMi = itirazIptalMetni !== undefined;
     // İptal Talebi Oluştur ise tam tersi: yalnızca ONAYLANMIŞ (imzalanmış)
     // bir belge için anlamlı — taslak bir fatura iptal edilmez, silinir
     // (gerçek yakalamayla doğrulandı: istek "onayDurumu":"Onaylandı" taşıyor).
-    const iptalUygun = durum === 'onaylandi';
+    const iptalUygun = durum === 'onaylandi' && !talepVarMi;
+    const itirazUygun = !talepVarMi;
 
     const baslik = asString(item.aliciUnvanAdSoyad) ?? asString(item.aliciUnvan) ?? 'Bilinmeyen Alıcı';
     const tarih = asString(item.belgeTarihi) ?? asString(item.faturaTarihi) ?? '-';
     const vknTckn = asString(item.aliciVknTckn);
     const belgeNo = asString(item.belgeNumarasi) ?? item.ettn;
     const belgeTuru = asString(item.belgeTuru);
-    const itirazIptalMetni = iptalItirazDurumMetni(item);
 
     const durumGorseli =
       durum === 'onaylandi'
@@ -517,14 +526,16 @@ export default function TaslaklarScreen({ navigation }: Props) {
             >
               İndir
             </Button>
-            <Button
-              compact
-              mode="text"
-              icon="alert-circle-outline"
-              onPress={() => handleAksiyon('İtiraz Talebi Oluştur', item)}
-            >
-              İtiraz
-            </Button>
+            {itirazUygun && (
+              <Button
+                compact
+                mode="text"
+                icon="alert-circle-outline"
+                onPress={() => handleAksiyon('İtiraz Talebi Oluştur', item)}
+              >
+                İtiraz
+              </Button>
+            )}
             {iptalUygun && (
               <Button
                 compact
