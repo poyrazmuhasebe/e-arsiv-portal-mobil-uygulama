@@ -55,53 +55,11 @@ Expo Go ile QR kodu okutarak veya `npx expo start --web` ile tarayıcıda çalı
 
 **Canlıya geçmeden önce bu bayrağın `false` olduğundan emin olun.**
 
-## GİB Komutlarının Doğrulanma Durumu
+## Daha Fazla Bilgi
 
-| Fonksiyon | Uç nokta / cmd | Durum |
-|---|---|---|
-| `login` | `assos-login`, `assoscmd=anologin` | ✅ Canlı yanıtla doğrulandı |
-| `logout` | `assos-login`, `assoscmd=logout` | ✅ Canlı yanıtla doğrulandı |
-| `getKullaniciBilgileri` | `dispatch`, `EARSIV_PORTAL_KULLANICI_BILGILERI_GETIR` | ✅ Canlı yanıtla doğrulandı |
-| `mukellefBilgisiGetir` | `dispatch`, `SICIL_VEYA_MERNISTEN_BILGILERI_GETIR` | ✅ Canlı yanıtla doğrulandı |
-| `taslakGetir` | `dispatch`, `EARSIV_PORTAL_TASLAKLARI_GETIR` | ✅ Canlı yanıtla doğrulandı |
-| `faturaHTMLGetir` | `dispatch`, `EARSIV_PORTAL_FATURA_GOSTER` | ✅ Canlı yanıtla doğrulandı |
-| `faturaKaydet` | `dispatch`, `EARSIV_PORTAL_FATURA_OLUSTUR` | ✅ **Canlı yanıtla doğrulandı** — kullanıcının gerçek DevTools yakalamasında bu cmd/payload ile GENEL İADE ve TEVKİFAT tipi iki gerçek fatura başarıyla oluşturuldu ("Faturanız başarıyla oluşturulmuştur..."). İstisna: GENEL İADE tipi için `iadeTable` alanını dolduracak form UI'ı henüz yok (bkz. [Issue #2](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/2)), o yüzden GENEL İADE ile gerçek kesim şu an eksik olabilir. |
-| `smsSifreGonder` / `smsSifreOnayla` | `dispatch`, `EARSIV_PORTAL_SMSSIFRE_*` | ⚠️ **Doğrulanmadı** |
-| `faturaIndir` (ham base64/PDF indirme, HTML değil) | `dispatch`, `EARSIV_PORTAL_FATURA_INDIR` | ⚠️ **Doğrulanmadı**, kullanılmıyor (yerine `faturaHTMLGetir` + PDF üretimi kullanılıyor) |
-
-## Proje Yapısı
-
-```
-App.tsx                        # Navigasyon kökü, tema (MD3DarkTheme)
-src/
-  screens/
-    LoginScreen.tsx
-    DashboardScreen.tsx
-    FaturaKesimScreen.tsx       # Orkestratör — kartları birleştirir
-    TaslaklarScreen.tsx
-    fatura/
-      FaturaBilgileriKarti.tsx
-      AliciBilgileriKarti.tsx
-      IrsaliyeBilgileriKarti.tsx
-      MalHizmetKarti.tsx
-      ToplamlarKarti.tsx
-  components/
-    SecimAlani.tsx              # Yeniden kullanılabilir dropdown/seçici
-  constants/
-    faturaConstants.ts          # Para birimi/fatura tipi/ülke/birim/vergi/tevkifat listeleri
-  services/
-    gibApi.ts                   # GİB API istemcisi (dispatch/assos-login)
-  store/
-    useAuthStore.ts             # Zustand — oturum/token yönetimi
-  types/
-    gib.ts                      # Fatura/alıcı/GİB yanıt tipleri
-    faturaForm.ts                # Fatura kesim formunun yerel state tipleri
-  utils/
-    secureStorage.ts             # Platform-güvenli SecureStore sarmalayıcı
-    aliciDefteri.ts               # Kayıtlı alıcılar (adres defteri)
-    faturaHesap.ts                 # KDV/iskonto/tevkifat hesaplama mantığı
-    pdf.ts                          # HTML → PDF, indirme (SAF) / paylaşma
-```
+- [GİB Komutlarının Doğrulanma Durumu](docs/gib-api-durumu.md) — her `gibApi.ts` fonksiyonunun canlı doğrulanma durumu ve bilinen sınırlamalar
+- [Proje Yapısı](docs/proje-yapisi.md) — klasör/dosya ağacı
+- [Issues](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues) — açık hata/geliştirme takibi
 
 ## Lisans / Kullanım
 
