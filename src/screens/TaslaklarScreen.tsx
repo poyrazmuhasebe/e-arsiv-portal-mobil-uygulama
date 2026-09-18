@@ -22,6 +22,7 @@ import type { RootStackParamList } from '../../App';
 import {
   faturaHTMLGetir,
   faturaSil,
+  iptalTalebiOlustur,
   smsSifreGonder,
   smsSifreOnayla,
   taslakGetir,
@@ -124,6 +125,15 @@ export default function TaslaklarScreen({ navigation }: Props) {
   const [silAciklamaAcik, setSilAciklamaAcik] = useState(false);
   const [silAciklama, setSilAciklama] = useState('');
   const [silSurecinde, setSilSurecinde] = useState(false);
+
+  // İptal Talebi Oluştur — yalnızca ONAYLANMIŞ (imzalanmış) faturalar için
+  // anlamlı (taslak/onaylanmamış bir fatura silinir, iptal edilmez). GİB'in
+  // kendi arayüzündeki gerçek akış: gerekçe metni (max 255) + "Uyarıyı
+  // Okudum" onayı.
+  const [iptalHedefi, setIptalHedefi] = useState<TaslakFatura | null>(null);
+  const [iptalUyariOkundu, setIptalUyariOkundu] = useState(false);
+  const [iptalGerekce, setIptalGerekce] = useState('');
+  const [iptalSurecinde, setIptalSurecinde] = useState(false);
 
   const veriYukle = useCallback(
     async (baslangic: Date, bitis: Date) => {
@@ -244,9 +254,10 @@ export default function TaslaklarScreen({ navigation }: Props) {
     return () => clearTimeout(zamanlayici);
   }, [smsHedefi, smsAsama, smsKalanSure]);
 
-  // Düzenle/İtiraz/İptal: gerçek GİB komutları henüz doğrulanmadığından
-  // şimdilik yalnızca konsola yazan yer tutucular. Sil aşağıda ayrıca ele
-  // alınıyor (bkz. handleSilBaslat/handleSilOnayla) — gerçek DevTools
+  // Düzenle/İtiraz: gerçek GİB komutları henüz doğrulanmadığından şimdilik
+  // yalnızca konsola yazan yer tutucular. Sil ve İptal Talebi Oluştur ayrıca
+  // ele alınıyor (bkz. handleSilBaslat/handleSilOnayla,
+  // handleIptalBaslat/handleIptalOnayla) — ikisi de gerçek DevTools
   // yakalamasıyla doğrulandı.
   const handleAksiyon = (aksiyonAdi: string, item: TaslakFatura) => {
     console.log(`${aksiyonAdi} tıklandı:`, item.ettn);
@@ -283,6 +294,34 @@ export default function TaslaklarScreen({ navigation }: Props) {
       Alert.alert('Silme Başarısız', message);
     } finally {
       setSilSurecinde(false);
+    }
+  };
+
+  const handleIptalBaslat = (item: TaslakFatura) => {
+    setIptalHedefi(item);
+    setIptalUyariOkundu(false);
+    setIptalGerekce('');
+  };
+
+  const handleIptalVazgec = () => {
+    setIptalHedefi(null);
+    setIptalUyariOkundu(false);
+    setIptalGerekce('');
+  };
+
+  const handleIptalOnayla = async () => {
+    if (!token || !iptalHedefi || iptalGerekce.trim().length === 0) return;
+    setIptalSurecinde(true);
+    try {
+      await iptalTalebiOlustur(token, iptalHedefi, iptalGerekce.trim());
+      handleIptalVazgec();
+      await veriYukle(baslangicTarih, bitisTarih);
+      Alert.alert('Talep Oluşturuldu', 'İptal talebiniz başarıyla oluşturulmuştur.');
+    } catch (err) {
+      const message = err instanceof Error && err.message ? err.message : 'İptal talebi oluşturulamadı.';
+      Alert.alert('İşlem Başarısız', message);
+    } finally {
+      setIptalSurecinde(false);
     }
   };
 
@@ -354,13 +393,23 @@ export default function TaslaklarScreen({ navigation }: Props) {
     // GİB İmza/Düzenle/Sil yalnızca "Onaylanmadı" (henüz taslak) durumunda
     // anlamlı — onaylanmış veya silinmiş bir belgede gösterilmiyor.
     const duzenlenebilir = durum === 'onaylanmadi';
+    // İptal Talebi Oluştur ise tam tersi: yalnızca ONAYLANMIŞ (imzalanmış)
+    // bir belge için anlamlı — taslak bir fatura iptal edilmez, silinir
+    // (gerçek yakalamayla doğrulandı: istek "onayDurumu":"Onaylandı" taşıyor).
+    const iptalUygun = durum === 'onaylandi';
 
     const baslik = asString(item.aliciUnvanAdSoyad) ?? asString(item.aliciUnvan) ?? 'Bilinmeyen Alıcı';
     const tarih = asString(item.belgeTarihi) ?? asString(item.faturaTarihi) ?? '-';
     const vknTckn = asString(item.aliciVknTckn);
     const belgeNo = asString(item.belgeNumarasi) ?? item.ettn;
     const belgeTuru = asString(item.belgeTuru);
-    const itirazIptalMetni = asString(item.itirazDurumu) ?? asString(item.iptalDurumu);
+    // Alan adı henüz bağımsız bir yanıt yakalamasıyla teyit edilmedi (bkz.
+    // "İptal Talebi Oluştur" sonrası ekranda "İptal Aşamasında" yazdığı
+    // gözlemi) — "iptalItirazDurumuColumn" adının, İptal/İtiraz Talepleri
+    // ekranındaki aynı isimli sütunla tutarlı olduğu varsayımıyla en olası
+    // aday olarak eklendi; diğer ikisi eski/tahmini adlar.
+    const itirazIptalMetni =
+      asString(item.iptalItirazDurumuColumn) ?? asString(item.itirazDurumu) ?? asString(item.iptalDurumu);
 
     const durumGorseli =
       durum === 'onaylandi'
@@ -455,14 +504,16 @@ export default function TaslaklarScreen({ navigation }: Props) {
             >
               İtiraz
             </Button>
-            <Button
-              compact
-              mode="text"
-              icon="close-circle-outline"
-              onPress={() => handleAksiyon('İptal Talebi Oluştur', item)}
-            >
-              İptal
-            </Button>
+            {iptalUygun && (
+              <Button
+                compact
+                mode="text"
+                icon="close-circle-outline"
+                onPress={() => handleIptalBaslat(item)}
+              >
+                İptal
+              </Button>
+            )}
           </ScrollView>
         </Card.Actions>
       </Card>
@@ -576,6 +627,54 @@ export default function TaslaklarScreen({ navigation }: Props) {
               disabled={silSurecinde || silAciklama.trim().length === 0}
             >
               Sil
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={iptalHedefi !== null} onDismiss={handleIptalVazgec}>
+          <Dialog.Title>İptal Talebi Oluştur</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="labelSmall" style={styles.mutedText}>
+              İptal Gerekçenizi Giriniz
+            </Text>
+            <TextInput
+              mode="outlined"
+              value={iptalGerekce}
+              onChangeText={(v) => setIptalGerekce(v.slice(0, 255))}
+              maxLength={255}
+              multiline
+              numberOfLines={3}
+              autoFocus
+            />
+            <Text variant="labelSmall" style={styles.karakterSayaci}>
+              {iptalGerekce.length}/255
+            </Text>
+            <Text variant="labelSmall" style={[styles.mutedText, styles.dialogUyariBaslik]}>
+              UYARI
+            </Text>
+            <Text variant="bodyMedium" style={styles.dialogText}>
+              Düzenlemiş olduğunuz belge için iptal talebi oluşturmak
+              istiyorsunuz. İptal talebi oluşturduğunuzda bu talep geri
+              çekilemeyecek ve alıcıya iletilecektir.
+            </Text>
+            <Checkbox.Item
+              label="Uyarıyı Okudum"
+              status={iptalUyariOkundu ? 'checked' : 'unchecked'}
+              onPress={() => setIptalUyariOkundu((v) => !v)}
+              style={styles.silCheckbox}
+              labelStyle={styles.silCheckboxLabel}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={handleIptalVazgec} disabled={iptalSurecinde}>
+              Vazgeç
+            </Button>
+            <Button
+              onPress={handleIptalOnayla}
+              loading={iptalSurecinde}
+              disabled={iptalSurecinde || !iptalUyariOkundu || iptalGerekce.trim().length === 0}
+            >
+              İptal Talebi Oluştur
             </Button>
           </Dialog.Actions>
         </Dialog>
@@ -740,4 +839,6 @@ const styles = StyleSheet.create({
   silCheckbox: { paddingHorizontal: 0 },
   silCheckboxLabel: { fontSize: 14 },
   telefonSpinner: { alignSelf: 'flex-start', marginTop: 4 },
+  karakterSayaci: { alignSelf: 'flex-end', opacity: 0.6, marginTop: 2, marginBottom: 8 },
+  dialogUyariBaslik: { fontWeight: '700', marginBottom: 4 },
 });

@@ -210,6 +210,73 @@ GİB'in kendi web arayüzündeki gerçek kullanıcı akışı **iki adımlı**:
 Bu iki adımlı akış `TaslaklarScreen.tsx`'te (`silHedefi`/`silUyariOkundu`/
 `silAciklamaAcik` state'leri) birebir uygulandı.
 
+**Bilinen GİB hata mesajı:** zaten silinmiş bir belgeyi tekrar silmeye/
+düzenlemeye çalışmak "Silinmiş belgeler düzenlenemez!" mesajıyla
+reddediliyor (canlı gözlemlendi). Bu, `dispatch()`'in genel `messages`
+işleyişiyle otomatik olarak yakalanıp çağırana iletiliyor; özel bir kod
+yolu gerektirmiyor.
+
+### İptal talebi oluşturma — `EARSIV_PORTAL_IPTAL_TALEBI_OLUSTUR` (`RG_BASITTASLAKLAR`)
+
+```json
+{"ettn": "...", "onayDurumu": "Onaylandı", "belgeTuru": "FATURA", "talepAciklama": "sehven hatali duzenlenmistir"}
+```
+
+`faturaSil`'in aksine, bu istek taslağın tüm alanlarını değil yalnızca
+dördünü taşıyor. **Yalnızca ONAYLANMIŞ (imzalanmış) faturalar için
+anlamlı** — `onayDurumu: "Onaylandı"` gönderilir; taslak (henüz
+onaylanmamış) bir fatura silinir (`EARSIV_PORTAL_FATURA_SIL`), iptal
+edilmez. Bu, GİB'in kendi arayüzünde bir kategorik ayrım: **Sil** =
+kesilmemiş bir taslağı yok et, **İptal Talebi** = zaten kesilmiş/imzalanmış
+bir faturayı geçersiz kılmayı talep et (alıcının onayına tabi).
+
+Kullanıcı akışı: gerekçe metni (max 255 karakter, canlı `x/255` sayaç) +
+"Düzenlemiş olduğunuz belge için iptal talebi oluşturmak istiyorsunuz...
+geri çekilemeyecek ve alıcıya iletilecektir." uyarısı + "Uyarıyı Okudum"
+onayı (işaretlenmeden buton devre dışı). Başarı mesajı: "İptal talebiniz
+başarıyla oluşturulmuştur."
+
+Başarılı bir iptal talebinden sonra, taslak listesindeki (`taslakGetir`)
+ilgili satırın "İptal/İtiraz Durumu" alanı "İptal Aşamasında" değerini
+alıyor — bu alanın GİB'in ham yanıtındaki gerçek adı (`iptalItirazDurumuColumn`
+mü, başka bir şey mi) henüz bağımsız bir yanıt yakalamasıyla teyit
+edilmedi; `TaslaklarScreen.tsx` üç aday alan adını sırayla deniyor.
+
+### İptal/İtiraz Talepleri ekranı — iki cmd
+
+**Listeleme — `EARSIV_PORTAL_GELEN_IPTAL_ITIRAZ_TALEPLERINI_GETIR` (`RG_IPTALITIRAZTASLAKLAR`)**
+
+```json
+{"baslangic": "GG/AA/YYYY", "bitis": "GG/AA/YYYY"}
+```
+
+Yanıt satırlarının gerçek sütunları (GİB'in kendi tablo başlıklarından):
+Belge Numarası, Satıcı/Alıcı Vkn-Tckn ve Unvan/Ad Soyad, İptal/İtiraz Talep
+Tarihi, Belge Türü, İtiraz Yöntemi, İtiraz Belge Numarası (`referansBelgeId`),
+İtiraz Belge Tarihi (`referansBelgeTarihi`), İptal/İtiraz Durumu
+(`iptalItirazDurumuColumn`).
+
+**Durum güncelleme — `EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE` (`RG_IPTALITIRAZTASLAKLAR`)**
+
+```json
+{"iptalItirazOid": "1amu3wkp5w1s61", "talepCevabi": 1, "belgeTuru": "FATURA", "retAciklama": ""}
+```
+
+`talepCevabi: 1` = **Kabul** — canlı yanıtla doğrulandı ("İptal Talebi
+Kabul" popup'ı: "{belgeNumarası} numaralı belge için iptal talebini
+onaylamak istiyorsunuz... geri çekilemeyecektir." + "Uyarıyı Okudum" onayı).
+Kabulden sonra liste otomatik yeniden sorgulanıyor (GİB'in kendi arayüzü
+de aynısını yapıyor).
+
+`talepCevabi: 0` (**Reddet**) ve dolu bir `retAciklama` gönderme, alan
+adlarından çıkarılan mantıklı ama **henüz canlı doğrulanmamış** bir
+varsayımdır (bkz.
+[Issue #18](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/18)).
+
+`iptalItirazOid` — tabloda görünen bir sütun değil, ama durum güncelleme
+isteğinde zorunlu; satır objesinde geldiği varsayılıyor (ayrı bir liste
+yanıtı yakalamasıyla henüz teyit edilmedi).
+
 ### SMS ile imzalama (GİB İmza) — üç adımlı akış
 
 Bu akış, gerçek DevTools yakalamasıyla **uçtan uca canlı doğrulandı**
@@ -290,18 +357,15 @@ birebir uygulandı:
 ## Portalın kendi menü ağacından öğrenilenler
 
 GİB portalının kendi tek-sayfa uygulamasının (SPA) menü yükleme çağrısından
-(`getUserMenu`) şu gerçek sayfa adları görüldü — henüz bu uygulamada
-kullanılmıyor ama ileride ilgili özellikler eklenirken referans olabilir:
+(`getUserMenu`) şu gerçek sayfa adları görüldü:
 
-| Menü öğesi | Gerçek `pageName` |
-|---|---|
-| e-Arşiv Fatura (İnteraktif) Oluştur | `RG_BASITFATURA` |
-| Düzenlenen Belgeler e-Arşiv Fatura (İnteraktif) | `RG_BASITTASLAKLAR` |
-| İptal/İtiraz Talepleri | `RG_IPTALITIRAZTASLAKLAR` |
-| Adıma Düzenlenen Belgeler (bana kesilen faturalar) | `RG_ALICI_TASLAKLAR` |
-| Kullanıcı Bilgileri | `RG_KULLANICI` |
-
-Bu sayfa adlarına karşılık gelen `cmd`'ler henüz yakalanmadı.
+| Menü öğesi | Gerçek `pageName` | Durum |
+|---|---|---|
+| e-Arşiv Fatura (İnteraktif) Oluştur | `RG_BASITFATURA` | ✅ Uygulandı |
+| Düzenlenen Belgeler e-Arşiv Fatura (İnteraktif) | `RG_BASITTASLAKLAR` | ✅ Uygulandı |
+| İptal/İtiraz Talepleri | `RG_IPTALITIRAZTASLAKLAR` | ✅ Uygulandı (`IptalItirazTalepleriScreen`) |
+| Adıma Düzenlenen Belgeler (bana kesilen faturalar) | `RG_ALICI_TASLAKLAR` | ⏳ Henüz uygulanmadı — cmd'ler yakalanmadı (bkz. [Issue #19](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/19)) |
+| Kullanıcı Bilgileri | `RG_KULLANICI` | ⏳ `getKullaniciBilgileri` şu an `RG_BASITFATURA` ile çalışıyor (canlı doğrulandı), bu daha "doğru" sayfa adı henüz denenmedi |
 
 `getUserMenu`/`SIDE.GET_EAGER_BF_DEFS` çağrılarının kendisi ve GİB
 portalının kullandığı üçüncü parti JS kütüphaneleri (autoNumeric.js,

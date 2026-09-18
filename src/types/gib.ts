@@ -96,6 +96,28 @@ export interface TaslakFatura {
   [key: string]: unknown;
 }
 
+// "Belge İşlemleri > İptal/İtiraz Talepleri" ekranının listesi
+// (EARSIV_PORTAL_GELEN_IPTAL_ITIRAZ_TALEPLERINI_GETIR) — canlı yakalamayla
+// doğrulanan sütunlar. `iptalItirazOid` tabloda görünen bir sütun değil ama
+// EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE isteğinde zorunlu olduğu
+// için satır objesinde geldiği VARSAYILIYOR (henüz ayrı bir liste yanıtı
+// yakalamasıyla teyit edilmedi).
+export interface IptalItirazTalebi {
+  iptalItirazOid: string;
+  belgeNumarasi?: string;
+  saticiVknTckn?: string;
+  saticiUnvanAdSoyad?: string;
+  aliciVknTckn?: string;
+  aliciUnvanAdSoyad?: string;
+  iptalItirazTalepTarihi?: string;
+  belgeTuru?: string;
+  itirazYontemi?: string;
+  referansBelgeId?: string;
+  referansBelgeTarihi?: string;
+  iptalItirazDurumuColumn?: string;
+  [key: string]: unknown;
+}
+
 export interface GibMesaj {
   type?: string;
   // GİB'in hangi alan adını kullandığı doğrulanmadı; ikisi de görülmüş.

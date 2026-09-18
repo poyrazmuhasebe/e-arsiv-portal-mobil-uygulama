@@ -19,6 +19,10 @@ tam listesi için [bilinen-sinirlamalar.md](bilinen-sinirlamalar.md).
 | `telefonnoSorgula` | `dispatch`, `EARSIV_PORTAL_TELEFONNO_SORGULA` | ✅ Canlı yanıtla doğrulandı (cmd/pageName/jp) |
 | `smsSifreGonder` | `dispatch`, `EARSIV_PORTAL_SMSSIFRE_GONDER` (`RG_SMSONAY`) | ✅ Canlı yanıtla doğrulandı |
 | `smsSifreOnayla` | `dispatch`, opak cmd `0lhozfib5410mp` (`RG_SMSONAY`) | ✅ **Uçtan uca canlı doğrulandı** — gerçek bir fatura "SMS şifreniz doğrulandı, işlem başarılı." yanıtıyla imzalandı. Tek açık nokta: `OID`'nin `smsSifreGonder`'in yanıtından geldiği varsayımı henüz bağımsız bir yanıt yakalamasıyla teyit edilmedi (bkz. [gib-entegrasyonu.md](gib-entegrasyonu.md)). |
+| `iptalTalebiOlustur` | `dispatch`, `EARSIV_PORTAL_IPTAL_TALEBI_OLUSTUR` | ✅ Canlı yanıtla doğrulandı ("İptal talebiniz başarıyla oluşturulmuştur.") |
+| `iptalItirazTalepleriGetir` | `dispatch`, `EARSIV_PORTAL_GELEN_IPTAL_ITIRAZ_TALEPLERINI_GETIR` | ✅ Canlı yanıtla doğrulandı (cmd/pageName/jp) |
+| `iptalItirazTalepDurumGuncelle` (Kabul) | `dispatch`, `EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE` | ✅ Canlı yanıtla doğrulandı (`talepCevabi: 1`) |
+| `iptalItirazTalepDurumGuncelle` (Reddet) | aynı cmd, `talepCevabi: 0` | ⚠️ **Doğrulanmadı** — mantıklı ama henüz canlı test edilmemiş bir varsayım (bkz. [Issue #18](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/18)) |
 | `faturaIndir` (ham base64/PDF indirme, HTML değil) | `dispatch`, `EARSIV_PORTAL_FATURA_INDIR` | ⚠️ **Doğrulanmadı**, kullanılmıyor (yerine `faturaHTMLGetir` + PDF üretimi kullanılıyor) |
 
 Bilinen sınırlamaların tam listesi için bkz. [bilinen-sinirlamalar.md](bilinen-sinirlamalar.md).

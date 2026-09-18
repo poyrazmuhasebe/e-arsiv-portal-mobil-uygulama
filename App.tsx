@@ -10,6 +10,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import FaturaKesimScreen from './src/screens/FaturaKesimScreen';
 import TaslaklarScreen from './src/screens/TaslaklarScreen';
+import IptalItirazTalepleriScreen from './src/screens/IptalItirazTalepleriScreen';
 import { useAuthStore } from './src/store/useAuthStore';
 
 export type RootStackParamList = {
@@ -17,6 +18,7 @@ export type RootStackParamList = {
   Dashboard: undefined;
   FaturaKesim: undefined;
   Taslaklar: undefined;
+  IptalItirazTalepleri: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -55,6 +57,7 @@ export default function App() {
                   <Stack.Screen name="Dashboard" component={DashboardScreen} />
                   <Stack.Screen name="FaturaKesim" component={FaturaKesimScreen} />
                   <Stack.Screen name="Taslaklar" component={TaslaklarScreen} />
+                  <Stack.Screen name="IptalItirazTalepleri" component={IptalItirazTalepleriScreen} />
                 </Stack.Group>
               ) : (
                 <Stack.Screen name="Login" component={LoginScreen} />

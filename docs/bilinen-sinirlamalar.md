@@ -11,6 +11,9 @@ bu sayfa onların tematik bir özetidir.
   geçirilen `OID`'nin `smsSifreGonder`'in yanıtından geldiği varsayımının
   henüz bağımsız bir yanıt yakalamasıyla teyit edilmemiş olması.
   ([Issue #6](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/6))
+- **İptal/İtiraz Talebi "Reddet"** — `talepCevabi: 0` değeri henüz canlı
+  doğrulanmadı ("Kabul" = `talepCevabi: 1` doğrulandı).
+  ([Issue #18](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/18))
 
 ## Bilinen Fonksiyonel Eksikler
 
@@ -25,11 +28,15 @@ bu sayfa onların tematik bir özetidir.
   (176 gerçek kod arasından USD/EUR/vb. olsa bile) UI'da yansımıyor (GİB'e
   giden veri doğru).
   ([Issue #3](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/3))
-- **İtiraz/İptal Talebi Oluştur, Taslak Düzenle** — şu an yalnızca
-  `console.log` yer tutucular, gerçek işlevleri yok. (Taslak **Sil** artık
-  gerçek `EARSIV_PORTAL_FATURA_SIL` isteğiyle çalışıyor.)
+- **İtiraz Talebi Oluştur, Taslak Düzenle** — şu an yalnızca `console.log`
+  yer tutucular, gerçek işlevleri yok. (Taslak **Sil** ve **İptal Talebi
+  Oluştur** artık gerçek isteklerle çalışıyor.)
   ([Issue #7](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/7),
   [Issue #11](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/11))
+- **"Adıma Düzenlenen Belgeler" ekranı henüz yok** — Dashboard'daki menü
+  öğesi "Bu özellik henüz eklenmedi." uyarısı gösteriyor; gerekli cmd henüz
+  yakalanmadı.
+  ([Issue #19](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/19))
 
 ## Veri Kapsamı Eksikleri
 

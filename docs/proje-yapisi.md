@@ -8,6 +8,7 @@ src/
     DashboardScreen.tsx
     FaturaKesimScreen.tsx       # Orkestratör — kartları birleştirir
     TaslaklarScreen.tsx
+    IptalItirazTalepleriScreen.tsx
     fatura/
       FaturaBilgileriKarti.tsx
       AliciBilgileriKarti.tsx

@@ -22,8 +22,14 @@
   o da yoksa "Mükellef") tek satır + `ellipsizeMode="tail"` ile kısaltılarak
   gösterilir — çok uzun şirket unvanları (`"... LİMİTED ŞİRKETİ"`) taşmasın
   diye.
-- İki büyük kart: **Yeni Fatura Kes** (→ `FaturaKesim`) ve
-  **Taslak / Kesilen Faturalar** (→ `Taslaklar`).
+- **"Belge İşlemleri"** başlıklı bir bölüm, GİB'in kendi ana menüsündeki
+  4 alt sekmeyle birebir eşleşiyor (bkz. gerçek menü ağacı yakalaması):
+  1. **e-Arşiv Fatura (İnteraktif) Oluştur** → `FaturaKesim`
+  2. **Taslak / Kesilen Faturalar** → `Taslaklar`
+  3. **İptal / İtiraz Talepleri** → `IptalItirazTalepleri` (bkz. aşağıda)
+  4. **Adıma Düzenlenen Belgeler** — henüz uygulanmadı, tıklanınca "Bu
+     özellik henüz eklenmedi." uyarısı gösterir (bkz.
+     [Issue #19](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/19))
 - Sağ üstte "Güvenli Çıkış" ikonu; onay diyaloğundan sonra
   `useAuthStore.logout()` çağrılır (bkz. aşağıdaki "Oturum Yönetimi").
 
@@ -140,7 +146,41 @@ sağlanmadan aktif olmaz.
     [gib-entegrasyonu.md](gib-entegrasyonu.md).
   - **İndir** — kartın kendi satırından, modal açmadan doğrudan HTML çekilip
     PDF'e çevrilip cihaza kaydedilir.
-  - **İtiraz / İptal** — şu an yalnızca `console.log` yer tutucu.
+  - **İtiraz** — şu an yalnızca `console.log` yer tutucu (muhtemelen faturayı
+    alan tarafın başlattığı ayrı bir akış, bkz.
+    [Issue #7](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/7)).
+  - **İptal** — Sil'in tam tersi: yalnızca **"Onaylı" (imzalanmış)**
+    durumundaki belgelerde görünür (taslak bir fatura iptal edilmez, silinir).
+    GİB'in kendi akışı birebir uygulandı: gerekçe metni (max 255 karakter,
+    canlı `x/255` sayaç) + "Bu belge imzalandığında..." uyarısı + "Uyarıyı
+    Okudum" onayı. Başarılı olursa `EARSIV_PORTAL_IPTAL_TALEBI_OLUSTUR`
+    isteği gönderilir ve "İptal talebiniz başarıyla oluşturulmuştur."
+    bildirimi gösterilir. GİB, zaten silinmiş bir belgede bu işlem
+    denendiğinde "Silinmiş belgeler düzenlenemez!" ile reddediyor — bu,
+    genel hata gösterimiyle otomatik olarak yakalanıyor.
+
+## İptal / İtiraz Talepleri (`src/screens/IptalItirazTalepleriScreen.tsx`)
+
+"Belge İşlemleri" menüsünün 3. sekmesi — bu mükellefin **düzenlediği**
+faturalara ait, alıcı veya başka bir taraftan gelen iptal/itiraz taleplerini
+listeler.
+
+- Başlangıç/Bitiş tarih seçiciler (varsayılan bugün) + "Sorgula".
+- GİB'in kendi ekranı geniş bir masaüstü tablosu (satır seçim kutucuğu +
+  üstte paylaşılan "Talep Kabul Et"/"Talep Reddet" butonları); mobilde bu,
+  uygulamanın geri kalanıyla tutarlı olması için her satırın kendi
+  Kabul/Reddet butonlarına sahip olduğu bir kart listesine uyarlandı.
+  Gösterilen alanlar: Belge Numarası, Satıcı/Alıcı Vkn-Tckn ve Unvan/Ad
+  Soyad, İptal/İtiraz Talep Tarihi, Belge Türü, İtiraz Yöntemi, İtiraz
+  Belge Numarası/Tarihi, İptal/İtiraz Durumu.
+- **Talep Kabul Et** — "{belgeNumarası} numaralı belge için iptal talebini
+  onaylamak istiyorsunuz..." uyarısı + "Uyarıyı Okudum" onayı (işaretlenmeden
+  ilerlenemez). Onaylanınca `EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE`
+  isteği (`talepCevabi: 1`) gönderilir — uçtan uca canlı doğrulandı.
+- **Talep Reddet** — bir ret gerekçesi metni ister, aynı cmd'i
+  `talepCevabi: 0` ile gönderir. Bu değer henüz canlı bir yakalamayla teyit
+  edilmedi (bkz. [Issue #18](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/18)).
+- Her iki işlemden sonra liste otomatik yenilenir.
 
 ## Oturum Yönetimi (`src/store/useAuthStore.ts`)
 

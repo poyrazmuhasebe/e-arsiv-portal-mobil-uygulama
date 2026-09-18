@@ -22,6 +22,7 @@ import type {
   DispatchEnvelope,
   FaturaSatiri,
   FaturaTaslagi,
+  IptalItirazTalebi,
   KullaniciBilgisi,
   TaslakFatura,
 } from '../types/gib';
@@ -808,6 +809,49 @@ export async function faturaSil(
 }
 
 // ---------------------------------------------------------------------------
+// İptal talebi oluşturma (onaylanmış/imzalanmış bir fatura için)
+// ---------------------------------------------------------------------------
+
+/**
+ * Tarayıcı DevTools > Network yakalamasıyla BİREBİR DOĞRULANDI — GERÇEK,
+ * BAŞARILI bir istek ("İptal talebiniz başarıyla oluşturulmuştur." yanıtı
+ * alındı). `faturaSil`'in aksine, bu istek taslağın TÜM alanlarını değil
+ * yalnızca dördünü taşıyor.
+ *
+ * Not: Bu, taslağın kendisini SİLMEZ, GİB'e "bu onaylı/imzalı faturayı iptal
+ * etmek istiyorum" talebi iletir; alıcıya bildirilir ve GİB tarafında ayrı
+ * bir onay/red süreci işler (bkz. iptalItirazTalepleriGetir). Bu yüzden
+ * yalnızca ONAYLANMIŞ (imzalanmış) faturalar için anlamlıdır — taslak
+ * (henüz onaylanmamış) bir fatura silinir (`faturaSil`), iptal edilmez.
+ * GİB, zaten silinmiş bir belge için bu işlem denenirse
+ * "Silinmiş belgeler düzenlenemez!" mesajıyla reddediyor (canlı
+ * gözlemlendi) — bu durum, dispatch()'in genel hata/mesaj işleyişiyle
+ * zaten otomatik olarak yakalanıp çağırana iletiliyor.
+ */
+export async function iptalTalebiOlustur(
+  token: string,
+  taslak: TaslakFatura,
+  talepAciklama: string,
+): Promise<void> {
+  if (IS_TEST_MODE) {
+    console.log('MOCK İPTAL TALEBİ OLUŞTUR:', { ettn: taslak.ettn, talepAciklama });
+    return Promise.resolve();
+  }
+
+  await dispatch(
+    'EARSIV_PORTAL_IPTAL_TALEBI_OLUSTUR',
+    'RG_BASITTASLAKLAR',
+    {
+      ettn: taslak.ettn,
+      onayDurumu: taslak.onayDurumu ?? 'Onaylandı',
+      belgeTuru: taslak.belgeTuru ?? 'FATURA',
+      talepAciklama,
+    },
+    token,
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Kayıtlı cep telefonu sorgulama (SMS onay akışının 1. adımında gösterilir)
 // ---------------------------------------------------------------------------
 
@@ -1020,6 +1064,87 @@ export async function faturaIndir(
   return base64;
 }
 
+// ---------------------------------------------------------------------------
+// İptal/İtiraz Talepleri (Belge İşlemleri menüsünün 3. sekmesi)
+// ---------------------------------------------------------------------------
+
+export interface IptalItirazTalepFiltre {
+  baslangicTarihi?: string; // "GG/AA/YYYY"
+  bitisTarihi?: string; // "GG/AA/YYYY"
+}
+
+/**
+ * Tarayıcı DevTools > Network yakalamasıyla cmd/pageName/jp DOĞRULANDI.
+ * "İptal/İtiraz Talepleri" ekranındaki "Sorgula" butonuna karşılık gelir —
+ * gerçek yakalamada tarih alanları hep bugünün tarihiyle dolu geldi
+ * (varsayılan aralık), ama filtresiz (jp: {}) davranış test edilmedi; bu
+ * yüzden `taslakGetir`'deki gibi bir "filtre zorunlu" varsayımı yapılmadı,
+ * yalnızca çağıran taraf tarih vermezse bugünü kullanıyoruz.
+ */
+export async function iptalItirazTalepleriGetir(
+  token: string,
+  filtre: IptalItirazTalepFiltre = {},
+): Promise<IptalItirazTalebi[]> {
+  const bugun = ggAaYyyy(new Date());
+  const baslangic = filtre.baslangicTarihi ?? bugun;
+  const bitis = filtre.bitisTarihi ?? bugun;
+
+  if (IS_TEST_MODE) {
+    console.log('MOCK İPTAL/İTİRAZ TALEPLERİ GETİR:', { baslangic, bitis });
+    return Promise.resolve([]);
+  }
+
+  const result = await dispatch<IptalItirazTalebi[] | { data: IptalItirazTalebi[] } | Record<string, unknown>>(
+    'EARSIV_PORTAL_GELEN_IPTAL_ITIRAZ_TALEPLERINI_GETIR',
+    'RG_IPTALITIRAZTASLAKLAR',
+    { baslangic, bitis },
+    token,
+  );
+
+  console.log('GİB İPTAL/İTİRAZ TALEPLERİ HAM YANIT:', JSON.stringify(result));
+
+  if (Array.isArray(result)) return result;
+  if (result && typeof result === 'object' && Array.isArray((result as { data?: unknown }).data)) {
+    return (result as { data: IptalItirazTalebi[] }).data;
+  }
+  return [];
+}
+
+/**
+ * Tarayıcı DevTools > Network yakalamasıyla DOĞRULANDI — ama YALNIZCA
+ * "Talep Kabul Et" (kabul) yolu: gerçek istekte `talepCevabi: 1` ve
+ * `retAciklama: ""` gönderilmişti. "Talep Reddet" (`kabul=false`) yolu
+ * canlı bir yakalamayla HENÜZ doğrulanmadı — `talepCevabi: 0` ve dolu bir
+ * `retAciklama` göndermek, alan adlarından (`talepCevabi` = ikili bir kabul/
+ * red cevabı, `retAciklama` = "ret açıklaması") çıkarılan MANTIKLI ama
+ * DOĞRULANMAMIŞ bir varsayımdır. Canlıda "Talep Reddet" denendiğinde
+ * konsoldaki ham istek/yanıt logları kontrol edilip bu varsayım teyit
+ * edilmeli veya düzeltilmeli.
+ */
+export async function iptalItirazTalepDurumGuncelle(
+  token: string,
+  talep: IptalItirazTalebi,
+  kabul: boolean,
+  retAciklama = '',
+): Promise<void> {
+  if (IS_TEST_MODE) {
+    console.log('MOCK İPTAL/İTİRAZ TALEP DURUM GÜNCELLE:', { oid: talep.iptalItirazOid, kabul, retAciklama });
+    return Promise.resolve();
+  }
+
+  await dispatch(
+    'EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE',
+    'RG_IPTALITIRAZTASLAKLAR',
+    {
+      iptalItirazOid: talep.iptalItirazOid,
+      talepCevabi: kabul ? 1 : 0,
+      belgeTuru: talep.belgeTuru ?? 'FATURA',
+      retAciklama,
+    },
+    token,
+  );
+}
+
 export const gibApi = {
   login,
   logout,
@@ -1028,11 +1153,14 @@ export const gibApi = {
   faturaKaydet,
   taslakGetir,
   faturaSil,
+  iptalTalebiOlustur,
   telefonnoSorgula,
   smsSifreGonder,
   smsSifreOnayla,
   faturaHTMLGetir,
   faturaIndir,
+  iptalItirazTalepleriGetir,
+  iptalItirazTalepDurumGuncelle,
   gibHatasiniIsle,
 };
 
