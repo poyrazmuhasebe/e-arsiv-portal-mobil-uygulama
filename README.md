@@ -4,38 +4,9 @@ Mali müşavirlerin mükelleflerinin GİB e-Arşiv Portal üzerinden kendi hesap
 
 ## ⚠️ Önemli Uyarılar
 
-- **Bu uygulama GİB'in resmi bir ürünü değildir.** `earsivportal.efatura.gov.tr` adresinin resmi/yayınlanmış bir REST API'si yoktur; uygulama, portalın kendi web arayüzünün kullandığı iç servislere (`/earsiv-services/dispatch`, `/earsiv-services/assos-login`) doğrudan istek atar. GİB bu servisleri haber vermeden değiştirebilir.
-- Kullanıcı kodu ve şifre yalnızca cihazdan doğrudan GİB sunucularına gönderilir; hiçbir üçüncü taraf sunucuya iletilmez (backend yoktur). "Beni hatırla" işaretlenirse bu bilgiler yalnızca cihazda `expo-secure-store` (şifrelenmiş) ile tutulur.
-- `src/services/gibApi.ts` içindeki komut/alan adlarının doğrulanma durumu değişkendir — bazıları gerçek Network trafiği yakalanarak teyit edilmiştir, bazıları henüz teyit edilmemiştir. Her fonksiyonun üstündeki yorumlar "DOĞRULANMADI" veya "canlı yanıtla doğrulandı" şeklinde bunu belirtir; aşağıdaki tabloya da bakın.
-- **Canlı bir e-Arşiv faturası kesmek/imzalamak gerçek, geri alınması zor bir mali işlemdir.** `faturaKaydet` artık canlı doğrulandı (bkz. aşağıdaki tablo), ama SMS imzalama gibi hâlâ doğrulanmamış uçları üretime almadan önce mutlaka küçük/kontrollü bir gerçek denemeyle doğrulayın.
-
-## Özellikler
-
-- **Giriş:** GİB kullanıcı kodu/şifresi ile giriş (`assos-login` uç noktası), oturum token'ı `expo-secure-store` ile cihazda güvenli saklanır. "Kullanıcı Kodunu Hatırla" / "Şifreyi Hatırla" onay kutuları ile form bir sonraki açılışta (çıkış yapılsa bile) otomatik doldurulur.
-- **Dashboard:** Mükellef unvanını (uzun unvanlarda tek satır + "..." ile kısaltılmış) gösteren, fatura kesme ve taslak/kesilen faturalara erişim sağlayan ana ekran.
-- **Fatura Kesim Formu:** GİB'in gerçek "e-Arşiv Fatura (interaktif) Oluştur" ekranına yakın, modüler kart tabanlı bir form:
-  - Fatura Bilgileri (tarih/saat, para birimi, döviz kuru, fatura tipi) — **7 gün kuralı**: geriye dönük 7 günden eski bir tarih seçilirse otomatik ayarlama teklif eden bir uyarı çıkar.
-  - Alıcı Bilgileri — VKN (10 hane) veya TCKN (11 hane) girilince `mukellefBilgisiGetir` otomatik tetiklenir; Unvan/Ad/Soyad/Vergi Dairesi alanları **salt okunur**, yalnızca GİB'den gelen veriyle dolar. "Kayıtlı Alıcılardan Seç" ile daha önce fatura kesilen bir alıcı tek dokunuşla seçilebilir (adres defteri, cihazda saklanır).
-  - İrsaliye Bilgileri.
-  - Mal/Hizmet Bilgileri — dinamik satır ekleme/silme, kalem başına KDV oranı ve isteğe bağlı "Vergi Ekle" (KDV Tevkifat kodu seçilince oran otomatik dolar, tutarlar anlık yeniden hesaplanır).
-  - Toplamlar (Ara Toplam, İskonto, KDV, varsa Tevkifat kırılımı, Ödenecek Tutar) ve Not.
-- **Taslak / Kesilen Faturalar:** Tarih aralığı filtresi (varsayılan son 7 gün) ile listeleme, durum rozeti (Onaylı / Taslak / Silinmiş), SMS ile onaylama (imzalama), fatura HTML'ini tam ekran WebView'de görüntüleme, PDF olarak indirme/paylaşma.
-- **PDF İndir/Paylaş:** GİB'in döndürdüğü HTML, `expo-print` ile Base64 PDF'e çevrilir (Android'de ham dosya `uri`'sini ayrı bir modülle okumaya çalışmak "isn't readable" hatası verdiği için Base64 içerik doğrudan uygulamanın kendi dizinine yazılır). "Paylaş" native paylaşım penceresini açar; "İndir" Android'de `StorageAccessFramework` ile kullanıcının seçtiği klasöre **paylaşım penceresi açmadan** doğrudan yazar, iOS'ta paylaşım sayfasına düşer (Apple'ın "Dosyalara Kaydet"i sunduğu tek yol).
-- **Vergi/Tevkifat Kodları:** `faturaConstants.ts` içinde GİB'in resmi KDV Genel Uygulama Tebliği oranlarıyla doğrulanmış **52 tevkifat kodu** (601-627 kısmi tevkifat + 801-825 tam tevkifat/10 varyantları). Para Birimi (185), Ülke (250) ve Vergi Türü (29, KDV Tevkifat=`V9015`) listeleri GİB'in gerçek ekranından DevTools ile yakalanan ham `<select>` verileriyle birebir doğrulandı.
-- **Merkezi hata yönetimi:** `gibHatasiniIsle()` — bir GİB yanıtı oturum/token geçersizliğine işaret eden anahtar kelimeler içeriyorsa yerel oturumu otomatik temizleyip Login ekranına döner; diğer hatalarda GİB'in Türkçe mesajını olduğu gibi gösterir.
-- **Güvenli Çıkış:** Hem GİB tarafındaki oturumu hem yerel oturumu sonlandırır.
-- **Test Modu:** `IS_TEST_MODE` bayrağı ile GİB'e hiç istek atmadan (mock verilerle) arayüz geliştirmesi yapılabilir.
-
-## Teknoloji Yığını
-
-- React Native + Expo (TypeScript)
-- React Navigation (native-stack)
-- Zustand (global state — oturum/token)
-- React Native Paper (Material Design 3, koyu tema)
-- Axios (GİB portalına `application/x-www-form-urlencoded` istekler)
-- expo-secure-store (token + "beni hatırla" + adres defteri saklama)
-- expo-print, expo-sharing, expo-file-system (fatura PDF üretme/indirme/paylaşma)
-- @react-native-community/datetimepicker, react-native-webview
+- **Bu uygulama GİB'in resmi bir ürünü değildir.** Portalın resmî/yayınlanmış bir REST API'si yoktur; uygulama, portalın kendi web arayüzünün kullandığı iç servislere doğrudan istek atar ve GİB bunları haber vermeden değiştirebilir.
+- Kullanıcı kodu ve şifre yalnızca cihazdan doğrudan GİB sunucularına gönderilir, hiçbir üçüncü taraf sunucuya gitmez.
+- **Canlı bir e-Arşiv faturası kesmek/imzalamak gerçek, geri alınması zor bir mali işlemdir.** Doğrulanmamış uçları (bkz. [docs/gib-api-durumu.md](docs/gib-api-durumu.md)) üretime almadan önce mutlaka küçük/kontrollü bir gerçek denemeyle doğrulayın.
 
 ## Kurulum
 
@@ -46,20 +17,12 @@ npx expo start
 
 Expo Go ile QR kodu okutarak veya `npx expo start --web` ile tarayıcıda çalıştırabilirsiniz.
 
-## Ortam / Test Modu
+## Dokümantasyon
 
-`src/services/gibApi.ts` içindeki `IS_TEST_MODE` sabiti:
-
-- `true` → GİB'e hiç istek atılmaz; login/kullanıcı bilgisi/mükellef sorgusu/taslak listesi/fatura kaydet/SMS fonksiyonları sahte (mock) verilerle çalışır. Arayüz geliştirmesi için kullanılır.
-- `false` → Gerçek/canlı `earsivportal.efatura.gov.tr` adresine gerçek istekler atılır.
-
-**Canlıya geçmeden önce bu bayrağın `false` olduğundan emin olun.**
-
-## Daha Fazla Bilgi
-
-- [GİB Komutlarının Doğrulanma Durumu](docs/gib-api-durumu.md) — her `gibApi.ts` fonksiyonunun canlı doğrulanma durumu ve bilinen sınırlamalar
-- [Proje Yapısı](docs/proje-yapisi.md) — klasör/dosya ağacı
-- [Issues](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues) — açık hata/geliştirme takibi
+Özellikler, mimari, GİB entegrasyonunun iç işleyişi, hesaplama mantığı,
+güvenlik yaklaşımı ve bilinen sınırlamalar gibi tüm detaylar
+**[docs/](docs/README.md)** klasöründe. Açık hata/geliştirme takibi için
+[GitHub Issues](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues).
 
 ## Lisans / Kullanım
 
