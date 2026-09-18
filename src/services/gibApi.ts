@@ -808,30 +808,136 @@ export async function faturaSil(
 }
 
 // ---------------------------------------------------------------------------
+// Kayıtlı cep telefonu sorgulama (SMS onay akışının 1. adımında gösterilir)
+// ---------------------------------------------------------------------------
+
+/**
+ * Tarayıcı DevTools > Network yakalamasıyla cmd/pageName/jp DOĞRULANDI
+ * ("GİB İmza" tıklanınca ilk atılan istek buydu, boş jp: {}). GİB'e kayıtlı
+ * cep telefonu numarasını döndürüyor; SMS Onay ekranında maskeli gösterilip
+ * (ör. "(555) 123 45 67"), `smsSifreGonder`'e ham rakamlarla ("5551234567")
+ * geçiriliyor.
+ *
+ * NOT: Yanıtın tam gövdesi (düz string mi, obje mi) bağımsız olarak
+ * yakalanıp teyit edilmedi — GİB'in tek-değer döndüren diğer uçlarındaki
+ * (ör. faturaHTMLGetir) kalıba göre `data` alanının doğrudan telefon
+ * numarası string'i olduğu VARSAYILIYOR. `dispatch()`'in ham yanıtı zaten
+ * konsola bastığı için ilk canlı denemede bu varsayım kolayca doğrulanabilir.
+ */
+export async function telefonnoSorgula(token: string): Promise<string> {
+  if (IS_TEST_MODE) {
+    return Promise.resolve('5551234567');
+  }
+
+  const result = await dispatch<string | { data?: string } | Record<string, unknown>>(
+    'EARSIV_PORTAL_TELEFONNO_SORGULA',
+    'RG_BASITTASLAKLAR',
+    {},
+    token,
+  );
+
+  console.log('GİB TELEFON NO HAM YANIT:', JSON.stringify(result));
+
+  if (typeof result === 'string' && result.length > 0) return result.replace(/\D/g, '');
+  if (result && typeof result === 'object') {
+    const veri = (result as { data?: unknown }).data;
+    if (typeof veri === 'string' && veri.length > 0) return veri.replace(/\D/g, '');
+  }
+  throw new GibApiError('Kayıtlı cep telefonu numarası alınamadı.', result);
+}
+
+// ---------------------------------------------------------------------------
 // SMS ile imzalama
 // ---------------------------------------------------------------------------
 
-export async function smsSifreGonder(token: string, ettn: string): Promise<void> {
+/**
+ * Tarayıcı DevTools > Network yakalamasıyla BİREBİR DOĞRULANDI. Önceki
+ * sürüm yanlıştı: `{ettn}` gönderiyordu ve pageName `RG_BASITFATURA` idi.
+ * Gerçek istek `RG_SMSONAY` sayfasından, `ettn` OLMADAN, GİB'e kayıtlı cep
+ * telefonu numarasına gönderiliyor — fatura ile bağlantı yalnızca 2. adımda
+ * (`smsSifreOnayla`'nın `DATA` alanında) kuruluyor.
+ *
+ * Yanıt, `smsSifreOnayla`'da geçmesi gereken bir "OID" (işlem kimliği)
+ * içeriyor olmalı — bkz. `smsSifreOnayla` üstündeki not. Bu fonksiyon, GİB'in
+ * tek-değer döndüren diğer uçlarındaki kalıba uyarak `dispatch()`'in açtığı
+ * `data`'yı doğrudan OID olarak döndürüyor; bu, HENÜZ bağımsız bir yanıt
+ * yakalamasıyla teyit edilmedi.
+ */
+export async function smsSifreGonder(token: string, cepTel: string): Promise<string> {
   if (IS_TEST_MODE) {
-    console.log('MOCK SMS GÖNDER:', { ettn });
-    return Promise.resolve();
+    console.log('MOCK SMS GÖNDER:', { cepTel });
+    return Promise.resolve('MOCK-OID');
   }
-  await dispatch('EARSIV_PORTAL_SMSSIFRE_GONDER', 'RG_BASITFATURA', { ettn }, token);
+
+  const result = await dispatch<string | { data?: string } | Record<string, unknown>>(
+    'EARSIV_PORTAL_SMSSIFRE_GONDER',
+    'RG_SMSONAY',
+    { CEPTEL: cepTel, KCEPTEL: false, TIP: '' },
+    token,
+  );
+
+  console.log('GİB SMS GÖNDER HAM YANIT:', JSON.stringify(result));
+
+  if (typeof result === 'string' && result.length > 0) return result;
+  if (result && typeof result === 'object') {
+    const veri = (result as Record<string, unknown>).data ?? (result as Record<string, unknown>).OID;
+    if (typeof veri === 'string' && veri.length > 0) return veri;
+  }
+  throw new GibApiError('SMS gönderme yanıtından işlem kimliği (OID) okunamadı.', result);
 }
+
+/**
+ * Tarayıcı DevTools > Network yakalamasıyla BİREBİR DOĞRULANDI — GERÇEK,
+ * BAŞARILI bir SMS imzalama isteği ("SMS şifreniz doğrulandı, işlem
+ * başarılı." yanıtı alındı). Üç kritik, sezgisel olmayan bulgu:
+ *
+ * 1. `cmd` alanı GİB'in standart `EARSIV_PORTAL_*` isimlendirmesine
+ *    UYMUYOR — opak, anlamsız görünen bir string: "0lhozfib5410mp". Bu proje
+ *    içinde daha önce bu TAM DEĞER açık kaynak bir referansta (f/fatura)
+ *    görülüp şüpheli bulunarak reddedilmişti; kullanıcının kendi GERÇEK,
+ *    canlı DevTools yakalamasında AYNI değerle karşılaşılması, bunun enjekte
+ *    edilmiş şüpheli bir değer değil, GİB'in kendi JS kodunda sabit kodlanmış
+ *    gerçek bir cmd olduğunu doğruluyor.
+ * 2. `jp.DATA`, imzalanacak taslağı `EARSIV_PORTAL_FATURA_SIL`'deki
+ *    "silinecekler" ile AYNI desende taşıyor: `taslakGetir()`'den gelen ham
+ *    satır, hiç değiştirilmeden bir dizi içinde gönderiliyor.
+ * 3. `jp.OID` — `smsSifreGonder`'in döndürdüğü işlem kimliği; `jp.OPR` sabit
+ *    `1` (muhtemelen "onayla" işlem tipi).
+ */
+const SMS_ONAYLA_CMD = '0lhozfib5410mp';
 
 export async function smsSifreOnayla(
   token: string,
-  ettn: string,
+  taslak: TaslakFatura,
   smsKodu: string,
+  oid: string,
 ): Promise<void> {
   if (IS_TEST_MODE) {
-    console.log('MOCK SMS ONAYLA:', { ettn, smsKodu });
+    console.log('MOCK SMS ONAYLA:', { ettn: taslak.ettn, smsKodu, oid });
     return Promise.resolve();
   }
+
+  const veri = {
+    faturaOid: taslak.faturaOid ?? '',
+    toplamTutar: taslak.toplamTutar ?? '0',
+    belgeNumarasi: taslak.belgeNumarasi ?? '',
+    aliciVknTckn: taslak.aliciVknTckn ?? '',
+    aliciUnvanAdSoyad: taslak.aliciUnvanAdSoyad ?? '',
+    saticiVknTckn: taslak.saticiVknTckn ?? '',
+    saticiUnvanAdSoyad: taslak.saticiUnvanAdSoyad ?? '',
+    belgeTarihi: taslak.belgeTarihi ?? '',
+    belgeTuru: taslak.belgeTuru ?? 'FATURA',
+    onayDurumu: taslak.onayDurumu ?? '',
+    ettn: taslak.ettn,
+    talepDurumColumn: taslak.talepDurumColumn ?? '----------',
+    iptalItiraz: taslak.iptalItiraz ?? '-99',
+    talepDurum: taslak.talepDurum ?? '-99',
+  };
+
   await dispatch(
-    'EARSIV_PORTAL_SMSSIFRE_ONAYLA',
-    'RG_BASITFATURA',
-    { ettn, sifre: smsKodu },
+    SMS_ONAYLA_CMD,
+    'RG_SMSONAY',
+    { SIFRE: smsKodu, OID: oid, OPR: 1, DATA: [veri] },
     token,
   );
 }
@@ -922,6 +1028,7 @@ export const gibApi = {
   faturaKaydet,
   taslakGetir,
   faturaSil,
+  telefonnoSorgula,
   smsSifreGonder,
   smsSifreOnayla,
   faturaHTMLGetir,

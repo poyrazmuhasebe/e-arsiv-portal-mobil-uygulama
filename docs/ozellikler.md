@@ -130,10 +130,14 @@ sağlanmadan aktif olmaz.
     (2) "Silme gerekçenizi giriniz" metin girişi. İkinci "Sil"e basılınca
     gerçek `EARSIV_PORTAL_FATURA_SIL` isteği gönderilir, başarılı olursa
     liste yenilenir ve "1 fatura başarıyla silindi." bildirimi gösterilir.
-  - **GİB İmza** — yalnızca "Taslak" durumunda; `smsSifreGonder` çağrılır,
-    SMS kodu girme diyaloğu açılır, `smsSifreOnayla` ile onaylanır. Bu uç
-    henüz canlı doğrulanmadı (bkz.
-    [gib-api-durumu.md](gib-api-durumu.md)).
+  - **GİB İmza** — yalnızca "Taslak" durumunda; GİB'in kendi arayüzündeki
+    gerçek iki adımlı SMS onay akışı birebir uygulandı: (1) "Bu belge
+    imzalandığında geçerlilik kazanacak olup, imzalandıktan sonra
+    düzeltilmesi mümkün değildir." uyarısı + "Uyarıyı Okudum" onay kutusu
+    + kayıtlı cep telefonu numarası (`telefonnoSorgula` ile sorgulanıp
+    maskeli gösterilir) + "Şifre Gönder"; (2) 180 saniyelik geri sayım + SMS
+    kodu girişi + "Onayla". Uçtan uca canlı doğrulandı — bkz.
+    [gib-entegrasyonu.md](gib-entegrasyonu.md).
   - **İndir** — kartın kendi satırından, modal açmadan doğrudan HTML çekilip
     PDF'e çevrilip cihaza kaydedilir.
   - **İtiraz / İptal** — şu an yalnızca `console.log` yer tutucu.

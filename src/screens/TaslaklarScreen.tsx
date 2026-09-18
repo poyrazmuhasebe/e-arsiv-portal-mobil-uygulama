@@ -19,7 +19,14 @@ import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-communi
 import { WebView } from 'react-native-webview';
 
 import type { RootStackParamList } from '../../App';
-import { faturaHTMLGetir, faturaSil, smsSifreGonder, smsSifreOnayla, taslakGetir } from '../services/gibApi';
+import {
+  faturaHTMLGetir,
+  faturaSil,
+  smsSifreGonder,
+  smsSifreOnayla,
+  taslakGetir,
+  telefonnoSorgula,
+} from '../services/gibApi';
 import { useAuthStore } from '../store/useAuthStore';
 import { pdfIndir, pdfPaylas } from '../utils/pdf';
 import type { TaslakFatura } from '../types/gib';
@@ -58,6 +65,15 @@ function yediGunOncesi(): Date {
   return d;
 }
 
+// "5551234567" -> "(555) 123 45 67" — GİB'in kendi SMS Onay ekranındaki
+// gösterim biçimiyle birebir aynı (gerçek yakalamayla doğrulandı).
+function telefonMaskele(rakamlar: string): string {
+  const m = rakamlar.match(/^(\d{3})(\d{3})(\d{2})(\d{2})$/);
+  return m ? `(${m[1]}) ${m[2]} ${m[3]} ${m[4]}` : rakamlar;
+}
+
+const SMS_SURESI_SN = 180;
+
 export default function TaslaklarScreen({ navigation }: Props) {
   const theme = useTheme();
   const token = useAuthStore((s) => s.token);
@@ -74,10 +90,21 @@ export default function TaslaklarScreen({ navigation }: Props) {
   // onaylanan belgeleri burada yerel olarak işaretliyoruz.
   const [onaylananlar, setOnaylananlar] = useState<Set<string>>(new Set());
 
-  const [smsGonderilenEttn, setSmsGonderilenEttn] = useState<string | null>(null);
-  const [smsModalEttn, setSmsModalEttn] = useState<string | null>(null);
+  // SMS ile imzalama (GİB İmza) — GİB'in kendi arayüzündeki gerçek iki
+  // adımlı sihirbazın birebir taklidi: 1) uyarı onayı + kayıtlı cep telefonu
+  // görüntüleme + "Şifre Gönder", 2) 180 saniyelik geri sayım + SMS kodu +
+  // "Onayla". `smsOid`, `smsSifreGonder`'in döndürdüğü işlem kimliğidir —
+  // `smsSifreOnayla`'ya geçirilmesi zorunlu.
+  const [smsHedefi, setSmsHedefi] = useState<TaslakFatura | null>(null);
+  const [smsAsama, setSmsAsama] = useState<1 | 2>(1);
+  const [smsUyariOkundu, setSmsUyariOkundu] = useState(false);
+  const [smsTelefon, setSmsTelefon] = useState<string | null>(null);
+  const [smsTelefonYukleniyor, setSmsTelefonYukleniyor] = useState(false);
+  const [smsGonderiliyor, setSmsGonderiliyor] = useState(false);
+  const [smsOid, setSmsOid] = useState<string | null>(null);
   const [smsKodu, setSmsKodu] = useState('');
   const [smsOnaylaniyor, setSmsOnaylaniyor] = useState(false);
+  const [smsKalanSure, setSmsKalanSure] = useState(SMS_SURESI_SN);
 
   const [htmlModalGorunur, setHtmlModalGorunur] = useState(false);
   const [htmlYukleniyor, setHtmlYukleniyor] = useState(false);
@@ -143,29 +170,65 @@ export default function TaslaklarScreen({ navigation }: Props) {
     else if (hedef === 'bitis') setBitisTarih(secilen);
   };
 
-  const handleSmsGonder = async (ettn: string) => {
+  // Adım 1: "GİB İmza" tıklanınca dialog açılır ve kayıtlı cep telefonu
+  // (EARSIV_PORTAL_TELEFONNO_SORGULA) arka planda sorgulanır.
+  const handleGibImzaBaslat = async (item: TaslakFatura) => {
     if (!token) return;
-    setSmsGonderilenEttn(ettn);
+    setSmsHedefi(item);
+    setSmsAsama(1);
+    setSmsUyariOkundu(false);
+    setSmsKodu('');
+    setSmsOid(null);
+    setSmsTelefon(null);
+    setSmsTelefonYukleniyor(true);
     try {
-      await smsSifreGonder(token, ettn);
-      setSmsKodu('');
-      setSmsModalEttn(ettn);
+      const telefon = await telefonnoSorgula(token);
+      setSmsTelefon(telefon);
+    } catch (err) {
+      const message = err instanceof Error && err.message ? err.message : 'Telefon numarası alınamadı.';
+      Alert.alert('Hata', message);
+      setSmsHedefi(null);
+    } finally {
+      setSmsTelefonYukleniyor(false);
+    }
+  };
+
+  const handleSmsVazgec = () => {
+    setSmsHedefi(null);
+    setSmsAsama(1);
+    setSmsUyariOkundu(false);
+    setSmsTelefon(null);
+    setSmsOid(null);
+    setSmsKodu('');
+  };
+
+  // Adım 1 → Adım 2 geçişi: "Şifre Gönder" — GİB'e kayıtlı telefona SMS
+  // gönderilir, dönen işlem kimliği (OID) 2. adımda kullanılmak üzere saklanır.
+  const handleSifreGonder = async () => {
+    if (!token || !smsTelefon) return;
+    setSmsGonderiliyor(true);
+    try {
+      const oid = await smsSifreGonder(token, smsTelefon);
+      setSmsOid(oid);
+      setSmsKalanSure(SMS_SURESI_SN);
+      setSmsAsama(2);
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'SMS gönderilemedi.';
       Alert.alert('SMS Gönderilemedi', message);
     } finally {
-      setSmsGonderilenEttn(null);
+      setSmsGonderiliyor(false);
     }
   };
 
   const handleSmsOnayla = async () => {
-    if (!token || !smsModalEttn || smsKodu.trim().length === 0) return;
+    if (!token || !smsHedefi || !smsOid || smsKodu.trim().length === 0) return;
     setSmsOnaylaniyor(true);
     try {
-      await smsSifreOnayla(token, smsModalEttn, smsKodu.trim());
-      setOnaylananlar((prev) => new Set(prev).add(smsModalEttn));
-      setSmsModalEttn(null);
-      Alert.alert('Onaylandı', 'Fatura başarıyla imzalandı.');
+      await smsSifreOnayla(token, smsHedefi, smsKodu.trim(), smsOid);
+      setOnaylananlar((prev) => new Set(prev).add(smsHedefi.ettn));
+      handleSmsVazgec();
+      await veriYukle(baslangicTarih, bitisTarih);
+      Alert.alert('Onaylandı', 'SMS şifreniz doğrulandı, işlem başarılı.');
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'SMS kodu onaylanamadı.';
       Alert.alert('Onay Başarısız', message);
@@ -173,6 +236,13 @@ export default function TaslaklarScreen({ navigation }: Props) {
       setSmsOnaylaniyor(false);
     }
   };
+
+  // 2. adımdaki 180 saniyelik SMS geçerlilik süresi geri sayımı.
+  useEffect(() => {
+    if (!smsHedefi || smsAsama !== 2 || smsKalanSure <= 0) return;
+    const zamanlayici = setTimeout(() => setSmsKalanSure((s) => s - 1), 1000);
+    return () => clearTimeout(zamanlayici);
+  }, [smsHedefi, smsAsama, smsKalanSure]);
 
   // Düzenle/İtiraz/İptal: gerçek GİB komutları henüz doğrulanmadığından
   // şimdilik yalnızca konsola yazan yer tutucular. Sil aşağıda ayrıca ele
@@ -280,7 +350,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
 
   const renderItem = ({ item }: { item: TaslakFatura }) => {
     const durum = taslakDurumu(item, onaylananlar);
-    const smsGonderiliyor = smsGonderilenEttn === item.ettn;
+    const buItemIcinTelefonYukleniyor = smsHedefi?.ettn === item.ettn && smsTelefonYukleniyor;
     // GİB İmza/Düzenle/Sil yalnızca "Onaylanmadı" (henüz taslak) durumunda
     // anlamlı — onaylanmış veya silinmiş bir belgede gösterilmiyor.
     const duzenlenebilir = durum === 'onaylanmadi';
@@ -360,9 +430,9 @@ export default function TaslaklarScreen({ navigation }: Props) {
                 compact
                 mode="text"
                 icon="message-text-outline"
-                loading={smsGonderiliyor}
-                disabled={smsGonderiliyor}
-                onPress={() => handleSmsGonder(item.ettn)}
+                loading={buItemIcinTelefonYukleniyor}
+                disabled={buItemIcinTelefonYukleniyor}
+                onPress={() => handleGibImzaBaslat(item)}
               >
                 GİB İmza
               </Button>
@@ -510,29 +580,73 @@ export default function TaslaklarScreen({ navigation }: Props) {
           </Dialog.Actions>
         </Dialog>
 
-        <Dialog visible={smsModalEttn !== null} onDismiss={() => setSmsModalEttn(null)}>
-          <Dialog.Title>SMS Onay Kodu</Dialog.Title>
+        <Dialog visible={smsHedefi !== null && smsAsama === 1} onDismiss={handleSmsVazgec}>
+          <Dialog.Title>SMS Onay — 1. Adım</Dialog.Title>
           <Dialog.Content>
             <Text variant="bodyMedium" style={styles.dialogText}>
-              Telefonunuza gelen GİB SMS onay kodunu girin.
+              Bu belge imzalandığında geçerlilik kazanacak olup, imzalandıktan
+              sonra düzeltilmesi mümkün değildir.
+            </Text>
+            <Checkbox.Item
+              label="Uyarıyı Okudum"
+              status={smsUyariOkundu ? 'checked' : 'unchecked'}
+              onPress={() => setSmsUyariOkundu((v) => !v)}
+              style={styles.silCheckbox}
+              labelStyle={styles.silCheckboxLabel}
+            />
+            <Text variant="labelSmall" style={styles.mutedText}>
+              Cep Telefonu
+            </Text>
+            {smsTelefonYukleniyor ? (
+              <ActivityIndicator size="small" style={styles.telefonSpinner} />
+            ) : (
+              <Text variant="bodyMedium">{smsTelefon ? telefonMaskele(smsTelefon) : '-'}</Text>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={handleSmsVazgec}>Vazgeç</Button>
+            <Button
+              onPress={handleSifreGonder}
+              loading={smsGonderiliyor}
+              disabled={!smsUyariOkundu || !smsTelefon || smsGonderiliyor}
+            >
+              Şifre Gönder
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={smsHedefi !== null && smsAsama === 2} onDismiss={handleSmsVazgec}>
+          <Dialog.Title>SMS Onay — 2. Adım</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodySmall" style={styles.mutedText}>
+              Kalan süre: {smsKalanSure} sn
+            </Text>
+            <Text variant="bodyMedium" style={styles.dialogText}>
+              Lütfen cep telefonunuza gelen SMS şifrenizi giriniz.
             </Text>
             <TextInput
               mode="outlined"
-              label="SMS Kodu"
+              label="Şifre"
               value={smsKodu}
               onChangeText={setSmsKodu}
               keyboardType="number-pad"
+              maxLength={6}
               autoFocus
             />
+            {smsKalanSure <= 0 && (
+              <Text variant="bodySmall" style={styles.uyariMetni}>
+                SMS şifresinin süresi doldu. Vazgeçip tekrar deneyin.
+              </Text>
+            )}
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setSmsModalEttn(null)} disabled={smsOnaylaniyor}>
+            <Button onPress={handleSmsVazgec} disabled={smsOnaylaniyor}>
               Vazgeç
             </Button>
             <Button
               onPress={handleSmsOnayla}
               loading={smsOnaylaniyor}
-              disabled={smsOnaylaniyor || smsKodu.trim().length === 0}
+              disabled={smsOnaylaniyor || smsKodu.trim().length === 0 || smsKalanSure <= 0}
             >
               Onayla
             </Button>
@@ -625,4 +739,5 @@ const styles = StyleSheet.create({
   dialogText: { marginBottom: 12 },
   silCheckbox: { paddingHorizontal: 0 },
   silCheckboxLabel: { fontSize: 14 },
+  telefonSpinner: { alignSelf: 'flex-start', marginTop: 4 },
 });

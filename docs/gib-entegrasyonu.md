@@ -131,8 +131,10 @@ Boş `jp: {}`. Yanıtta `unvan` (şirket hesaplarında güvenilir) veya `ad`+`so
 ### Taslak listesi — `EARSIV_PORTAL_TASLAKLARI_GETIR` (`RG_BASITTASLAKLAR`)
 
 ```json
-{"baslangic": "GG/AA/YYYY", "bitis": "GG/AA/YYYY", "hangiTip": "5000/30000", "table": []}
+{"baslangic": "GG/AA/YYYY", "bitis": "GG/AA/YYYY", "hangiTip": "5000/30000"}
 ```
+
+(Önceki sürümde spekülatif olarak eklenmiş bir `"table": []` alanı vardı — gerçek yakalamada bu alan yok, kaldırıldı.)
 
 Boş `jp` (tarih filtresi olmadan) "Bu işlem için yetkiniz yok" hatası verir
 — filtre her zaman zorunlu, uygulama varsayılan olarak son 7 günü kullanır.
@@ -180,7 +182,7 @@ olmayan, güvenilir bir yöntem.
 ```json
 {
   "silinecekler": [{
-    "faturaOid": "", "toplamTutar": "0", "belgeNumarasi": "GIB2026000000012",
+    "faturaOid": "", "toplamTutar": "0", "belgeNumarasi": "GIB2026000000001",
     "aliciVknTckn": "...", "aliciUnvanAdSoyad": "...",
     "saticiVknTckn": "", "saticiUnvanAdSoyad": "",
     "belgeTarihi": "18-09-2026", "belgeTuru": "FATURA",
@@ -208,18 +210,82 @@ GİB'in kendi web arayüzündeki gerçek kullanıcı akışı **iki adımlı**:
 Bu iki adımlı akış `TaslaklarScreen.tsx`'te (`silHedefi`/`silUyariOkundu`/
 `silAciklamaAcik` state'leri) birebir uygulandı.
 
-### SMS ile imzalama — `EARSIV_PORTAL_SMSSIFRE_GONDER` / `_ONAYLA` (`RG_BASITFATURA`)
+### SMS ile imzalama (GİB İmza) — üç adımlı akış
+
+Bu akış, gerçek DevTools yakalamasıyla **uçtan uca canlı doğrulandı**
+(gerçek bir fatura "SMS şifreniz doğrulandı, işlem başarılı." yanıtıyla
+imzalandı). Önceki sürümdeki `{ettn}`/`{ettn, sifre}` şeması ve
+`RG_BASITFATURA` sayfa adı tamamen yanlıştı; gerçek akış üç ayrı isteğe
+dayanıyor:
+
+**1) Kayıtlı telefon numarasını sorgula — `EARSIV_PORTAL_TELEFONNO_SORGULA` (`RG_BASITTASLAKLAR`)**
+
+"GİB İmza" tıklanır tıklanmaz, boş `jp: {}` ile atılıyor. Yanıt, GİB'e
+kayıtlı cep telefonu numarasıdır — SMS Onay ekranında maskeli gösterilir
+(ör. `(555) 123 45 67`).
+
+**2) SMS'i gönder — `EARSIV_PORTAL_SMSSIFRE_GONDER` (`RG_SMSONAY`)**
 
 ```json
-// gönder
-{"ettn": "..."}
-// onayla
-{"ettn": "...", "sifre": "<SMS kodu>"}
+{"CEPTEL": "5551234567", "KCEPTEL": false, "TIP": ""}
 ```
 
-⚠️ Bu cmd adları ve şema **henüz gerçek bir DevTools yakalamasıyla
-doğrulanmadı** — açık kaynak referanstan tahmindir (bkz.
-[Issue #6](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/6)).
+Kritik nokta: bu istekte **`ettn` hiç yok**. SMS, belirli bir faturaya değil,
+doğrudan GİB'e kayıtlı telefon numarasına gönderiliyor — fatura ile bağlantı
+yalnızca 3. adımda kuruluyor. `CEPTEL` alanı, 1. adımdaki telefon numarasının
+ham hâli (boşluksuz, parantezsiz rakamlar).
+
+**3) SMS kodunu onayla — opak bir cmd (`RG_SMSONAY`)**
+
+```json
+{
+  "SIFRE": "V5VYSC", "OID": "2qmu3wkv6a1rxf", "OPR": 1,
+  "DATA": [{
+    "faturaOid": "", "toplamTutar": "0", "belgeNumarasi": "GIB2026000000001",
+    "aliciVknTckn": "...", "aliciUnvanAdSoyad": "...",
+    "saticiVknTckn": "", "saticiUnvanAdSoyad": "",
+    "belgeTarihi": "18-09-2026", "belgeTuru": "FATURA",
+    "onayDurumu": "Onaylanmadı", "ettn": "...",
+    "talepDurumColumn": "----------", "iptalItiraz": "-99", "talepDurum": "-99"
+  }]
+}
+```
+
+**En dikkat çekici bulgu: bu isteğin `cmd` alanı GİB'in standart
+`EARSIV_PORTAL_*` isimlendirmesine hiç uymuyor — opak, anlamsız görünen bir
+string: `"0lhozfib5410mp"`.** Bu proje içinde daha önce, açık kaynak
+`f/fatura` referansında bu TAM DEĞER görülüp şüpheli/enjekte edilmiş bir
+değer olabileceği düşünülerek reddedilmişti. Kullanıcının kendi GERÇEK,
+canlı DevTools yakalamasında AYNI değerle karşılaşılması — hem de başarılı
+bir sonuçla — bunun üçüncü taraf bir kaynaktan gelen şüpheli bir enjeksiyon
+değil, GİB'in kendi JavaScript kodunda sabit kodlanmış gerçek bir cmd
+olduğunu doğruluyor. İki bağımsız kaynakta (farklı hesap, farklı zaman)
+birebir aynı string'in görülmesi, bunun oturuma/işleme özgü rastgele bir
+değer değil, **sabit bir sabit** olduğuna işaret ediyor.
+
+Diğer alanlar:
+- `DATA` — imzalanacak taslak(lar), `EARSIV_PORTAL_FATURA_SIL`'deki
+  `silinecekler` ile AYNI desende: `taslakGetir()`'den gelen ham satır, hiç
+  değiştirilmeden bir dizi içinde gönderiliyor.
+- `OID` — `smsSifreGonder`'in (2. adım) yanıtından gelen bir işlem kimliği
+  olduğu düşünülüyor; `gibApi.ts`'teki `smsSifreGonder`, `dispatch()`'in
+  açtığı `data` değerini doğrudan bu OID olarak döndürüyor. **Bu tek bağlantı
+  henüz bağımsız bir yanıt yakalamasıyla teyit edilmedi** — sonraki canlı
+  denemede `smsSifreGonder`'in ham yanıtı (konsola zaten basılıyor) kontrol
+  edilmeli.
+- `OPR` — sabit `1` (muhtemelen "onayla" işlem tipi; başka değerler
+  gözlemlenmedi).
+
+GİB'in kendi arayüzündeki gerçek kullanıcı akışı, `TaslaklarScreen.tsx`'te
+birebir uygulandı:
+1. **1. Adım** — "Bu belge imzalandığında geçerlilik kazanacak olup,
+   imzalandıktan sonra düzeltilmesi mümkün değildir." uyarısı + "Uyarıyı
+   Okudum" onay kutusu (işaretlenmeden ilerlenemez) + kayıtlı telefon
+   numarası (maskeli) + "Şifre Gönder".
+2. **2. Adım** — SMS'in 180 saniyelik geçerlilik süresi için geri sayım +
+   6 haneli şifre girişi + "Onayla". Süre dolarsa "Onayla" devre dışı kalır.
+3. Başarılı onaydan sonra GİB'in kendi mesajı ("SMS şifreniz doğrulandı,
+   işlem başarılı.") aynen gösterilir ve taslak listesi yenilenir.
 
 ## Portalın kendi menü ağacından öğrenilenler
 

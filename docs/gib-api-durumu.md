@@ -16,7 +16,9 @@ tam listesi için [bilinen-sinirlamalar.md](bilinen-sinirlamalar.md).
 | `faturaSil` | `dispatch`, `EARSIV_PORTAL_FATURA_SIL` | ✅ Canlı yanıtla doğrulandı — GİB'in kendi iki adımlı silme akışı (uyarı onayı + gerekçe girişi) `TaslaklarScreen`'de birebir uygulandı |
 | `faturaHTMLGetir` | `dispatch`, `EARSIV_PORTAL_FATURA_GOSTER` | ✅ Canlı yanıtla doğrulandı |
 | `faturaKaydet` | `dispatch`, `EARSIV_PORTAL_FATURA_OLUSTUR` | ✅ **Canlı yanıtla doğrulandı** — kullanıcının gerçek DevTools yakalamasında bu cmd/payload ile GENEL İADE ve TEVKİFAT tipi iki gerçek fatura başarıyla oluşturuldu ("Faturanız başarıyla oluşturulmuştur..."). İstisna: GENEL İADE tipi için `iadeTable` alanını dolduracak form UI'ı henüz yok (bkz. [Issue #2](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/2)), o yüzden GENEL İADE ile gerçek kesim şu an eksik olabilir. |
-| `smsSifreGonder` / `smsSifreOnayla` | `dispatch`, `EARSIV_PORTAL_SMSSIFRE_*` | ⚠️ **Doğrulanmadı** (bkz. [Issue #6](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/6)) |
+| `telefonnoSorgula` | `dispatch`, `EARSIV_PORTAL_TELEFONNO_SORGULA` | ✅ Canlı yanıtla doğrulandı (cmd/pageName/jp) |
+| `smsSifreGonder` | `dispatch`, `EARSIV_PORTAL_SMSSIFRE_GONDER` (`RG_SMSONAY`) | ✅ Canlı yanıtla doğrulandı |
+| `smsSifreOnayla` | `dispatch`, opak cmd `0lhozfib5410mp` (`RG_SMSONAY`) | ✅ **Uçtan uca canlı doğrulandı** — gerçek bir fatura "SMS şifreniz doğrulandı, işlem başarılı." yanıtıyla imzalandı. Tek açık nokta: `OID`'nin `smsSifreGonder`'in yanıtından geldiği varsayımı henüz bağımsız bir yanıt yakalamasıyla teyit edilmedi (bkz. [gib-entegrasyonu.md](gib-entegrasyonu.md)). |
 | `faturaIndir` (ham base64/PDF indirme, HTML değil) | `dispatch`, `EARSIV_PORTAL_FATURA_INDIR` | ⚠️ **Doğrulanmadı**, kullanılmıyor (yerine `faturaHTMLGetir` + PDF üretimi kullanılıyor) |
 
 Bilinen sınırlamaların tam listesi için bkz. [bilinen-sinirlamalar.md](bilinen-sinirlamalar.md).
