@@ -862,26 +862,38 @@ export async function iptalTalebiOlustur(
  * cmd/pageName/jp DevTools ile doğrulanmıştı — ama yanıtının tam gövdesi
  * hiç bağımsız yakalanamadığından, "data alanı doğrudan telefon numarası
  * string'idir" varsayımıyla yazılan ilk implementasyon CANLIDA "Kayıtlı
- * telefon numarası alınamadı" hatasıyla BAŞARISIZ OLDU.
+ * telefon numarası alınamadı" hatasıyla BAŞARISIZ OLDU. Bu yüzden
+ * GÖRÜNTÜLENECEK/GÖNDERİLECEK asıl değer için "Kullanıcı İşlemleri >
+ * Kullanıcı Bilgileri" (RG_KULLANICI) ekranından doğrulanan
+ * `EARSIV_PORTAL_KULLANICI_BILGILERI_GETIR`'in `telNo` alanına geçildi.
  *
- * Bunun yerine, "Kullanıcı İşlemleri > Kullanıcı Bilgileri" (RG_KULLANICI)
- * ekranından gerçek DevTools yakalamasıyla doğrulanan
- * `EARSIV_PORTAL_KULLANICI_BILGILERI_GETIR`/`RG_KULLANICI` isteğinin
- * `telNo` alanı kullanılıyor — bu alan, aynı ekranın KAYDET isteğinde de
- * aynı adla geçiyor ve kullanıcının kendi ekranında "Tel No" olarak
- * görüntülenen değerle birebir eşleşiyor (uçtan uca doğrulandı).
- *
- * KRİTİK DÜZELTME: `telNo` GİB'in kendi ekranında başında yurt içi arama
- * öneki "0" ile 11 hane olarak tutuluyor (ör. "05436402500"), ama
- * `smsSifreGonder`'in gerçek başarılı yakalamasındaki `CEPTEL` alanı
- * başında "0" OLMADAN 10 haneydi ("5436402500"). Baştaki "0" ile (11 hane)
- * gönderilince GİB "Genel Sistem Hatası: java.lang.NullPointerException"
- * ile reddediyor (canlı gözlemlendi) — bu yüzden rakamlara indirgedikten
- * sonra tek bir baştaki "0" da ayrıca kırpılıyor.
+ * KRİTİK BULGU (2. tur): `telNo`'yu kullanıp baştaki "0"ı da kırparak
+ * `smsSifreGonder`'in gerçek başarılı yakalamasıyla BİREBİR AYNI `jp`'yi
+ * (`{"CEPTEL":"5436402500","KCEPTEL":false,"TIP":""}`) gönderdiğimizde bile
+ * GİB hâlâ "Genel Sistem Hatası: java.lang.NullPointerException" veriyordu.
+ * Yani sorun `CEPTEL`'in DEĞERİ değil, GİB'in kendi arayüzünün "GİB İmza"
+ * tıklanınca attığı `EARSIV_PORTAL_TELEFONNO_SORGULA` isteğinin HİÇ
+ * GÖNDERİLMEMİŞ olmasıydı — bu istek muhtemelen GİB'in sunucu tarafındaki
+ * (oturum/wizard bazlı) bir state'i SMSSIFRE_GONDER'in beklediği şekilde
+ * hazırlıyor; atlanınca o state null kalıp NPE'ye yol açıyor. Bu yüzden
+ * TELEFONNO_SORGULA isteği artık GİB'in gerçek akışındaki sırayla
+ * (KULLANICI_BILGILERI_GETIR'den ÖNCE) ayrıca gönderiliyor — yanıtı hâlâ
+ * güvenilir şekilde ayrıştırılamadığından yalnızca "ateşle ve unut" olarak
+ * (hata verse bile akışı durdurmadan) kullanılıyor; asıl telefon değeri
+ * yine `kullaniciBilgileriDetayGetir`'den geliyor.
  */
 export async function telefonnoSorgula(token: string): Promise<string> {
   if (IS_TEST_MODE) {
     return Promise.resolve('5551234567');
+  }
+
+  try {
+    const onIzlemeYaniti = await dispatch('EARSIV_PORTAL_TELEFONNO_SORGULA', 'RG_BASITTASLAKLAR', {}, token);
+    console.log('GİB TELEFONNO_SORGULA (ön-hazırlık) HAM YANIT:', JSON.stringify(onIzlemeYaniti));
+  } catch (err) {
+    // Yanıtı kullanmıyoruz — yalnızca GİB'in gerçek arayüzündeki istek
+    // sırasını taklit ediyoruz; bu istek hata verse bile akışa devam ediyoruz.
+    console.log('GİB TELEFONNO_SORGULA (ön-hazırlık) hata verdi, yoksayılıyor:', err);
   }
 
   const bilgi = await kullaniciBilgileriDetayGetir(token);

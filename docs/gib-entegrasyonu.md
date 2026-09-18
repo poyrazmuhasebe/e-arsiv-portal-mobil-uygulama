@@ -348,13 +348,27 @@ Kullanıcı Bilgileri" ekranından (bkz. aşağıdaki bölüm)
 `EARSIV_PORTAL_KULLANICI_BILGILERI_GETIR`/`RG_KULLANICI` ile gelen `telNo`
 alanı. SMS Onay ekranında maskeli gösterilir (ör. `(555) 123 45 67`).
 
-**Bir kırılgan nokta daha vardı:** `telNo`, GİB'in Kullanıcı Bilgileri
-ekranında başında yurt içi arama öneki `"0"` ile 11 hane tutuluyor (ör.
-`"05436402500"`), ama aşağıdaki 2. adımın gerçek başarılı yakalamasındaki
-`CEPTEL` alanı başında `"0"` OLMADAN 10 haneydi. Baştaki `"0"` ile (11 hane)
-gönderilince GİB **"Genel Sistem Hatası: java.lang.NullPointerException"**
-ile reddediyordu (canlı gözlemlendi) — `telefonnoSorgula()` artık rakamlara
-indirgedikten sonra tek bir baştaki `"0"`'ı da ayrıca kırpıyor.
+**İki ayrı kırılgan nokta daha vardı:**
+
+1. `telNo`, GİB'in Kullanıcı Bilgileri ekranında başında yurt içi arama
+   öneki `"0"` ile 11 hane tutuluyor (ör. `"05436402500"`), ama 2. adımın
+   gerçek başarılı yakalamasındaki `CEPTEL` alanı başında `"0"` OLMADAN 10
+   haneydi. `telefonnoSorgula()` artık rakamlara indirgedikten sonra tek
+   bir baştaki `"0"`'ı da ayrıca kırpıyor.
+2. Bu düzeltmeyle `CEPTEL` gerçek başarılı yakalamayla **birebir aynı**
+   hâle geldiğinde bile GİB yine
+   **"Genel Sistem Hatası: java.lang.NullPointerException"** verdi (canlı
+   gözlemlendi). Yani sorun `CEPTEL`'in değeri değildi — GİB'in kendi
+   arayüzünün "GİB İmza" tıklanınca attığı `EARSIV_PORTAL_TELEFONNO_SORGULA`
+   isteğinin **hiç gönderilmemiş olmasıydı**. Bu istek muhtemelen GİB'in
+   sunucu tarafındaki (oturum/wizard bazlı) bir state'i `SMSSIFRE_GONDER`'in
+   beklediği şekilde hazırlıyor; atlanınca o state null kalıp NPE'ye yol
+   açıyor. `telefonnoSorgula()` artık bu isteği de GİB'in gerçek sırasıyla
+   (asıl telefon değerini almadan ÖNCE) "ateşle ve unut" şeklinde ayrıca
+   gönderiyor — yanıtı hâlâ ayrıştırılamıyor ama sırf GİB'in beklediği
+   sunucu tarafı state'i tetiklemek için gönderiliyor. **Bu düzeltme henüz
+   canlı bir denemeyle teyit edilmedi** — bir sonraki "GİB İmza" denemesinin
+   sonucu (başarılı mı, hâlâ NPE mi) bunu netleştirecek.
 
 **2) SMS'i gönder — `EARSIV_PORTAL_SMSSIFRE_GONDER` (`RG_SMSONAY`)**
 
