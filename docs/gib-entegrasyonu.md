@@ -128,6 +128,36 @@ Yanıt:
 Boş `jp: {}`. Yanıtta `unvan` (şirket hesaplarında güvenilir) veya `ad`+`soyad`
 (mükellef sorgusundakinden **farklı** alan adları — `adi`/`soyadi` değil).
 
+### Kullanıcı bilgileri (detaylı) — aynı cmd, farklı `pageName`: `RG_KULLANICI`
+
+**Kritik bulgu:** `EARSIV_PORTAL_KULLANICI_BILGILERI_GETIR` cmd'i, "Kullanıcı
+İşlemleri > Kullanıcı Bilgileri" ekranından çağrıldığında (`pageName:
+"RG_KULLANICI"`, boş `jp: {}`), Dashboard'da kullanılan `RG_BASITFATURA`
+çağrısından **çok daha zengin** bir yanıt döndürüyor — GİB'in aynı cmd'i
+`pageName`'e göre farklı alan kümesiyle yanıtladığının doğrudan kanıtı.
+Kullanıcının kendi ekranından birebir doğrulanan alanlar:
+
+```json
+{
+  "vknTckn": "...", "unvan": "", "ad": "...", "soyad": "...",
+  "sicilNo": "", "mersisNo": "", "vergiDairesi": "...",
+  "cadde": "...", "apartmanAdi": "...", "apartmanNo": "...", "kapiNo": "...",
+  "kasaba": "...", "ilce": "...", "il": "...", "postaKodu": "...",
+  "ulke": "...", "telNo": "...", "faksNo": "",
+  "ePostaAdresi": "...", "webSitesiAdresi": "...", "isMerkezi": ""
+}
+```
+
+Not: ekranda "Mahalle" etiketiyle gösterilen alanın gerçek adı `kasaba`.
+`telNo` — "GİB İmza" akışının 1. adımı için kullanılan, doğrulanmış tek
+kaynak (bkz. yukarıdaki "SMS ile imzalama" bölümü).
+
+Kaydetme — `EARSIV_PORTAL_KULLANICI_BILGILERI_KAYDET` (`RG_KULLANICI`),
+aynı alan kümesini `jp` olarak geri gönderiyor. **`vknTckn` GİB'in kendi
+ekranında salt okunur bir `<span>`** (input değil) — mükellef tarafında
+değiştirilemez; istek gövdesine dahil edilse de (gerçek yakalamada öyleydi)
+uygulama bunu asla düzenlenebilir bir alan olarak sunmuyor.
+
 ### Taslak listesi — `EARSIV_PORTAL_TASLAKLARI_GETIR` (`RG_BASITTASLAKLAR`)
 
 ```json
@@ -304,11 +334,19 @@ imzalandı). Önceki sürümdeki `{ettn}`/`{ettn, sifre}` şeması ve
 `RG_BASITFATURA` sayfa adı tamamen yanlıştı; gerçek akış üç ayrı isteğe
 dayanıyor:
 
-**1) Kayıtlı telefon numarasını sorgula — `EARSIV_PORTAL_TELEFONNO_SORGULA` (`RG_BASITTASLAKLAR`)**
+**1) Kayıtlı telefon numarasını sorgula**
 
-"GİB İmza" tıklanır tıklanmaz, boş `jp: {}` ile atılıyor. Yanıt, GİB'e
-kayıtlı cep telefonu numarasıdır — SMS Onay ekranında maskeli gösterilir
-(ör. `(555) 123 45 67`).
+Portalın kendi arayüzü, "GİB İmza" tıklanır tıklanmaz
+`EARSIV_PORTAL_TELEFONNO_SORGULA` (`RG_BASITTASLAKLAR`, boş `jp: {}`)
+istiyor — cmd/pageName gerçek DevTools yakalamasıyla doğrulandı, ama
+yanıtının tam gövdesi hiç bağımsız yakalanamadığından "data alanı doğrudan
+telefon numarasıdır" varsayımıyla yazılan ilk implementasyon **canlıda
+başarısız oldu** ("Kayıtlı telefon numarası alınamadı" hatası).
+
+Bunun yerine, **doğrulanmış ve çalışan** kaynak kullanılıyor: "Kullanıcı
+İşlemleri > Kullanıcı Bilgileri" ekranından (bkz. aşağıdaki bölüm)
+`EARSIV_PORTAL_KULLANICI_BILGILERI_GETIR`/`RG_KULLANICI` ile gelen `telNo`
+alanı. SMS Onay ekranında maskeli gösterilir (ör. `(555) 123 45 67`).
 
 **2) SMS'i gönder — `EARSIV_PORTAL_SMSSIFRE_GONDER` (`RG_SMSONAY`)**
 
@@ -384,7 +422,7 @@ GİB portalının kendi tek-sayfa uygulamasının (SPA) menü yükleme çağrıs
 | Düzenlenen Belgeler e-Arşiv Fatura (İnteraktif) | `RG_BASITTASLAKLAR` | ✅ Uygulandı |
 | İptal/İtiraz Talepleri | `RG_IPTALITIRAZTASLAKLAR` | ✅ Uygulandı (`IptalItirazTalepleriScreen`) |
 | Adıma Düzenlenen Belgeler (bana kesilen faturalar) | `RG_ALICI_TASLAKLAR` | ⏳ Henüz uygulanmadı — cmd'ler yakalanmadı (bkz. [Issue #19](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/19)) |
-| Kullanıcı Bilgileri | `RG_KULLANICI` | ⏳ `getKullaniciBilgileri` şu an `RG_BASITFATURA` ile çalışıyor (canlı doğrulandı), bu daha "doğru" sayfa adı henüz denenmedi |
+| Kullanıcı Bilgileri | `RG_KULLANICI` | ✅ Uygulandı (`KullaniciBilgileriScreen` — `kullaniciBilgileriDetayGetir`/`kullaniciBilgileriKaydet`) |
 
 `getUserMenu`/`SIDE.GET_EAGER_BF_DEFS` çağrılarının kendisi ve GİB
 portalının kullandığı üçüncü parti JS kütüphaneleri (autoNumeric.js,

@@ -9,6 +9,7 @@ src/
     FaturaKesimScreen.tsx       # Orkestratör — kartları birleştirir
     TaslaklarScreen.tsx
     IptalItirazTalepleriScreen.tsx
+    KullaniciBilgileriScreen.tsx
     fatura/
       FaturaBilgileriKarti.tsx
       AliciBilgileriKarti.tsx

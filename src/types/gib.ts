@@ -66,6 +66,36 @@ export interface KullaniciBilgisi {
   [key: string]: unknown;
 }
 
+// "Kullanıcı İşlemleri > Kullanıcı Bilgileri" (RG_KULLANICI) ekranındaki
+// firma/mükellef bilgileri — hem GETIR yanıtının hem KAYDET isteğinin gerçek
+// alan adları, kullanıcının kendi ekranından (GİB'in canlı formu) birebir
+// doğrulandı. `vknTckn` GİB'in kendi ekranında SALT OKUNUR (bir <span>,
+// input değil) — mükellef tarafında değiştirilemez, diğer tüm alanlar
+// düzenlenebilir.
+export interface KullaniciDetayBilgisi {
+  vknTckn: string;
+  unvan: string;
+  ad: string;
+  soyad: string;
+  sicilNo: string;
+  mersisNo: string;
+  vergiDairesi: string;
+  cadde: string;
+  apartmanAdi: string;
+  apartmanNo: string;
+  kapiNo: string;
+  kasaba: string;
+  ilce: string;
+  il: string;
+  postaKodu: string;
+  ulke: string;
+  telNo: string;
+  faksNo: string;
+  ePostaAdresi: string;
+  webSitesiAdresi: string;
+  isMerkezi: string;
+}
+
 export interface TaslakFatura {
   ettn: string;
   // Canlı GİB yanıtıyla doğrulandı (gerçek Network yakalaması):

@@ -82,6 +82,17 @@ export default function DashboardScreen({ navigation }: Props) {
     },
   ];
 
+  // GİB'in kendi ana menüsündeki ikinci bölüm: "Kullanıcı İşlemleri" (bkz.
+  // gerçek menü ağacı yakalaması) — şu an tek alt sekmesi var.
+  const kullaniciIslemleri: MenuOgesi[] = [
+    {
+      icon: '👤',
+      baslik: 'Kullanıcı Bilgileri',
+      altBaslik: 'Firma/mükellef bilgilerinizi görüntüleyin ve güncelleyin',
+      onPress: () => navigation.navigate('KullaniciBilgileri'),
+    },
+  ];
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom', 'left', 'right']}>
       <Appbar.Header elevated>
@@ -123,6 +134,23 @@ export default function DashboardScreen({ navigation }: Props) {
             </Card.Content>
           </Card>
         ))}
+
+        <Text variant="labelLarge" style={[styles.bolumBasligi, styles.ikinciBolumBasligi]}>
+          KULLANICI İŞLEMLERİ
+        </Text>
+        {kullaniciIslemleri.map((oge) => (
+          <Card key={oge.baslik} mode="elevated" style={styles.card} onPress={oge.onPress}>
+            <Card.Content style={styles.cardContent}>
+              <Text variant="displaySmall">{oge.icon}</Text>
+              <View style={styles.cardTextGroup}>
+                <Text variant="titleMedium">{oge.baslik}</Text>
+                <Text variant="bodySmall" style={styles.cardSubtitle}>
+                  {oge.altBaslik}
+                </Text>
+              </View>
+            </Card.Content>
+          </Card>
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -136,6 +164,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   bolumBasligi: { opacity: 0.6, marginBottom: 4, letterSpacing: 0.5 },
+  ikinciBolumBasligi: { marginTop: 8 },
   card: { borderRadius: 16 },
   cardContent: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 8 },
   cardTextGroup: { flex: 1, gap: 4 },

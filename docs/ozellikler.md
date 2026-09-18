@@ -30,8 +30,32 @@
   4. **Adıma Düzenlenen Belgeler** — henüz uygulanmadı, tıklanınca "Bu
      özellik henüz eklenmedi." uyarısı gösterir (bkz.
      [Issue #19](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/19))
+- **"Kullanıcı İşlemleri"** başlıklı ikinci bir bölüm, GİB'in kendi ana
+  menüsünün ikinci dalıyla eşleşiyor: **Kullanıcı Bilgileri** →
+  `KullaniciBilgileri` (bkz. aşağıda).
 - Sağ üstte "Güvenli Çıkış" ikonu; onay diyaloğundan sonra
   `useAuthStore.logout()` çağrılır (bkz. aşağıdaki "Oturum Yönetimi").
+
+## Kullanıcı Bilgileri (`src/screens/KullaniciBilgileriScreen.tsx`)
+
+GİB'e kayıtlı mükellef/firma bilgilerini görüntüleme ve düzenleme ekranı —
+"Kullanıcı İşlemleri > Kullanıcı Bilgileri" (`RG_KULLANICI`).
+
+- Üç kart: kimlik bilgileri (VKN/TCKN, Unvan, Ad, Soyad, Sicil No, Mersis
+  No, Vergi Dairesi), adres (Cadde, Apartman Adı/No, Kapı No, Mahalle,
+  İlçe, İl seçici, Posta Kodu, Ülke seçici), iletişim (Tel No, Faks No,
+  e-Posta, Web Sitesi, İş Merkezi).
+- **VKN/TCKN salt okunur** — GİB'in kendi ekranında da bir `<span>` (input
+  değil); mükellef tarafında değiştirilemez. Diğer tüm alanlar
+  düzenlenebilir.
+- İl/Ülke seçicileri, fatura kesim formundaki `ULKELER` listesinden
+  **kasıtlı olarak ayrı** tutulan `KULLANICI_ILLERI`/`KULLANICI_ULKELERI`
+  listelerini kullanıyor — GİB bu iki ekranda farklı (ve farklı
+  biçimlendirilmiş) ülke listeleri sunuyor.
+- Ekran açılır açılmaz mevcut bilgiler çekilir; "Kaydet" butonu
+  `EARSIV_PORTAL_KULLANICI_BILGILERI_KAYDET` isteğini gönderir.
+- **Bu ekran, "GİB İmza" akışındaki kayıtlı telefon numarasının da tek
+  güvenilir kaynağı** — bkz. [gib-entegrasyonu.md](gib-entegrasyonu.md).
 
 ## Fatura Kesim Formu (`src/screens/FaturaKesimScreen.tsx` + `src/screens/fatura/*`)
 

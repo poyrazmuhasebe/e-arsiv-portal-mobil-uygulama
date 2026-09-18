@@ -633,3 +633,61 @@ export const TEVKIFAT_KODLARI: TevkifatKodu[] = [
   { value: '824', label: '824 - Ticari Reklam Hizmetleri (Tam Tevkifat)', oran: 10 },
   { value: '825', label: '825 - Demir-Çelik Ürünlerinin Teslimi (Tam Tevkifat)', oran: 10 },
 ];
+
+// --- Aşağıdaki iki liste, "Kullanıcı İşlemleri > Kullanıcı Bilgileri"
+// (RG_KULLANICI) ekranındaki İl/Ülke <select>'lerinden geliyor. Fatura
+// kesim formundaki ULKELER listesinden KASITLI OLARAK AYRI tutuldu — GİB'in
+// bu iki ekranı farklı (ve farklı biçimlendirilmiş, ör. burada "Amerika
+// Birleşik Devletleri" kısaltılmamış) ülke listeleri kullanıyor; birini
+// diğeri yerine kullanmak yanlış/geçersiz bir değer göndermeye yol açar.
+
+// Gerçek GİB <select id="gen__1038"> ("İl") içeriğiyle birebir doğrulandı.
+// Bazı değerler GİB'in kendi verisinde tuhaf yazılmış (ör. "Aydin" (noktasız
+// i), "Mardİn"/"Tekİrdağ" (büyük noktalı İ kelime içinde), "K.maraş",
+// "Ş.urfa") — bunlar KASITLI OLARAK düzeltilmedi, GİB'e giden gerçek değer
+// budur.
+export const KULLANICI_ILLERI: SecenekOgesi[] = [
+  'Adana', 'Adıyaman', 'Afyon', 'Ağrı', 'Amasya', 'Ankara', 'Antalya', 'Artvin',
+  'Aydin', 'Balıkesir', 'Bilecik', 'Bingöl', 'Bitlis', 'Bolu', 'Burdur', 'Bursa',
+  'Çanakkale', 'Çankırı', 'Çorum', 'Denizli', 'Diyarbakır', 'Edirne', 'Elazığ',
+  'Erzincan', 'Erzurum', 'Eskişehir', 'Gaziantep', 'Giresun', 'Gümüşhane',
+  'Hakkari', 'Hatay', 'Isparta', 'Mersin', 'İstanbul', 'İzmir', 'Kars',
+  'Kastamonu', 'Kayseri', 'Kırklareli', 'Kırşehir', 'Kocaeli', 'Konya',
+  'Kütahya', 'Malatya', 'Manisa', 'K.maraş', 'Mardİn', 'Muğla', 'Muş',
+  'Nevşehir', 'Niğde', 'Ordu', 'Rize', 'Sakarya', 'Samsun', 'Siirt', 'Sinop',
+  'Sivas', 'Tekİrdağ', 'Tokat', 'Trabzon', 'Tunceli', 'Ş.urfa', 'Uşak', 'Van',
+  'Yozgat', 'Zonguldak', 'Aksaray', 'Bayburt', 'Karaman', 'Kırıkkale', 'Batman',
+  'Şırnak', 'Bartın', 'Ardahan', 'Iğdır', 'Yalova', 'Karabük', 'Kilis',
+  'Osmaniye', 'Düzce',
+].map((il) => ({ value: il, label: il }));
+export const VARSAYILAN_KULLANICI_ILI = 'İstanbul';
+
+// Gerçek GİB <select id="gen__1041"> ("Ülke") içeriğiyle birebir doğrulandı.
+// Fatura formundaki ULKELER'den farklı olarak burada değerler kısaltılmamış
+// tam isimler.
+export const KULLANICI_ULKELERI: SecenekOgesi[] = [
+  'Türkiye', 'ABD Virgin Adaları', 'Almanya', 'Amerika Birleşik Devletleri',
+  'Andorra', 'Antigua ve Barbuda', 'Arjantin', 'Arnavutluk', 'Aruba',
+  'Avustralya', 'Avusturya', 'Azerbaycan', 'Bahama', 'Bahamas', 'Bahreyn',
+  'Bangladeş', 'Barbados', 'Belçika', 'Belize', 'Benin', 'Beyaz Rusya',
+  'Birleşik Arap Emirlikleri', 'Bolivya', 'Bosna Hersek', 'Brezilya', 'Brunei',
+  'Bulgaristan', 'Burma', 'Cebelitarık', 'Çek Cumhuriyeti', 'Çin', 'Danimarka',
+  'Dominik Cumhuriyeti', 'Ekvator', 'El Salvador', 'Endonezya', 'Eritre',
+  'Ermenistan', 'Estonya', 'Fas', 'Fiji', 'Filipinler', 'Finlandiya',
+  'Fransa', 'Fransız Polinezyası', 'Grenada', 'Guadalup', 'Guam', 'Guatemala',
+  'Güney Afrika', 'Gürcistan', 'Hırvatistan', 'Hindistan', 'Hollanda',
+  'Hollanda Antilleri', 'Honduras', 'Hong Kong', 'İngiliz Virginia Adaları',
+  'İngiltere', 'İrlanda', 'İspanya', 'İsrail', 'İsveç', 'İsviçre', 'İtalya',
+  'İzlanda', 'Jamaika', 'Japonya', 'Kamboçya', 'Kanada', 'Katar',
+  'Kayman Adaları', 'Kıbrıs', 'Kolombiya', 'Kore', 'Kosta Rika', 'Kuveyt',
+  'Küba', 'Letonya', 'Liechtenstein', 'Litvanya', 'Lübnan', 'Lüksemburg',
+  'Macaristan', 'Makedonya', 'Maldivler', 'Malezya', 'Malta', 'Mauritius',
+  'Meksika', 'Mısır', 'Moldova', 'Monako', 'Mozambik', 'Nikaragua', 'Norveç',
+  'Özbekistan', 'Panama', 'Paraguay', 'Peru', 'Polonya', 'Portekiz',
+  'Porto Riko', 'Romanya', 'Rusya', 'Saint Kitts ve Nevis', 'Saint Lucia',
+  'San Marino', 'Senegal', 'Seyşel', 'Singapur', 'Slovakya', 'Slovenya',
+  'Sri Lanka', 'Suriye', 'Suudi Arabistan', 'Şili', 'Tayland', 'Tayvan',
+  'Tunus', 'Turks ve Caicos Adaları', 'Ukrayna', 'Umman', 'Uruguay', 'Ürdün',
+  'Vanuatu', 'Venezuela', 'Vietnam', 'Yeni Zelanda', 'Yunanistan',
+].map((ulke) => ({ value: ulke, label: ulke }));
+export const VARSAYILAN_KULLANICI_ULKESI = 'Türkiye';

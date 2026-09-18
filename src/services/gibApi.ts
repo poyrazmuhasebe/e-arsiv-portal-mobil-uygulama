@@ -24,6 +24,7 @@ import type {
   FaturaTaslagi,
   IptalItirazTalebi,
   KullaniciBilgisi,
+  KullaniciDetayBilgisi,
   TaslakFatura,
 } from '../types/gib';
 import { KDV_TEVKIFAT_VERGI_TURU } from '../constants/faturaConstants';
@@ -856,38 +857,128 @@ export async function iptalTalebiOlustur(
 // ---------------------------------------------------------------------------
 
 /**
- * Tarayıcı DevTools > Network yakalamasıyla cmd/pageName/jp DOĞRULANDI
- * ("GİB İmza" tıklanınca ilk atılan istek buydu, boş jp: {}). GİB'e kayıtlı
- * cep telefonu numarasını döndürüyor; SMS Onay ekranında maskeli gösterilip
- * (ör. "(555) 123 45 67"), `smsSifreGonder`'e ham rakamlarla ("5551234567")
- * geçiriliyor.
+ * "GİB İmza" tıklanınca portalın kendi arayüzünün attığı ilk istek
+ * `EARSIV_PORTAL_TELEFONNO_SORGULA` (`RG_BASITTASLAKLAR`, boş jp) idi ve
+ * cmd/pageName/jp DevTools ile doğrulanmıştı — ama yanıtının tam gövdesi
+ * hiç bağımsız yakalanamadığından, "data alanı doğrudan telefon numarası
+ * string'idir" varsayımıyla yazılan ilk implementasyon CANLIDA "Kayıtlı
+ * telefon numarası alınamadı" hatasıyla BAŞARISIZ OLDU.
  *
- * NOT: Yanıtın tam gövdesi (düz string mi, obje mi) bağımsız olarak
- * yakalanıp teyit edilmedi — GİB'in tek-değer döndüren diğer uçlarındaki
- * (ör. faturaHTMLGetir) kalıba göre `data` alanının doğrudan telefon
- * numarası string'i olduğu VARSAYILIYOR. `dispatch()`'in ham yanıtı zaten
- * konsola bastığı için ilk canlı denemede bu varsayım kolayca doğrulanabilir.
+ * Bunun yerine, "Kullanıcı İşlemleri > Kullanıcı Bilgileri" (RG_KULLANICI)
+ * ekranından gerçek DevTools yakalamasıyla doğrulanan
+ * `EARSIV_PORTAL_KULLANICI_BILGILERI_GETIR`/`RG_KULLANICI` isteğinin
+ * `telNo` alanı kullanılıyor — bu alan, aynı ekranın KAYDET isteğinde de
+ * aynı adla geçiyor ve kullanıcının kendi ekranında "Tel No" olarak
+ * görüntülenen değerle birebir eşleşiyor (uçtan uca doğrulandı).
  */
 export async function telefonnoSorgula(token: string): Promise<string> {
   if (IS_TEST_MODE) {
     return Promise.resolve('5551234567');
   }
 
-  const result = await dispatch<string | { data?: string } | Record<string, unknown>>(
-    'EARSIV_PORTAL_TELEFONNO_SORGULA',
-    'RG_BASITTASLAKLAR',
+  const bilgi = await kullaniciBilgileriDetayGetir(token);
+  const rakamlar = bilgi.telNo.replace(/\D/g, '');
+  if (rakamlar.length === 0) {
+    throw new GibApiError('Kayıtlı cep telefonu numarası alınamadı.', bilgi);
+  }
+  return rakamlar;
+}
+
+// ---------------------------------------------------------------------------
+// Kullanıcı Bilgileri (Kullanıcı İşlemleri > Kullanıcı Bilgileri, RG_KULLANICI)
+// ---------------------------------------------------------------------------
+
+/**
+ * Tarayıcı DevTools > Network yakalamasıyla BİREBİR DOĞRULANDI — kullanıcının
+ * kendi "Kullanıcı Bilgileri" ekranındaki gerçek verilerle (VKN/TCKN, ad/
+ * soyad, vergi dairesi, adres, telefon, e-posta vb.) birebir eşleşti.
+ */
+export async function kullaniciBilgileriDetayGetir(token: string): Promise<KullaniciDetayBilgisi> {
+  if (IS_TEST_MODE) {
+    return Promise.resolve({
+      vknTckn: '11111111111',
+      unvan: '',
+      ad: 'TEST',
+      soyad: 'KULLANICI',
+      sicilNo: '',
+      mersisNo: '',
+      vergiDairesi: 'Marmara Kurumlar',
+      cadde: '',
+      apartmanAdi: '',
+      apartmanNo: '',
+      kapiNo: '',
+      kasaba: '',
+      ilce: '',
+      il: '',
+      postaKodu: '',
+      ulke: 'Türkiye',
+      telNo: '5551234567',
+      faksNo: '',
+      ePostaAdresi: '',
+      webSitesiAdresi: '',
+      isMerkezi: '',
+    });
+  }
+
+  const result = await dispatch<Record<string, unknown>>(
+    'EARSIV_PORTAL_KULLANICI_BILGILERI_GETIR',
+    'RG_KULLANICI',
     {},
     token,
   );
 
-  console.log('GİB TELEFON NO HAM YANIT:', JSON.stringify(result));
+  console.log('GİB KULLANICI BİLGİLERİ (RG_KULLANICI) HAM YANIT:', JSON.stringify(result));
 
-  if (typeof result === 'string' && result.length > 0) return result.replace(/\D/g, '');
-  if (result && typeof result === 'object') {
-    const veri = (result as { data?: unknown }).data;
-    if (typeof veri === 'string' && veri.length > 0) return veri.replace(/\D/g, '');
+  const veri = (result ?? {}) as Record<string, unknown>;
+  const asStr = (v: unknown): string => (typeof v === 'string' ? v : '');
+
+  return {
+    vknTckn: asStr(veri.vknTckn),
+    unvan: asStr(veri.unvan),
+    ad: asStr(veri.ad),
+    soyad: asStr(veri.soyad),
+    sicilNo: asStr(veri.sicilNo),
+    mersisNo: asStr(veri.mersisNo),
+    vergiDairesi: asStr(veri.vergiDairesi),
+    cadde: asStr(veri.cadde),
+    apartmanAdi: asStr(veri.apartmanAdi),
+    apartmanNo: asStr(veri.apartmanNo),
+    kapiNo: asStr(veri.kapiNo),
+    kasaba: asStr(veri.kasaba),
+    ilce: asStr(veri.ilce),
+    il: asStr(veri.il),
+    postaKodu: asStr(veri.postaKodu),
+    ulke: asStr(veri.ulke),
+    telNo: asStr(veri.telNo),
+    faksNo: asStr(veri.faksNo),
+    ePostaAdresi: asStr(veri.ePostaAdresi),
+    webSitesiAdresi: asStr(veri.webSitesiAdresi),
+    isMerkezi: asStr(veri.isMerkezi),
+  };
+}
+
+/**
+ * Tarayıcı DevTools > Network yakalamasıyla BİREBİR DOĞRULANDI. GİB'in kendi
+ * ekranında `vknTckn` salt okunur bir `<span>` (input değil) — mükellef
+ * tarafında DEĞİŞTİRİLEMEZ; bu yüzden `bilgi.vknTckn` isteğe dahil edilse de
+ * (gerçek yakalamada da gönderiliyordu) uygulama tarafında hiçbir zaman
+ * düzenlenebilir bir alan olarak sunulmamalı.
+ */
+export async function kullaniciBilgileriKaydet(
+  token: string,
+  bilgi: KullaniciDetayBilgisi,
+): Promise<void> {
+  if (IS_TEST_MODE) {
+    console.log('MOCK KULLANICI BİLGİLERİ KAYDET:', bilgi);
+    return Promise.resolve();
   }
-  throw new GibApiError('Kayıtlı cep telefonu numarası alınamadı.', result);
+
+  await dispatch(
+    'EARSIV_PORTAL_KULLANICI_BILGILERI_KAYDET',
+    'RG_KULLANICI',
+    { ...bilgi },
+    token,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -1155,6 +1246,8 @@ export const gibApi = {
   faturaSil,
   iptalTalebiOlustur,
   telefonnoSorgula,
+  kullaniciBilgileriDetayGetir,
+  kullaniciBilgileriKaydet,
   smsSifreGonder,
   smsSifreOnayla,
   faturaHTMLGetir,
