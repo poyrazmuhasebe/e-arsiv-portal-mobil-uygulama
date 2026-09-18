@@ -317,14 +317,14 @@ onaylamak istiyorsunuz... geri çekilemeyecektir." + "Uyarıyı Okudum" onayı).
 Kabulden sonra liste otomatik yeniden sorgulanıyor (GİB'in kendi arayüzü
 de aynısını yapıyor).
 
-`talepCevabi: 0` (**Reddet**) ve dolu bir `retAciklama` gönderme, alan
-adlarından çıkarılan mantıklı ama **henüz canlı doğrulanmamış** bir
-varsayımdır (bkz.
-[Issue #18](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/18)).
+`talepCevabi: 0` (**Reddet**) ve dolu bir `retAciklama` gönderme de **canlı
+olarak doğrulandı** (kullanıcının gerçek denemesi) — talep reddedildikten
+sonra taslak listesinde ilgili belgenin İptal/İtiraz Durumu doğru şekilde
+güncellendi.
 
 `iptalItirazOid` — tabloda görünen bir sütun değil, ama durum güncelleme
-isteğinde zorunlu; satır objesinde geldiği varsayılıyor (ayrı bir liste
-yanıtı yakalamasıyla henüz teyit edilmedi).
+isteğinde zorunlu; satır objesinde geldiği (Kabul VE Reddet ikisi de
+başarıyla çalıştığı için dolaylı olarak) doğrulandı.
 
 ### SMS ile imzalama (GİB İmza) — üç adımlı akış
 
