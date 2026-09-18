@@ -7,7 +7,7 @@ Mali müşavirlerin mükelleflerinin GİB e-Arşiv Portal üzerinden kendi hesap
 - **Bu uygulama GİB'in resmi bir ürünü değildir.** `earsivportal.efatura.gov.tr` adresinin resmi/yayınlanmış bir REST API'si yoktur; uygulama, portalın kendi web arayüzünün kullandığı iç servislere (`/earsiv-services/dispatch`, `/earsiv-services/assos-login`) doğrudan istek atar. GİB bu servisleri haber vermeden değiştirebilir.
 - Kullanıcı kodu ve şifre yalnızca cihazdan doğrudan GİB sunucularına gönderilir; hiçbir üçüncü taraf sunucuya iletilmez (backend yoktur). "Beni hatırla" işaretlenirse bu bilgiler yalnızca cihazda `expo-secure-store` (şifrelenmiş) ile tutulur.
 - `src/services/gibApi.ts` içindeki komut/alan adlarının doğrulanma durumu değişkendir — bazıları gerçek Network trafiği yakalanarak teyit edilmiştir, bazıları henüz teyit edilmemiştir. Her fonksiyonun üstündeki yorumlar "DOĞRULANMADI" veya "canlı yanıtla doğrulandı" şeklinde bunu belirtir; aşağıdaki tabloya da bakın.
-- **Canlı bir e-Arşiv faturası kesmek/imzalamak gerçek, geri alınması zor bir mali işlemdir.** Doğrulanmamış uçları (özellikle `faturaKaydet`, SMS imzalama) üretime almadan önce mutlaka küçük/kontrollü bir gerçek denemeyle doğrulayın.
+- **Canlı bir e-Arşiv faturası kesmek/imzalamak gerçek, geri alınması zor bir mali işlemdir.** `faturaKaydet` artık canlı doğrulandı (bkz. aşağıdaki tablo), ama SMS imzalama gibi hâlâ doğrulanmamış uçları üretime almadan önce mutlaka küçük/kontrollü bir gerçek denemeyle doğrulayın.
 
 ## Özellikler
 
@@ -65,7 +65,7 @@ Expo Go ile QR kodu okutarak veya `npx expo start --web` ile tarayıcıda çalı
 | `mukellefBilgisiGetir` | `dispatch`, `SICIL_VEYA_MERNISTEN_BILGILERI_GETIR` | ✅ Canlı yanıtla doğrulandı |
 | `taslakGetir` | `dispatch`, `EARSIV_PORTAL_TASLAKLARI_GETIR` | ✅ Canlı yanıtla doğrulandı |
 | `faturaHTMLGetir` | `dispatch`, `EARSIV_PORTAL_FATURA_GOSTER` | ✅ Canlı yanıtla doğrulandı |
-| `faturaKaydet` | `dispatch`, `EARSIV_PORTAL_FATURA_OLUSTUR` | 🟡 **Payload gerçek DevTools yakalamasıyla birebir doğrulandı**, ama bu tam istekle bir fatura başarıyla oluşturulduğu henüz teyit edilmedi (bir önceki deneme "yetkiniz yok" ile reddedilmişti; bu sefer eksik olan `callid` parametresi ve hatalı `hangiTip`/tip uyumsuzlukları düzeltildi). Sıradaki canlı denemenin sonucu bekleniyor. |
+| `faturaKaydet` | `dispatch`, `EARSIV_PORTAL_FATURA_OLUSTUR` | ✅ **Canlı yanıtla doğrulandı** — kullanıcının gerçek DevTools yakalamasında bu cmd/payload ile GENEL İADE ve TEVKİFAT tipi iki gerçek fatura başarıyla oluşturuldu ("Faturanız başarıyla oluşturulmuştur..."). İstisna: GENEL İADE tipi için `iadeTable` alanını dolduracak form UI'ı henüz yok (bkz. TODO.md), o yüzden GENEL İADE ile gerçek kesim şu an eksik olabilir. |
 | `smsSifreGonder` / `smsSifreOnayla` | `dispatch`, `EARSIV_PORTAL_SMSSIFRE_*` | ⚠️ **Doğrulanmadı** |
 | `faturaIndir` (ham base64/PDF indirme, HTML değil) | `dispatch`, `EARSIV_PORTAL_FATURA_INDIR` | ⚠️ **Doğrulanmadı**, kullanılmıyor (yerine `faturaHTMLGetir` + PDF üretimi kullanılıyor) |
 

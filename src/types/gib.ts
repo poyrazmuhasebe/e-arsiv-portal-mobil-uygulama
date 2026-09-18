@@ -18,8 +18,10 @@ export interface FaturaSatiri {
   birimFiyat: number;
   iskontoOrani?: number;
   kdvOrani: KdvOrani;
-  // DOĞRULANMADI: tevkifat alan adları canlı FATURA_KAYDET yanıtıyla henüz
-  // teyit edilmedi.
+  // Uygulama içi (dahili) alan adları — GİB'e giden gerçek istekte bunlar
+  // "tevkifatKodu" ve seçilen vergi türü koduna göre dinamik isimlendirilen
+  // "{kod}Orani"/"{kod}Tutari" alanlarına dönüştürülüyor (bkz. gibApi.ts
+  // buildFaturaOlusturPayload — gerçek DevTools yakalamasıyla doğrulandı).
   kdvTevkifatKodu?: string;
   kdvTevkifatOrani?: number;
 }

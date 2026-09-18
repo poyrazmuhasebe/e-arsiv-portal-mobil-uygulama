@@ -13,7 +13,7 @@
 // Alan adları (jp içeriği, yanıt şekli) GİB tarafında haber verilmeden
 // değişebilir. Gerçek bir hesapla test ederken DevTools > Network sekmesinden
 // gözlemlediğiniz gerçek istek/yanıtlarla bu dosyayı doğrulayıp güncelleyin;
-// özellikle FATURA_KAYDET, SMSSIFRE_GONDER/ONAYLA komutlarının "jp" gövdeleri
+// özellikle SMSSIFRE_GONDER/ONAYLA komutlarının "jp" gövdeleri
 // portal sürümüne göre farklılık gösterebilir.
 
 import axios, { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
@@ -25,6 +25,7 @@ import type {
   KullaniciBilgisi,
   TaslakFatura,
 } from '../types/gib';
+import { KDV_TEVKIFAT_VERGI_TURU } from '../constants/faturaConstants';
 
 // GİB'in yayınladığı test/sandbox portalı — gerçek mükellef hesaplarını
 // etkilemeden fatura kesim akışını (taslak kaydet, SMS onay vb.) denemek
@@ -493,19 +494,46 @@ function satirHesapla(satir: FaturaSatiri): SatirHesabi {
   return { netTutar, kdvTutari, tevkifatTutari };
 }
 
+// GİB'in kendi arayüzü (autoNumeric.js) tutarları biçimlendirirken ondalık
+// kısmı sıfırsa ".00"yı basmıyor (ör. "10", "10.00" değil; ama "10.5" ise
+// "10.5"). Gerçek DevTools yakalamalarında (İADE/TEVKİFAT başarılı istekleri)
+// TÜM tutar alanları bu şekildeydi — bu yüzden toFixed(2) yerine bunu kullanıyoruz.
+function tutarStr(n: number): string {
+  return String(Number(n.toFixed(2)));
+}
+
 /**
- * Tarayıcı DevTools > Network yakalamasıyla BİREBİR DOĞRULANDI: gerçek
- * "e-Arşiv Fatura (interaktif) Oluştur" ekranından atılan istek bu şekilde.
- * Önceki sürümdeki komisyon/navlun/hammaliye/nakliye/hal rüsumu/ticaret
- * borsası/milli savunma fonu/diğer/top-level özel matrah alanları hayaliydi
- * (açık kaynak referanstan tahmin edilmişti) — gerçek istekte HİÇ YOKLAR,
- * kaldırıldı.
+ * Tarayıcı DevTools > Network yakalamasıyla BİREBİR DOĞRULANDI — hem de iki
+ * ayrı GERÇEK BAŞARILI istekle (İADE ve TEVKİFAT fatura tipleri, ikisi de
+ * "Faturanız başarıyla oluşturulmuştur" yanıtını döndürdü). Önceki sürümdeki
+ * komisyon/navlun/hammaliye/nakliye/hal rüsumu/ticaret borsası/milli savunma
+ * fonu/diğer/top-level özel matrah alanları hayaliydi (açık kaynak referanstan
+ * tahmin edilmişti) — gerçek istekte HİÇ YOKLAR, kaldırıldı.
+ *
+ * Kritik bulgular:
+ * - `iadeTable`: her istekte var, GENEL İADE dışında boş dizi. İADE'de
+ *   `[{faturaNo, duzenlenmeTarihi}]` — iade edilen orijinal faturayı belirtir.
+ *   Bu uygulamada henüz bunu girecek bir form alanı YOK (bkz. TODO.md);
+ *   şimdilik her zaman boş dizi gönderiliyor — yani GENEL İADE tipi fatura
+ *   büyük olasılıkla GİB tarafından reddedilecek ta ki bu alan eklenene kadar.
+ * - `vergiCesidi` sabit bir boşluk değil: KDV Tevkifat uygulanan bir fatura
+ *   tevkifat türünün kodunu (`V9015`) taşır, aksi halde tek boşluk (" ").
+ * - Tevkifatlı kalemlerde alan adı `kdvTevkifatKodu` değil `tevkifatKodu`;
+ *   oran/tutar alanları da SABİT değil, seçilen vergi türü koduna göre
+ *   DİNAMİK isimlendiriliyor (ör. "V9015Orani"/"V9015Tutari" — alan adının
+ *   içine kodu gömüyor). Oran alanı bizim TEVKIFAT_KODLARI'ndaki "oran"
+ *   değerinin (7 = 7/10) 10 katı olarak (70) gönderiliyor.
+ * - Fatura genelinde en az bir tevkifatlı kalem varsa üç ek top-level alan
+ *   daha gönderiliyor: `tevkifataTabiIslemTutar`, `tevkifataTabiIslemKdv` ve
+ *   dinamik `hesaplanan${vergiCesidi}` (ör. "hesaplananV9015").
  */
 function buildFaturaOlusturPayload(taslak: FaturaTaslagi) {
   let malHizmetToplam = 0;
   let toplamIskonto = 0;
   let hesaplananKdv = 0;
   let hesaplananKdvTevkifat = 0;
+  let tevkifataTabiIslemTutar = 0;
+  let tevkifataTabiIslemKdv = 0;
 
   const malHizmetTable = taslak.satirlar.map((satir) => {
     const brut = satir.miktar * satir.birimFiyat;
@@ -516,40 +544,45 @@ function buildFaturaOlusturPayload(taslak: FaturaTaslagi) {
     malHizmetToplam += hesap.netTutar;
     toplamIskonto += iskontoTutari;
     hesaplananKdv += hesap.kdvTutari;
-    hesaplananKdvTevkifat += hesap.tevkifatTutari;
 
-    return {
+    const satirData: Record<string, unknown> = {
       malHizmet: satir.malHizmet,
       miktar: satir.miktar,
       birim: satir.birim,
       birimFiyat: String(satir.birimFiyat),
-      fiyat: brut.toFixed(2),
+      fiyat: tutarStr(brut),
       iskontoOrani,
-      iskontoTutari: iskontoTutari.toFixed(2),
+      iskontoTutari: tutarStr(iskontoTutari),
       iskontoNedeni: '',
-      malHizmetTutari: hesap.netTutar.toFixed(2),
+      malHizmetTutari: tutarStr(hesap.netTutar),
       // Gerçek yakalamada kdvOrani STRING'di ("20"), vergiOrani/
       // vergininKdvTutari ise KDV'yi tekrar etmiyordu — hep "0" gönderiliyordu
       // (muhtemelen ayrı bir vergi türü/ÖTV alanı, bizim akışımızda kullanılmıyor).
       kdvOrani: String(satir.kdvOrani),
       vergiOrani: 0,
-      kdvTutari: hesap.kdvTutari.toFixed(2),
+      kdvTutari: tutarStr(hesap.kdvTutari),
       vergininKdvTutari: '0',
       ozelMatrahTutari: '0',
       hesaplananotvtevkifatakatkisi: '0',
-      // DOĞRULANMADI: gerçek yakalamamız KDV Tevkifatsız (SATIŞ) bir fatura
-      // içindi, bu iki alan o istekte hiç yoktu. Tevkifatlı fatura tipinde
-      // (Fatura Tipi = TEVKİFAT) muhtemelen farklı/ek alanlar kullanılıyor —
-      // bir tevkifatlı deneme yakalanana kadar bu ikisi tahmindir.
-      kdvTevkifatKodu: satir.kdvTevkifatKodu ?? '',
-      kdvTevkifatOrani: satir.kdvTevkifatOrani ?? 0,
     };
+
+    if (satir.kdvTevkifatKodu) {
+      hesaplananKdvTevkifat += hesap.tevkifatTutari;
+      tevkifataTabiIslemTutar += hesap.netTutar;
+      tevkifataTabiIslemKdv += hesap.kdvTutari;
+      satirData.tevkifatKodu = satir.kdvTevkifatKodu;
+      satirData[`${KDV_TEVKIFAT_VERGI_TURU}Orani`] = (satir.kdvTevkifatOrani ?? 0) * 10;
+      satirData[`${KDV_TEVKIFAT_VERGI_TURU}Tutari`] = tutarStr(hesap.tevkifatTutari);
+    }
+
+    return satirData;
   });
 
+  const tevkifatVar = taslak.satirlar.some((s) => s.kdvTevkifatKodu);
   const vergilerDahilToplam = malHizmetToplam + hesaplananKdv;
   const odenecekTutar = vergilerDahilToplam - hesaplananKdvTevkifat;
 
-  return {
+  const payload: Record<string, unknown> = {
     faturaUuid: '',
     belgeNumarasi: '',
     faturaTarihi: taslak.faturaTarihi,
@@ -562,21 +595,25 @@ function buildFaturaOlusturPayload(taslak: FaturaTaslagi) {
     ...toGibAlici(taslak.alici),
     irsaliyeNumarasi: taslak.irsaliyeNo ?? '',
     irsaliyeTarihi: taslak.irsaliyeTarihi ?? '',
+    // GENEL İADE tipi faturalarda iade edilen orijinal faturayı belirtir
+    // ({faturaNo, duzenlenmeTarihi}); bu uygulamada henüz bunu girecek bir
+    // form alanı yok, bu yüzden şimdilik her zaman boş gönderiliyor.
+    iadeTable: [],
     ihracKayitliKarsiBelgeNo: '',
     yatirimTesvikNumarasi: '',
     // Gerçek yakalamada boşken bugünün tarihiyle doluydu (faturaTarihi ile aynı).
     yatirimTesvikTarihi: taslak.faturaTarihi,
     kdvOranKontrolMuafiyeti: false,
-    vergiCesidi: ' ',
+    vergiCesidi: tevkifatVar ? KDV_TEVKIFAT_VERGI_TURU : ' ',
     malHizmetTable,
     tip: 'İskonto',
-    matrah: malHizmetToplam.toFixed(2),
-    malhizmetToplamTutari: malHizmetToplam.toFixed(2),
-    toplamIskonto: toplamIskonto.toFixed(2),
-    hesaplanankdv: hesaplananKdv.toFixed(2),
-    vergilerToplami: hesaplananKdv.toFixed(2),
-    vergilerDahilToplamTutar: vergilerDahilToplam.toFixed(2),
-    odenecekTutar: odenecekTutar.toFixed(2),
+    matrah: tutarStr(malHizmetToplam),
+    malhizmetToplamTutari: tutarStr(malHizmetToplam),
+    toplamIskonto: tutarStr(toplamIskonto),
+    hesaplanankdv: tutarStr(hesaplananKdv),
+    vergilerToplami: tutarStr(hesaplananKdv),
+    vergilerDahilToplamTutar: tutarStr(vergilerDahilToplam),
+    odenecekTutar: tutarStr(odenecekTutar),
     not: taslak.not ?? '',
     siparisNumarasi: '',
     siparisTarihi: '',
@@ -587,6 +624,14 @@ function buildFaturaOlusturPayload(taslak: FaturaTaslagi) {
     zRaporNo: '',
     okcSeriNo: '',
   };
+
+  if (tevkifatVar) {
+    payload.tevkifataTabiIslemTutar = tutarStr(tevkifataTabiIslemTutar);
+    payload.tevkifataTabiIslemKdv = tutarStr(tevkifataTabiIslemKdv);
+    payload[`hesaplanan${KDV_TEVKIFAT_VERGI_TURU}`] = tutarStr(hesaplananKdvTevkifat);
+  }
+
+  return payload;
 }
 
 export async function faturaKaydet(
@@ -598,20 +643,17 @@ export async function faturaKaydet(
     return Promise.resolve({ ettn: `MOCK-ETTN-${Date.now()}` });
   }
 
-  // DOĞRULANDI (kullanıcı geri bildirimiyle): "EARSIV_PORTAL_FATURA_OLUSTUR"
-  // (f/fatura referansından) hesabın ERİŞEMEDİĞİ farklı bir ekrana/komuta
-  // gidiyor ("e-Arşiv Portal Fatura" — kullanıcı bu ekrandan değil,
-  // "e-Arşiv Fatura (interaktif) Oluştur" ekranından fatura kesebiliyor).
-  // Bu yüzden projenin en başında verilen orijinal komuta geri dönüldü.
-  // Payload'ı (buildFaturaOlusturPayload) DEĞİŞTİRMEDİK — o hâlâ en zengin/
-  // en olası doğru şekil; yalnızca hangi cmd'nin bu payload'ı kabul ettiğini
-  // netleştirmemiz gerekiyor.
+  // KESİN OLARAK DOĞRULANDI: kullanıcının gerçek DevTools yakalamasıyla,
+  // "EARSIV_PORTAL_FATURA_OLUSTUR" cmd'i İKİ AYRI GERÇEK, BAŞARILI fatura
+  // oluşturma isteğinde (GENEL İADE ve TEVKİFAT fatura tipleri) kullanılmış
+  // ve ikisi de GİB'den "Faturanız başarıyla oluşturulmuştur. Düzenlenen
+  // Belgeler menüsünden faturanıza ulaşabilirsiniz." yanıtını almış. Yani
+  // doğru/çalışan cmd budur, "EARSIV_PORTAL_FATURA_KAYDET" DEĞİL.
   //
-  // Yanıt şekli de artık belirsiz (FATURA_OLUSTUR'un "...başarıyla
-  // oluşturulmuştur" metni FATURA_KAYDET için geçerli olmayabilir), bu
-  // yüzden başarıyı METİN EŞLEŞMESİNE değil, oluşturmadan ÖNCE/SONRA taslak
-  // listesini karşılaştırıp yeni bir kayıt çıkıp çıkmadığına göre belirliyoruz
-  // — bu, cmd/yanıt formatı ne olursa olsun güvenilir bir yöntem.
+  // GİB'in başarı yanıtı ettn/uuid İÇERMİYOR — yalnızca düz bir metin
+  // ("...başarıyla oluşturulmuştur..."). Bu yüzden ettn'i, oluşturmadan
+  // ÖNCE/SONRA taslak listesini karşılaştırıp yeni çıkan kaydı bularak elde
+  // ediyoruz (metne bağımlı olmayan, güvenilir bir yöntem).
   let oncekiEttnler = new Set<string>();
   try {
     const oncekiListe = await taslakGetir(token, {
@@ -627,7 +669,7 @@ export async function faturaKaydet(
   const payload = buildFaturaOlusturPayload(taslak);
 
   const result = await dispatch<string | { ettn?: string; uuid?: string }>(
-    'EARSIV_PORTAL_FATURA_KAYDET',
+    'EARSIV_PORTAL_FATURA_OLUSTUR',
     'RG_BASITFATURA',
     payload,
     token,
