@@ -748,9 +748,21 @@ export default function TaslaklarScreen({ navigation }: Props) {
               mode="outlined"
               label="Şifre"
               value={smsKodu}
-              onChangeText={setSmsKodu}
-              keyboardType="number-pad"
+              // GİB'in SMS şifresi yalnızca rakam değil, harf+rakam karışık
+              // gelebiliyor (ör. "0IC017") — bu yüzden number-pad DEĞİL,
+              // varsayılan klavye kullanılıyor; GİB'in kendi mesajındaki gibi
+              // büyük harfe otomatik çevriliyor.
+              onChangeText={(v) => setSmsKodu(v.toUpperCase())}
+              autoCapitalize="characters"
+              autoCorrect={false}
               maxLength={6}
+              // iOS'ta sistem, gelen SMS'teki kodu klavye üstünde otomatik
+              // öneriyor (textContentType); Android'de de aynı işlevi gören
+              // autoComplete="sms-otp" ipucu veriliyor — ikisi de uygulamanın
+              // SMS okuma izni istemesini GEREKTİRMİYOR, işletim sistemi/
+              // klavye kendi mekanizmasıyla dolduruyor.
+              textContentType="oneTimeCode"
+              autoComplete="sms-otp"
               autoFocus
             />
             {smsKalanSure <= 0 && (
