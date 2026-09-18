@@ -175,6 +175,39 @@ olmayan, güvenilir bir yöntem.
 `jp` payload'ının tam şeması ve her alanın anlamı için bkz.
 [hesaplama-mantigi.md](hesaplama-mantigi.md#gibe-giden-gerçek-alan-adları).
 
+### Taslak fatura silme — `EARSIV_PORTAL_FATURA_SIL` (`RG_BASITTASLAKLAR`)
+
+```json
+{
+  "silinecekler": [{
+    "faturaOid": "", "toplamTutar": "0", "belgeNumarasi": "GIB2026000000012",
+    "aliciVknTckn": "...", "aliciUnvanAdSoyad": "...",
+    "saticiVknTckn": "", "saticiUnvanAdSoyad": "",
+    "belgeTarihi": "18-09-2026", "belgeTuru": "FATURA",
+    "onayDurumu": "Onaylanmadı", "ettn": "...",
+    "talepDurumColumn": "----------", "iptalItiraz": "-99", "talepDurum": "-99"
+  }],
+  "aciklama": "hatali duzenlenmistir"
+}
+```
+
+**Kritik gözlem:** GİB'in kendi arayüzü, `EARSIV_PORTAL_TASLAKLARI_GETIR`
+yanıtındaki satırı **aynen geri gönderiyor** — `ettn` dışındaki hiçbir alanı
+yeniden hesaplamıyor/oluşturmuyor. Bu yüzden `faturaSil(token, taslak,
+aciklama)` da `taslakGetir()`'in döndürdüğü ham `TaslakFatura` objesini
+parametre olarak alıyor, yeniden inşa etmiyor.
+
+GİB'in kendi web arayüzündeki gerçek kullanıcı akışı **iki adımlı**:
+1. "Uyarı" popup'ı: "Bu belgeyi silmek üzeresiniz." + "Uyarıyı okudum"
+   onay kutusu işaretlenmeden "Sil" ilerlemiyor.
+2. "Açıklama" popup'ı: "Silme gerekçenizi giriniz:" metin alanı — bu değer
+   `aciklama` olarak isteğe eklenir.
+3. İkinci "Sil"e basılınca gerçek istek gönderiliyor; başarı mesajı GİB'in
+   kendi arayüzünde "1 fatura başarıyla silindi." şeklinde çıkıyor.
+
+Bu iki adımlı akış `TaslaklarScreen.tsx`'te (`silHedefi`/`silUyariOkundu`/
+`silAciklamaAcik` state'leri) birebir uygulandı.
+
 ### SMS ile imzalama — `EARSIV_PORTAL_SMSSIFRE_GONDER` / `_ONAYLA` (`RG_BASITFATURA`)
 
 ```json

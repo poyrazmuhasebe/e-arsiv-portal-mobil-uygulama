@@ -6,6 +6,7 @@ import {
   Appbar,
   Button,
   Card,
+  Checkbox,
   Chip,
   Dialog,
   Portal,
@@ -18,7 +19,7 @@ import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-communi
 import { WebView } from 'react-native-webview';
 
 import type { RootStackParamList } from '../../App';
-import { faturaHTMLGetir, smsSifreGonder, smsSifreOnayla, taslakGetir } from '../services/gibApi';
+import { faturaHTMLGetir, faturaSil, smsSifreGonder, smsSifreOnayla, taslakGetir } from '../services/gibApi';
 import { useAuthStore } from '../store/useAuthStore';
 import { pdfIndir, pdfPaylas } from '../utils/pdf';
 import type { TaslakFatura } from '../types/gib';
@@ -86,6 +87,16 @@ export default function TaslaklarScreen({ navigation }: Props) {
   // Listedeki "İndir" butonu için — hangi kartın HTML'i arka planda
   // çekilip PDF'e çevriliyor.
   const [indirilenEttn, setIndirilenEttn] = useState<string | null>(null);
+
+  // Taslak silme — GİB'in kendi arayüzündeki gerçek iki adımlı akışın
+  // birebir taklidi: 1) "Bu belgeyi silmek üzeresiniz" uyarısı + "Uyarıyı
+  // okudum" onay kutusu, 2) silme gerekçesi metin girişi. Bu ikinci adımdan
+  // sonra gerçek EARSIV_PORTAL_FATURA_SIL isteği gönderiliyor.
+  const [silHedefi, setSilHedefi] = useState<TaslakFatura | null>(null);
+  const [silUyariOkundu, setSilUyariOkundu] = useState(false);
+  const [silAciklamaAcik, setSilAciklamaAcik] = useState(false);
+  const [silAciklama, setSilAciklama] = useState('');
+  const [silSurecinde, setSilSurecinde] = useState(false);
 
   const veriYukle = useCallback(
     async (baslangic: Date, bitis: Date) => {
@@ -163,10 +174,46 @@ export default function TaslaklarScreen({ navigation }: Props) {
     }
   };
 
-  // Düzenle/Sil/İndir/İtiraz/İptal: gerçek GİB komutları henüz
-  // doğrulanmadığından şimdilik yalnızca konsola yazan yer tutucular.
+  // Düzenle/İtiraz/İptal: gerçek GİB komutları henüz doğrulanmadığından
+  // şimdilik yalnızca konsola yazan yer tutucular. Sil aşağıda ayrıca ele
+  // alınıyor (bkz. handleSilBaslat/handleSilOnayla) — gerçek DevTools
+  // yakalamasıyla doğrulandı.
   const handleAksiyon = (aksiyonAdi: string, item: TaslakFatura) => {
     console.log(`${aksiyonAdi} tıklandı:`, item.ettn);
+  };
+
+  const handleSilBaslat = (item: TaslakFatura) => {
+    setSilHedefi(item);
+    setSilUyariOkundu(false);
+    setSilAciklamaAcik(false);
+    setSilAciklama('');
+  };
+
+  const handleSilVazgec = () => {
+    setSilHedefi(null);
+    setSilUyariOkundu(false);
+    setSilAciklamaAcik(false);
+    setSilAciklama('');
+  };
+
+  const handleSilUyariOnayla = () => {
+    setSilAciklamaAcik(true);
+  };
+
+  const handleSilOnayla = async () => {
+    if (!token || !silHedefi || silAciklama.trim().length === 0) return;
+    setSilSurecinde(true);
+    try {
+      await faturaSil(token, silHedefi, silAciklama.trim());
+      handleSilVazgec();
+      await veriYukle(baslangicTarih, bitisTarih);
+      Alert.alert('Silindi', '1 fatura başarıyla silindi.');
+    } catch (err) {
+      const message = err instanceof Error && err.message ? err.message : 'Fatura silinemedi.';
+      Alert.alert('Silme Başarısız', message);
+    } finally {
+      setSilSurecinde(false);
+    }
   };
 
   const handleGoruntule = async (item: TaslakFatura) => {
@@ -304,7 +351,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
               </Button>
             )}
             {duzenlenebilir && (
-              <Button compact mode="text" icon="delete-outline" onPress={() => handleAksiyon('Sil', item)}>
+              <Button compact mode="text" icon="delete-outline" onPress={() => handleSilBaslat(item)}>
                 Sil
               </Button>
             )}
@@ -419,6 +466,50 @@ export default function TaslaklarScreen({ navigation }: Props) {
       )}
 
       <Portal>
+        <Dialog visible={silHedefi !== null && !silAciklamaAcik} onDismiss={handleSilVazgec}>
+          <Dialog.Title>Uyarı</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={styles.dialogText}>
+              Bu belgeyi silmek üzeresiniz.
+            </Text>
+            <Checkbox.Item
+              label="Uyarıyı okudum."
+              status={silUyariOkundu ? 'checked' : 'unchecked'}
+              onPress={() => setSilUyariOkundu((v) => !v)}
+              style={styles.silCheckbox}
+              labelStyle={styles.silCheckboxLabel}
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={handleSilVazgec}>Vazgeç</Button>
+            <Button onPress={handleSilUyariOnayla} disabled={!silUyariOkundu}>
+              Sil
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        <Dialog visible={silAciklamaAcik} onDismiss={handleSilVazgec}>
+          <Dialog.Title>Açıklama</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={styles.dialogText}>
+              Silme gerekçenizi giriniz:
+            </Text>
+            <TextInput mode="outlined" value={silAciklama} onChangeText={setSilAciklama} autoFocus />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={handleSilVazgec} disabled={silSurecinde}>
+              Vazgeç
+            </Button>
+            <Button
+              onPress={handleSilOnayla}
+              loading={silSurecinde}
+              disabled={silSurecinde || silAciklama.trim().length === 0}
+            >
+              Sil
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
         <Dialog visible={smsModalEttn !== null} onDismiss={() => setSmsModalEttn(null)}>
           <Dialog.Title>SMS Onay Kodu</Dialog.Title>
           <Dialog.Content>
@@ -532,4 +623,6 @@ const styles = StyleSheet.create({
   tutar: { marginTop: 2 },
   aksiyonlarScroll: { gap: 4, paddingHorizontal: 8 },
   dialogText: { marginBottom: 12 },
+  silCheckbox: { paddingHorizontal: 0 },
+  silCheckboxLabel: { fontSize: 14 },
 });

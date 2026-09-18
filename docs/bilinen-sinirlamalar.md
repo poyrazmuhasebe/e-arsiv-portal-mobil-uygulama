@@ -23,8 +23,9 @@ bu sayfa onların tematik bir özetidir.
   (176 gerçek kod arasından USD/EUR/vb. olsa bile) UI'da yansımıyor (GİB'e
   giden veri doğru).
   ([Issue #3](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/3))
-- **İtiraz/İptal Talebi Oluştur, Taslak Düzenle/Sil** — şu an yalnızca
-  `console.log` yer tutucular, gerçek işlevleri yok.
+- **İtiraz/İptal Talebi Oluştur, Taslak Düzenle** — şu an yalnızca
+  `console.log` yer tutucular, gerçek işlevleri yok. (Taslak **Sil** artık
+  gerçek `EARSIV_PORTAL_FATURA_SIL` isteğiyle çalışıyor.)
   ([Issue #7](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/7),
   [Issue #11](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/11))
 

@@ -78,6 +78,16 @@ export interface TaslakFatura {
   belgeNumarasi?: string;
   belgeTuru?: string;
   onayDurumu?: string;
+  // EARSIV_PORTAL_FATURA_SIL isteğinde "silinecekler" dizisinin bir ögesi
+  // olarak GERİ GÖNDERİLMESİ gereken alanlar — canlı yakalamayla doğrulandı.
+  // taslakGetir()'in döndürdüğü ham objede zaten bu alanlar geliyor.
+  faturaOid?: string;
+  toplamTutar?: string;
+  saticiVknTckn?: string;
+  saticiUnvanAdSoyad?: string;
+  talepDurumColumn?: string;
+  iptalItiraz?: string;
+  talepDurum?: string;
   // Aşağıdakiler henüz doğrulanmadı / eski isim uyumluluğu için tutuluyor.
   faturaTarihi?: string;
   aliciUnvan?: string;

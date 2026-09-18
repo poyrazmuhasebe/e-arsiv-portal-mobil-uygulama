@@ -740,15 +740,14 @@ export async function taslakGetir(
     return Promise.resolve(MOCK_TASLAKLAR);
   }
 
-  // cmd/pageName ve "baslangic"/"bitis" alan adları, önceki turda incelediğim
-  // (kısmen doğrulanmış, kısmen şüpheli bulduğum) açık kaynak referansla
-  // uyumlu; "hangiTip"/"table" de aynı kaynaktan — GİB'in doğrulaması katı
-  // olduğundan bilinen çalışan gövdeye birebir uyduk. Yine de canlı yanıtla
-  // teyit edilmesi gerekiyor.
+  // cmd/pageName/"baslangic"/"bitis"/"hangiTip" gerçek DevTools yakalamasıyla
+  // birebir doğrulandı: {"baslangic":"GG/AA/YYYY","bitis":"GG/AA/YYYY","hangiTip":"5000/30000"}.
+  // Önceki sürümde spekülatif olarak eklenen "table: []" alanı gerçek
+  // istekte YOK — kaldırıldı.
   const result = await dispatch<TaslakFatura[] | { data: TaslakFatura[] } | Record<string, unknown>>(
     'EARSIV_PORTAL_TASLAKLARI_GETIR',
     'RG_BASITTASLAKLAR',
-    { baslangic, bitis, hangiTip: '5000/30000', table: [] },
+    { baslangic, bitis, hangiTip: '5000/30000' },
     token,
   );
 
@@ -759,6 +758,53 @@ export async function taslakGetir(
     return (result as { data: TaslakFatura[] }).data;
   }
   return [];
+}
+
+// ---------------------------------------------------------------------------
+// Taslak fatura silme
+// ---------------------------------------------------------------------------
+
+/**
+ * Tarayıcı DevTools > Network yakalamasıyla BİREBİR DOĞRULANDI. GİB'in kendi
+ * arayüzü, silme isteğinde `taslakGetir`'den gelen satırın TÜM alanlarını
+ * (ettn dışındaki her şey dahil) olduğu gibi geri gönderiyor — bu yüzden
+ * burada `taslak` parametresi olarak `taslakGetir()`'in döndürdüğü ham
+ * `TaslakFatura` objesi bekleniyor, yeniden inşa edilmiyor. Tek eklenen alan
+ * kullanıcının girdiği silme gerekçesi (`aciklama`).
+ */
+export async function faturaSil(
+  token: string,
+  taslak: TaslakFatura,
+  aciklama: string,
+): Promise<void> {
+  if (IS_TEST_MODE) {
+    console.log('MOCK FATURA SİL:', { ettn: taslak.ettn, aciklama });
+    return Promise.resolve();
+  }
+
+  const silinecek = {
+    faturaOid: taslak.faturaOid ?? '',
+    toplamTutar: taslak.toplamTutar ?? '0',
+    belgeNumarasi: taslak.belgeNumarasi ?? '',
+    aliciVknTckn: taslak.aliciVknTckn ?? '',
+    aliciUnvanAdSoyad: taslak.aliciUnvanAdSoyad ?? '',
+    saticiVknTckn: taslak.saticiVknTckn ?? '',
+    saticiUnvanAdSoyad: taslak.saticiUnvanAdSoyad ?? '',
+    belgeTarihi: taslak.belgeTarihi ?? '',
+    belgeTuru: taslak.belgeTuru ?? 'FATURA',
+    onayDurumu: taslak.onayDurumu ?? '',
+    ettn: taslak.ettn,
+    talepDurumColumn: taslak.talepDurumColumn ?? '----------',
+    iptalItiraz: taslak.iptalItiraz ?? '-99',
+    talepDurum: taslak.talepDurum ?? '-99',
+  };
+
+  await dispatch(
+    'EARSIV_PORTAL_FATURA_SIL',
+    'RG_BASITTASLAKLAR',
+    { silinecekler: [silinecek], aciklama },
+    token,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -875,6 +921,7 @@ export const gibApi = {
   mukellefBilgisiGetir,
   faturaKaydet,
   taslakGetir,
+  faturaSil,
   smsSifreGonder,
   smsSifreOnayla,
   faturaHTMLGetir,

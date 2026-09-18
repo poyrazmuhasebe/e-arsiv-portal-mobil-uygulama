@@ -121,9 +121,15 @@ sağlanmadan aktif olmaz.
   - **Görüntüle** — `faturaHTMLGetir` ile HTML çekilip tam ekran WebView
     modalında gösterilir; modalın üst çubuğunda **İndir** (PDF, paylaşım
     penceresi açmadan) ve **Paylaş** (native paylaşım sayfası) ikonları var.
-  - **Düzenle / Sil** — yalnızca "Taslak" (onaylanmamış) durumundaki
-    belgelerde görünür; şu an yalnızca `console.log` yer tutucu
-    (`handleAksiyon`), gerçek işlevi yok.
+  - **Düzenle** — yalnızca "Taslak" (onaylanmamış) durumundaki belgelerde
+    görünür; şu an yalnızca `console.log` yer tutucu (`handleAksiyon`),
+    gerçek işlevi yok.
+  - **Sil** — yalnızca "Taslak" durumunda; GİB'in kendi arayüzündeki gerçek
+    iki adımlı akış birebir uygulandı: (1) "Bu belgeyi silmek üzeresiniz."
+    uyarısı + "Uyarıyı okudum" onay kutusu işaretlenmeden ilerlenemez,
+    (2) "Silme gerekçenizi giriniz" metin girişi. İkinci "Sil"e basılınca
+    gerçek `EARSIV_PORTAL_FATURA_SIL` isteği gönderilir, başarılı olursa
+    liste yenilenir ve "1 fatura başarıyla silindi." bildirimi gösterilir.
   - **GİB İmza** — yalnızca "Taslak" durumunda; `smsSifreGonder` çağrılır,
     SMS kodu girme diyaloğu açılır, `smsSifreOnayla` ile onaylanır. Bu uç
     henüz canlı doğrulanmadı (bkz.
