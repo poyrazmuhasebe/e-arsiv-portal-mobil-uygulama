@@ -48,18 +48,14 @@ function taslakDurumu(item: TaslakFatura, onaylananlar: Set<string>): TaslakDuru
  * Gerçek konsol yakalamasıyla DOĞRULANDI: bir belgede iptal/itiraz talebi
  * hiç yoksa `iptalItiraz`/`talepDurum` alanları taslak listesi yanıtında hiç
  * gelmiyor (ör. "Silinmiş" durumundaki kayıtlarda bu alanlar yok). Bir talep
- * varsa ikisi de geliyor — gözlemlenen tek somut örnek:
- * `{"iptalItiraz":"0","talepDurum":"1"}` → GİB'in kendi ekranında
- * "İptal/İtiraz Durumu: İptal Kabul Edildi" yazıyordu, ve bu istek gerçekten
- * bir İPTAL talebiydi (İtiraz değil).
- *
- * Buradan çıkarılan (ama başka durum kodlarıyla henüz teyit edilmeyen)
- * yorum: `iptalItiraz` talebin TÜRÜNÜ taşıyor ("0" = İptal, "1" = İtiraz —
- * ikincisi tahmindir), `talepDurum` ise `EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE`
- * isteğine gönderilen `talepCevabi` değerini yansıtıyor ("1" = Kabul Edildi,
- * canlı doğrulandı). "İptal Aşamasında" (henüz cevaplanmamış) durumunun ham
- * değeri henüz yakalanmadı — bu yüzden "1" dışındaki her değer için güvenli,
- * genel bir "Aşamasında" metni gösteriliyor.
+ * varsa ikisi de geliyor. `talepDurum`'un üç değeri de artık doğrulandı —
+ * bu, `EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE`'ye gönderilen
+ * `talepCevabi` ile AYNI kod şeması (kullanıcı tarafından teyit edildi):
+ *   0 = İptal/İtiraz Aşamasında (henüz cevaplanmamış)
+ *   1 = Kabul Edildi
+ *   2 = Reddedildi
+ * `iptalItiraz` alanı talebin TÜRÜNÜ taşıyor gibi görünüyor ("0" = İptal,
+ * canlı doğrulanmış tek örnekten; "1" = İtiraz hâlâ tahmindir).
  */
 function iptalItirazDurumMetni(item: TaslakFatura): string | undefined {
   const talepDurum = asString(item.talepDurum);
@@ -68,7 +64,8 @@ function iptalItirazDurumMetni(item: TaslakFatura): string | undefined {
   const tur = item.iptalItiraz === '1' ? 'İtiraz' : 'İptal'; // "0"=İptal doğrulandı, "1"=İtiraz tahmin
 
   if (talepDurum === '1') return `${tur} Kabul Edildi`;
-  return `${tur}/İtiraz Aşamasında`;
+  if (talepDurum === '2') return `${tur} Reddedildi`;
+  return `${tur}/İtiraz Aşamasında`; // "0" ve gözlemlenmemiş diğer değerler
 }
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Taslaklar'>;

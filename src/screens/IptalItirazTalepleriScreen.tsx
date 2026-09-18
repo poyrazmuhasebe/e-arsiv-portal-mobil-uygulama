@@ -52,16 +52,16 @@ export default function IptalItirazTalepleriScreen({ navigation }: Props) {
   const [bitisTarih, setBitisTarih] = useState<Date>(() => new Date());
   const [acikPicker, setAcikPicker] = useState<'baslangic' | 'bitis' | null>(null);
 
-  // Kabul — GİB'in kendi arayüzündeki gerçek akış (uyarı + "Uyarıyı Okudum")
-  // canlı doğrulandı. Reddet de aynı desenle uygulandı ama gönderdiği
-  // "talepCevabi: 0" değeri henüz canlı bir yakalamayla teyit edilmedi
-  // (bkz. gibApi.ts'teki iptalItirazTalepDurumGuncelle üstündeki not).
+  // Kabul VE Reddet — GİB'in kendi arayüzündeki gerçek akışlar (uyarı +
+  // "Uyarıyı Okudum" + Reddet'te ayrıca 255 karakterlik gerekçe metni)
+  // canlı doğrulandı.
   const [kabulHedefi, setKabulHedefi] = useState<IptalItirazTalebi | null>(null);
   const [kabulUyariOkundu, setKabulUyariOkundu] = useState(false);
   const [kabulSurecinde, setKabulSurecinde] = useState(false);
 
   const [reddetHedefi, setReddetHedefi] = useState<IptalItirazTalebi | null>(null);
   const [reddetGerekce, setReddetGerekce] = useState('');
+  const [reddetUyariOkundu, setReddetUyariOkundu] = useState(false);
   const [reddetSurecinde, setReddetSurecinde] = useState(false);
 
   const veriYukle = useCallback(
@@ -135,15 +135,17 @@ export default function IptalItirazTalepleriScreen({ navigation }: Props) {
   const handleReddetBaslat = (item: IptalItirazTalebi) => {
     setReddetHedefi(item);
     setReddetGerekce('');
+    setReddetUyariOkundu(false);
   };
 
   const handleReddetVazgec = () => {
     setReddetHedefi(null);
     setReddetGerekce('');
+    setReddetUyariOkundu(false);
   };
 
   const handleReddetOnayla = async () => {
-    if (!token || !reddetHedefi || reddetGerekce.trim().length === 0) return;
+    if (!token || !reddetHedefi || !reddetUyariOkundu || reddetGerekce.trim().length === 0) return;
     setReddetSurecinde(true);
     try {
       await iptalItirazTalepDurumGuncelle(token, reddetHedefi, false, reddetGerekce.trim());
@@ -325,19 +327,37 @@ export default function IptalItirazTalepleriScreen({ navigation }: Props) {
         </Dialog>
 
         <Dialog visible={reddetHedefi !== null} onDismiss={handleReddetVazgec}>
-          <Dialog.Title>İptal Talebi Reddet</Dialog.Title>
+          <Dialog.Title>İptal Talebi Ret</Dialog.Title>
           <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.dialogText}>
-              {asString(reddetHedefi?.belgeNumarasi) ?? 'Seçili'} numaralı belge için ret
-              gerekçenizi giriniz:
+            <Text variant="labelSmall" style={styles.mutedText}>
+              Gerekçenizi Giriniz
             </Text>
             <TextInput
               mode="outlined"
               value={reddetGerekce}
-              onChangeText={setReddetGerekce}
+              onChangeText={(v) => setReddetGerekce(v.slice(0, 255))}
+              maxLength={255}
               multiline
               numberOfLines={3}
               autoFocus
+            />
+            <Text variant="labelSmall" style={styles.karakterSayaci}>
+              {reddetGerekce.length}/255
+            </Text>
+            <Text variant="labelSmall" style={[styles.mutedText, styles.dialogUyariBaslik]}>
+              UYARI
+            </Text>
+            <Text variant="bodyMedium" style={styles.dialogText}>
+              {asString(reddetHedefi?.belgeNumarasi) ?? 'Seçili'} numaralı belge için iptal
+              talebini reddetmek istiyorsunuz. Reddettiğiniz takdirde ret işleminiz geri
+              çekilemeyecektir.
+            </Text>
+            <Checkbox.Item
+              label="Uyarıyı Okudum"
+              status={reddetUyariOkundu ? 'checked' : 'unchecked'}
+              onPress={() => setReddetUyariOkundu((v) => !v)}
+              style={styles.checkboxStili}
+              labelStyle={styles.checkboxEtiket}
             />
           </Dialog.Content>
           <Dialog.Actions>
@@ -347,7 +367,7 @@ export default function IptalItirazTalepleriScreen({ navigation }: Props) {
             <Button
               onPress={handleReddetOnayla}
               loading={reddetSurecinde}
-              disabled={reddetSurecinde || reddetGerekce.trim().length === 0}
+              disabled={reddetSurecinde || !reddetUyariOkundu || reddetGerekce.trim().length === 0}
             >
               Talebi Reddet
             </Button>
@@ -378,4 +398,6 @@ const styles = StyleSheet.create({
   dialogText: { marginBottom: 8 },
   checkboxStili: { paddingHorizontal: 0 },
   checkboxEtiket: { fontSize: 14 },
+  karakterSayaci: { alignSelf: 'flex-end', opacity: 0.6, marginTop: 2, marginBottom: 8 },
+  dialogUyariBaslik: { fontWeight: '700', marginBottom: 4 },
 });

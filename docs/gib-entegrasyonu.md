@@ -270,21 +270,23 @@ Başarılı bir iptal talebinden sonra, taslak listesindeki (`taslakGetir`)
 ilgili satırın gerçek alan adları **kullanıcının konsol yakalamasıyla
 doğrulandı**: `iptalItiraz` ve `talepDurum`. İkisi de yalnızca belgede bir
 iptal/itiraz talebi VARSA gelir (talepsiz belgelerde bu alanlar taslak
-listesi yanıtında hiç yok). Gözlemlenen tek somut örnek:
+listesi yanıtında hiç yok).
 
-```json
-{"iptalItiraz": "0", "talepDurum": "1"}
-```
+`iptalItiraz` talebin TÜRÜNÜ taşıyor (`"0"` = İptal doğrulandı, `"1"` =
+İtiraz **tahmin**, gerçek bir İtiraz talebi henüz yakalanmadı).
 
-Bu, GİB'in kendi ekranında "İptal/İtiraz Durumu: İptal Kabul Edildi" olarak
-gösteriliyordu ve gerçekten bir İPTAL talebiydi (İtiraz değil). Buradan
-çıkarılan yorum: `iptalItiraz` talebin TÜRÜNÜ taşıyor (`"0"` = İptal
-doğrulandı, `"1"` = İtiraz **tahmin**), `talepDurum` ise
+`talepDurum` — **kullanıcı tarafından üç değeri de doğrulandı**, ve bu
 `EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE`'ye gönderilen
-`talepCevabi`yi yansıtıyor (`"1"` = Kabul Edildi doğrulandı). "İptal
-Aşamasında" (henüz cevaplanmamış) durumunun ham `talepDurum` değeri henüz
-yakalanmadı — `TaslaklarScreen.tsx`'teki `iptalItirazDurumMetni()`, `"1"`
-dışındaki her değer için güvenli, genel bir "Aşamasında" metni gösteriyor.
+`talepCevabi` ile **AYNI kod şeması**:
+
+| Değer | Anlamı |
+|---|---|
+| `"0"` | İptal/İtiraz Aşamasında (henüz cevaplanmamış) |
+| `"1"` | Kabul Edildi |
+| `"2"` | Reddedildi |
+
+`TaslaklarScreen.tsx`'teki `iptalItirazDurumMetni()` bu üç değeri birebir
+karşılıyor.
 
 Ayrıca bu, `EARSIV_PORTAL_FATURA_SIL` payload'ındaki `iptalItiraz: "-99"` /
 `talepDurum: "-99"` varsayılan değerlerini de geriye dönük doğruluyor: "-99"
@@ -307,20 +309,31 @@ Tarihi, Belge Türü, İtiraz Yöntemi, İtiraz Belge Numarası (`referansBelgeI
 
 **Durum güncelleme — `EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE` (`RG_IPTALITIRAZTASLAKLAR`)**
 
+Kabul:
 ```json
 {"iptalItirazOid": "1amu3wkp5w1s61", "talepCevabi": 1, "belgeTuru": "FATURA", "retAciklama": ""}
 ```
 
-`talepCevabi: 1` = **Kabul** — canlı yanıtla doğrulandı ("İptal Talebi
-Kabul" popup'ı: "{belgeNumarası} numaralı belge için iptal talebini
-onaylamak istiyorsunuz... geri çekilemeyecektir." + "Uyarıyı Okudum" onayı).
-Kabulden sonra liste otomatik yeniden sorgulanıyor (GİB'in kendi arayüzü
-de aynısını yapıyor).
+Reddet:
+```json
+{"iptalItirazOid": "02mu3wkslh1sms", "talepCevabi": 2, "belgeTuru": "FATURA", "retAciklama": "hata yoktur"}
+```
 
-`talepCevabi: 0` (**Reddet**) ve dolu bir `retAciklama` gönderme de **canlı
-olarak doğrulandı** (kullanıcının gerçek denemesi) — talep reddedildikten
-sonra taslak listesinde ilgili belgenin İptal/İtiraz Durumu doğru şekilde
-güncellendi.
+**Kritik bulgu: `talepCevabi` basit bir 0/1 ikili değer DEĞİL.** Kabul `1`,
+Reddet ise **`2`** — bu proje içinde önce mantıklı ama yanlış bir varsayımla
+(`0`) uygulanmıştı, kullanıcının gerçek "Talep Reddet" yakalaması bunu
+düzeltti. `0` kodu hiç istek alanı olarak gözlemlenmedi, yalnızca yanıttaki
+`talepDurum`'da "henüz cevaplanmadı" anlamında görülüyor (yukarıdaki tablo).
+
+İkisi de canlı yanıtla doğrulandı; her ikisinden sonra da liste otomatik
+yeniden sorgulanıyor (GİB'in kendi arayüzü de aynısını yapıyor).
+
+GİB'in kendi "İptal Talebi Ret" ekranı, "İptal Talebi Oluştur" ile aynı
+desende: "Gerekçenizi Giriniz" metin alanı (max 255, canlı `x/255` sayaç) +
+"{belgeNumarası} numaralı belge için iptal talebini reddetmek
+istiyorsunuz... geri çekilemeyecektir." uyarısı + "Uyarıyı Okudum" onayı
+(işaretlenmeden "Talebi Reddet" devre dışı). `IptalItirazTalepleriScreen.tsx`
+bunu birebir uyguluyor.
 
 `iptalItirazOid` — tabloda görünen bir sütun değil, ama durum güncelleme
 isteğinde zorunlu; satır objesinde geldiği (Kabul VE Reddet ikisi de

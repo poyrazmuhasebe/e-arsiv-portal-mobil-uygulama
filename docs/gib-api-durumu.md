@@ -23,7 +23,7 @@ tam listesi için [bilinen-sinirlamalar.md](bilinen-sinirlamalar.md).
 | `iptalTalebiOlustur` | `dispatch`, `EARSIV_PORTAL_IPTAL_TALEBI_OLUSTUR` | ✅ Canlı yanıtla doğrulandı ("İptal talebiniz başarıyla oluşturulmuştur.") |
 | `iptalItirazTalepleriGetir` | `dispatch`, `EARSIV_PORTAL_GELEN_IPTAL_ITIRAZ_TALEPLERINI_GETIR` | ✅ Canlı yanıtla doğrulandı (cmd/pageName/jp) |
 | `iptalItirazTalepDurumGuncelle` (Kabul) | `dispatch`, `EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE` | ✅ Canlı yanıtla doğrulandı (`talepCevabi: 1`) |
-| `iptalItirazTalepDurumGuncelle` (Reddet) | aynı cmd, `talepCevabi: 0` | ✅ Canlı yanıtla doğrulandı |
+| `iptalItirazTalepDurumGuncelle` (Reddet) | aynı cmd, `talepCevabi: 2` | ✅ Canlı yanıtla doğrulandı (önce yanlışlıkla `0` gönderiliyordu — düzeltildi) |
 
 Bilinen sınırlamaların tam listesi için bkz. [bilinen-sinirlamalar.md](bilinen-sinirlamalar.md).
 

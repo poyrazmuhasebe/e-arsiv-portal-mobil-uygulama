@@ -216,9 +216,13 @@ listeler.
   onaylamak istiyorsunuz..." uyarısı + "Uyarıyı Okudum" onayı (işaretlenmeden
   ilerlenemez). Onaylanınca `EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE`
   isteği (`talepCevabi: 1`) gönderilir — uçtan uca canlı doğrulandı.
-- **Talep Reddet** — bir ret gerekçesi metni ister, aynı cmd'i
-  `talepCevabi: 0` ile gönderir. Bu değer henüz canlı bir yakalamayla teyit
-  edilmedi (bkz. [Issue #18](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/18)).
+- **Talep Reddet** — GİB'in kendi "İptal Talebi Ret" ekranıyla aynı desende:
+  "Gerekçenizi Giriniz" metin alanı (max 255 karakter, canlı `x/255` sayaç)
+  + "{belgeNumarası} numaralı belge için iptal talebini reddetmek
+  istiyorsunuz..." uyarısı + "Uyarıyı Okudum" onayı (işaretlenmeden
+  ilerlenemez). Onaylanınca aynı cmd, **`talepCevabi: 2`** ile gönderilir
+  (Kabul'ün `1` değerinden farklı — basit bir 0/1 ikili değil). Uçtan uca
+  canlı doğrulandı.
 - Her iki işlemden sonra liste otomatik yenilenir.
 
 ## Oturum Yönetimi (`src/store/useAuthStore.ts`)

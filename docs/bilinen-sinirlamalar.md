@@ -11,8 +11,9 @@ bu sayfa onların tematik bir özetidir.
   [gib-entegrasyonu.md](gib-entegrasyonu.md) ve
   [Issue #6](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/6)
   (kapatıldı).
-- ~~İptal/İtiraz Talebi "Reddet" (`talepCevabi: 0`) doğrulanmamıştı~~ —
-  **artık canlı doğrulandı** (bkz.
+- ~~İptal/İtiraz Talebi "Reddet" doğrulanmamıştı~~ — **artık canlı
+  doğrulandı, üstelik gerçek değerin `talepCevabi: 0` değil `2` olduğu da
+  ortaya çıktı** (düzeltildi) (bkz.
   [Issue #18](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/18),
   kapatıldı). Kabul ve Reddet, `iptalItirazTalepDurumGuncelle`'nin her iki
   yolu da artık tam doğrulanmış durumda.

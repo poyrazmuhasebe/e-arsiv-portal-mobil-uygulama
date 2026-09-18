@@ -1191,15 +1191,11 @@ export async function iptalItirazTalepleriGetir(
 }
 
 /**
- * Tarayıcı DevTools > Network yakalamasıyla DOĞRULANDI — ama YALNIZCA
- * "Talep Kabul Et" (kabul) yolu: gerçek istekte `talepCevabi: 1` ve
- * `retAciklama: ""` gönderilmişti. "Talep Reddet" (`kabul=false`) yolu
- * canlı bir yakalamayla HENÜZ doğrulanmadı — `talepCevabi: 0` ve dolu bir
- * `retAciklama` göndermek, alan adlarından (`talepCevabi` = ikili bir kabul/
- * red cevabı, `retAciklama` = "ret açıklaması") çıkarılan MANTIKLI ama
- * DOĞRULANMAMIŞ bir varsayımdır. Canlıda "Talep Reddet" denendiğinde
- * konsoldaki ham istek/yanıt logları kontrol edilip bu varsayım teyit
- * edilmeli veya düzeltilmeli.
+ * Tarayıcı DevTools > Network yakalamasıyla İKİ YOLU DA (Kabul ve Reddet)
+ * BİREBİR DOĞRULANDI. Kritik bulgu: `talepCevabi` basit bir 0/1 ikili değer
+ * DEĞİL — Kabul `1`, Reddet ise **`2`** (0 hiç gözlemlenmedi). Reddet
+ * isteğinde `retAciklama` de gerçekten dolu gönderiliyor (GİB'in kendi
+ * "İptal Talebi Ret" ekranındaki "Gerekçenizi Giriniz" alanından).
  */
 export async function iptalItirazTalepDurumGuncelle(
   token: string,
@@ -1217,7 +1213,7 @@ export async function iptalItirazTalepDurumGuncelle(
     'RG_IPTALITIRAZTASLAKLAR',
     {
       iptalItirazOid: talep.iptalItirazOid,
-      talepCevabi: kabul ? 1 : 0,
+      talepCevabi: kabul ? 1 : 2,
       belgeTuru: talep.belgeTuru ?? 'FATURA',
       retAciklama,
     },
