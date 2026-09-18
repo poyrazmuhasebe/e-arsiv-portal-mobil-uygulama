@@ -68,6 +68,16 @@ function iptalItirazDurumMetni(item: TaslakFatura): string | undefined {
   return `${tur}/İtiraz Aşamasında`; // "0" ve gözlemlenmemiş diğer değerler
 }
 
+// PDF filigranı için: reddedilen bir iptal/itiraz talebi faturayı geçersiz
+// KILMAZ — belge normal geçerliliğini sürdürür. Bu yüzden filigran yalnızca
+// "Aşamasında" (belirsizlik var) ve "Kabul Edildi" (belge artık geçersiz)
+// durumlarında ekleniyor; "Reddedildi" durumunda hiç eklenmiyor (kart
+// üzerindeki "İptal/İtiraz Durumu" metni yine de gösterilmeye devam ediyor).
+function filigranMetni(item: TaslakFatura): string | undefined {
+  if (item.talepDurum === '2') return undefined;
+  return iptalItirazDurumMetni(item);
+}
+
 type Props = NativeStackScreenProps<RootStackParamList, 'Taslaklar'>;
 
 function paraFormatla(n: number): string {
@@ -357,7 +367,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
     setHtmlModalGorunur(true);
     setHtmlYukleniyor(true);
     setHtmlIcerik(null);
-    setGoruntulenenFiligran(iptalItirazDurumMetni(item));
+    setGoruntulenenFiligran(filigranMetni(item));
     try {
       const html = await faturaHTMLGetir(token, item.ettn, item.onayDurumu);
       setHtmlIcerik(html);
@@ -405,7 +415,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
     setIndirilenEttn(item.ettn);
     try {
       const html = await faturaHTMLGetir(token, item.ettn, item.onayDurumu);
-      await pdfIndir(html, iptalItirazDurumMetni(item));
+      await pdfIndir(html, filigranMetni(item));
       Alert.alert('İndirildi', 'Fatura PDF olarak cihazınıza kaydedildi.');
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'Fatura indirilemedi.';

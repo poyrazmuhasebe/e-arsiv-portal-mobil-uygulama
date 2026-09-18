@@ -192,11 +192,17 @@ sağlanmadan aktif olmaz.
     "İptal Aşamasında") her iki buton da kartta hiç gösterilmiyor; yeni bir
     talep oluşturmanın anlamı yok.
 
-**PDF filigranı (canlı doğrulandı):** Bir belgede iptal/itiraz durumu
-varsa, "İndir"/"Paylaş" ile üretilen PDF'in tam ortasına çapraz, yarı
-saydam kırmızı bir filigran eklenir — metni, karttaki "İptal/İtiraz
-Durumu: ..." ile birebir aynı (ör. "İPTAL KABUL EDİLDİ"). Bkz.
-`src/utils/pdf.ts`'teki `filigranEkle`.
+**PDF filigranı (canlı doğrulandı):** Bir belgede İptal/İtiraz Durumu
+"Aşamasında" veya "Kabul Edildi" ise, "İndir"/"Paylaş" ile üretilen PDF'in
+tam ortasına çapraz, yarı saydam kırmızı bir filigran eklenir — metni,
+karttaki "İptal/İtiraz Durumu: ..." ile birebir aynı (ör. "İPTAL KABUL
+EDİLDİ"). Bkz. `src/utils/pdf.ts`'teki `filigranEkle`.
+
+**"Reddedildi" durumunda filigran EKLENMİYOR** (`filigranMetni()`,
+`TaslaklarScreen.tsx`) — reddedilen bir iptal/itiraz talebi faturayı
+geçersiz kılmaz, belge normal geçerliliğini sürdürür; kart üzerinde
+"İptal/İtiraz Durumu: ... Reddedildi" metni yine de gösterilmeye devam
+eder, yalnızca PDF çıktısı işaretlenmez.
 
 ## İptal / İtiraz Talepleri (`src/screens/IptalItirazTalepleriScreen.tsx`)
 
