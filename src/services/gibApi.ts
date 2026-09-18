@@ -1145,36 +1145,6 @@ export async function faturaHTMLGetir(
 }
 
 // ---------------------------------------------------------------------------
-// Fatura indirme (HTML/PDF)
-// ---------------------------------------------------------------------------
-
-export type FaturaIndirFormat = 'HTML' | 'PDF';
-
-/**
- * GİB, imzalanmış faturayı base64 kodlanmış bir gövde olarak döndürür.
- * Dönen değeri react-native-fs / expo-file-system ile diske yazıp
- * paylaşabilir veya WebView'de gösterebilirsiniz.
- */
-export async function faturaIndir(
-  token: string,
-  ettn: string,
-  format: FaturaIndirFormat = 'PDF',
-): Promise<string> {
-  const result = await dispatch<{ data?: string } | string>(
-    'EARSIV_PORTAL_FATURA_INDIR',
-    'RG_BASITFATURA',
-    { ettn, format },
-    token,
-  );
-
-  const base64 = typeof result === 'string' ? result : result?.data;
-  if (!base64) {
-    throw new GibApiError('Fatura indirilemedi.', result);
-  }
-  return base64;
-}
-
-// ---------------------------------------------------------------------------
 // İptal/İtiraz Talepleri (Belge İşlemleri menüsünün 3. sekmesi)
 // ---------------------------------------------------------------------------
 
@@ -1270,7 +1240,6 @@ export const gibApi = {
   smsSifreGonder,
   smsSifreOnayla,
   faturaHTMLGetir,
-  faturaIndir,
   iptalItirazTalepleriGetir,
   iptalItirazTalepDurumGuncelle,
   gibHatasiniIsle,

@@ -24,6 +24,12 @@ tam listesi için [bilinen-sinirlamalar.md](bilinen-sinirlamalar.md).
 | `iptalItirazTalepleriGetir` | `dispatch`, `EARSIV_PORTAL_GELEN_IPTAL_ITIRAZ_TALEPLERINI_GETIR` | ✅ Canlı yanıtla doğrulandı (cmd/pageName/jp) |
 | `iptalItirazTalepDurumGuncelle` (Kabul) | `dispatch`, `EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE` | ✅ Canlı yanıtla doğrulandı (`talepCevabi: 1`) |
 | `iptalItirazTalepDurumGuncelle` (Reddet) | aynı cmd, `talepCevabi: 0` | ✅ Canlı yanıtla doğrulandı |
-| `faturaIndir` (ham base64/PDF indirme, HTML değil) | `dispatch`, `EARSIV_PORTAL_FATURA_INDIR` | ⚠️ **Doğrulanmadı**, kullanılmıyor (yerine `faturaHTMLGetir` + PDF üretimi kullanılıyor) |
 
 Bilinen sınırlamaların tam listesi için bkz. [bilinen-sinirlamalar.md](bilinen-sinirlamalar.md).
+
+**Not:** Önceden burada `faturaIndir`/`EARSIV_PORTAL_FATURA_INDIR` diye hiç
+kullanılmayan, hiç doğrulanmamış bir fonksiyon da listeleniyordu. Fatura
+indirme özelliği zaten `faturaHTMLGetir` (yukarıda ✅) + istemci tarafı PDF
+üretimiyle (`src/utils/pdf.ts`) tam çalışır ve canlı doğrulanmış durumda —
+`faturaIndir` gereksiz/kafa karıştırıcı olduğu için koddan tamamen
+kaldırıldı.
