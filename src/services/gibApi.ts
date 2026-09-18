@@ -870,6 +870,14 @@ export async function iptalTalebiOlustur(
  * `telNo` alanı kullanılıyor — bu alan, aynı ekranın KAYDET isteğinde de
  * aynı adla geçiyor ve kullanıcının kendi ekranında "Tel No" olarak
  * görüntülenen değerle birebir eşleşiyor (uçtan uca doğrulandı).
+ *
+ * KRİTİK DÜZELTME: `telNo` GİB'in kendi ekranında başında yurt içi arama
+ * öneki "0" ile 11 hane olarak tutuluyor (ör. "05436402500"), ama
+ * `smsSifreGonder`'in gerçek başarılı yakalamasındaki `CEPTEL` alanı
+ * başında "0" OLMADAN 10 haneydi ("5436402500"). Baştaki "0" ile (11 hane)
+ * gönderilince GİB "Genel Sistem Hatası: java.lang.NullPointerException"
+ * ile reddediyor (canlı gözlemlendi) — bu yüzden rakamlara indirgedikten
+ * sonra tek bir baştaki "0" da ayrıca kırpılıyor.
  */
 export async function telefonnoSorgula(token: string): Promise<string> {
   if (IS_TEST_MODE) {
@@ -877,7 +885,7 @@ export async function telefonnoSorgula(token: string): Promise<string> {
   }
 
   const bilgi = await kullaniciBilgileriDetayGetir(token);
-  const rakamlar = bilgi.telNo.replace(/\D/g, '');
+  const rakamlar = bilgi.telNo.replace(/\D/g, '').replace(/^0/, '');
   if (rakamlar.length === 0) {
     throw new GibApiError('Kayıtlı cep telefonu numarası alınamadı.', bilgi);
   }

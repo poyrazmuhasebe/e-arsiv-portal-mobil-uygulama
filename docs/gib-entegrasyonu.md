@@ -343,10 +343,18 @@ yanıtının tam gövdesi hiç bağımsız yakalanamadığından "data alanı do
 telefon numarasıdır" varsayımıyla yazılan ilk implementasyon **canlıda
 başarısız oldu** ("Kayıtlı telefon numarası alınamadı" hatası).
 
-Bunun yerine, **doğrulanmış ve çalışan** kaynak kullanılıyor: "Kullanıcı
-İşlemleri > Kullanıcı Bilgileri" ekranından (bkz. aşağıdaki bölüm)
+Bunun yerine, **doğrulanmış** kaynak kullanılıyor: "Kullanıcı İşlemleri >
+Kullanıcı Bilgileri" ekranından (bkz. aşağıdaki bölüm)
 `EARSIV_PORTAL_KULLANICI_BILGILERI_GETIR`/`RG_KULLANICI` ile gelen `telNo`
 alanı. SMS Onay ekranında maskeli gösterilir (ör. `(555) 123 45 67`).
+
+**Bir kırılgan nokta daha vardı:** `telNo`, GİB'in Kullanıcı Bilgileri
+ekranında başında yurt içi arama öneki `"0"` ile 11 hane tutuluyor (ör.
+`"05436402500"`), ama aşağıdaki 2. adımın gerçek başarılı yakalamasındaki
+`CEPTEL` alanı başında `"0"` OLMADAN 10 haneydi. Baştaki `"0"` ile (11 hane)
+gönderilince GİB **"Genel Sistem Hatası: java.lang.NullPointerException"**
+ile reddediyordu (canlı gözlemlendi) — `telefonnoSorgula()` artık rakamlara
+indirgedikten sonra tek bir baştaki `"0"`'ı da ayrıca kırpıyor.
 
 **2) SMS'i gönder — `EARSIV_PORTAL_SMSSIFRE_GONDER` (`RG_SMSONAY`)**
 
@@ -354,6 +362,7 @@ alanı. SMS Onay ekranında maskeli gösterilir (ör. `(555) 123 45 67`).
 {"CEPTEL": "5551234567", "KCEPTEL": false, "TIP": ""}
 ```
 
+`CEPTEL` her zaman başında `"0"` OLMADAN 10 hane olmalı (yukarıdaki not).
 Kritik nokta: bu istekte **`ettn` hiç yok**. SMS, belirli bir faturaya değil,
 doğrudan GİB'e kayıtlı telefon numarasına gönderiliyor — fatura ile bağlantı
 yalnızca 3. adımda kuruluyor. `CEPTEL` alanı, 1. adımdaki telefon numarasının
