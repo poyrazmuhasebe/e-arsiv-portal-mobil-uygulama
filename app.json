@@ -1,17 +1,20 @@
 {
   "expo": {
-    "name": "earsiv-app",
+    "name": "e-Arşiv Portal",
     "slug": "earsiv-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0D47A1",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.poyrazmuhasebe.earsivportal"
     },
     "android": {
+      "package": "com.poyrazmuhasebe.earsivportal",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0D47A1",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
