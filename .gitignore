@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# EAS/yerel derleme çıktıları (büyük ikili dosyalar git dışında tutulur)
+/builds/
