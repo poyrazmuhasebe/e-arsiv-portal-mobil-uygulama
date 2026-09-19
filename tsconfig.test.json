@@ -1,0 +1,16 @@
+{
+  // Yalnızca `npm test` için: test/ ve testlerin içe aktardığı src/ modüllerini
+  // Node'un doğrudan çalıştırabileceği CommonJS'e derler. Uygulamanın kendi
+  // tip kontrolü (`tsc --noEmit -p .`) tsconfig.json ile yapılmaya devam eder.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "module": "commonjs",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "rootDir": ".",
+    "outDir": "node_modules/.cache/earsiv-test",
+    "sourceMap": false
+  },
+  "include": ["test/**/*.ts", "test/**/*.d.ts"]
+}

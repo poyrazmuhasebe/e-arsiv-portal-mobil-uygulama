@@ -29,6 +29,38 @@ Expo Go ile QR kodu okutarak veya `npx expo start --web` ile tarayıcıda
 **Canlıya geçmeden önce bu bayrağın `false` olduğundan emin olun** — bu
 kural proje boyunca sabit tutuldu, bir daha `true` yapılmayacak.
 
+## Testler
+
+```bash
+npm test
+```
+
+Ek bağımlılık gerektirmez: `test/calistir.mjs`, `test/` altındaki testleri ve
+onların içe aktardığı `src/` modüllerini `tsconfig.test.json` ile geçici bir
+klasöre (`node_modules/.cache/earsiv-test`, git dışı) **CommonJS** olarak derler
+ve Node'un yerleşik test çalıştırıcısıyla (`node --test`) çalıştırır. Yalnızca
+bazı dosyaları çalıştırmak için: `npm test -- aliciDefteri gibApi`.
+
+- **Sahte modüller** (`test/sahte/kurulum.ts`): Node, React Native/Expo'nun
+  native modüllerini çalıştıramadığı için `Module._load` kancalanıp şu paketler
+  bellekte çalışan sahtelerle değiştirilir: `react-native` (yalnızca
+  `Platform`), `expo-secure-store` (Map; `secureStorage.ts` sarmalayıcısının
+  kendisi gerçek kodla çalışır), `axios`, `expo-file-system/legacy`,
+  `expo-local-authentication`. `__DEV__` testte `false`'tur.
+- **Testler GİB'e asla istek atmaz**: `axios` tamamen sahtedir; bir testin
+  yanıtını tanımlamadığı her istek hata fırlatır.
+- **Node tipleri:** TypeScript 6'da `types` varsayılanı boş ve `@types/node`
+  projenin doğrudan bağımlılığı değil (yalnızca `@expo/ngrok` üzerinden geçişli
+  geliyor). Bu yüzden testlerde kullanılan `node:test`/`node:assert/strict`/
+  `node:module` API'lerinin yalnızca kullanılan kısmı `test/node-tipleri.d.ts`'te
+  tanımlı; yeni bir assert fonksiyonu kullanırsanız oraya ekleyin.
+- `test/` klasörü ana `tsc --noEmit -p .` kontrolüne de dahildir; testler de
+  tip kontrolünden geçer.
+- Kapsam: `kimlikDogrula`, `faturaHesap`, `aliciDefteri` (hesaplar arası
+  yalıtım), `dosyaTemizlik`, `uygulamaKilidi`, `gibApi` (login ve dispatch
+  yanıt/hata yorumlama, oturum hatası → çıkış). Ekranlar (React bileşenleri)
+  test edilmiyor; onlar cihazda Expo Go ile denenir.
+
 ## Geliştirme iş akışı — bu projeye özgü kurallar
 
 1. **Hiçbir GİB komut/alan adı tahmin edilerek yazılmaz.** Yeni bir

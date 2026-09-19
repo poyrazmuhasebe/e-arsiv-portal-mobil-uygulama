@@ -88,7 +88,11 @@ bu sayfa onların tematik bir özetidir.
   geçmeden önce ayıklanmalı.~~ — **yapıldı**: tüm loglar `if (__DEV__)`
   altında (release'de ayıklanır); şifre/token içeren loglar tamamen kaldırıldı.
   ([Issue #15](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/15))
-- `faturaHesap.ts`'teki hesaplama fonksiyonları için birim testi yok.
+- ~~`faturaHesap.ts`'teki hesaplama fonksiyonları için birim testi yok.~~ —
+  **yapıldı**: `npm test` (Node'un yerleşik test çalıştırıcısı, ek bağımlılık
+  yok; bkz. [kurulum-ve-gelistirme.md](kurulum-ve-gelistirme.md#testler)).
+  Saf yardımcılar ve `gibApi` yanıt yorumlama testli; ekran bileşenleri için
+  otomatik test yok.
   ([Issue #16](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/16))
 
 ## Yayına Hazırlık

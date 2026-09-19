@@ -32,4 +32,10 @@ src/
     aliciDefteri.ts               # Kayıtlı alıcılar (adres defteri)
     faturaHesap.ts                 # KDV/iskonto/tevkifat hesaplama mantığı
     pdf.ts                          # HTML → PDF, indirme (SAF) / paylaşma
+test/
+  calistir.mjs                  # `npm test`: tsc ile CommonJS derle + node --test
+  node-tipleri.d.ts             # Testlerde kullanılan Node API'lerinin dar tipleri
+  sahte/kurulum.ts              # RN/Expo/axios sahteleri (Module._load kancası)
+  *.test.ts                     # Birim testleri
+tsconfig.test.json              # Yalnızca test derlemesi (module: commonjs)
 ```
