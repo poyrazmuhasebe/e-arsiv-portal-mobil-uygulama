@@ -120,6 +120,17 @@ Kullanıcıya yalnızca GİB'in kısa, okunabilir hata mesajı (`messages`/`erro
 `message`) ya da genel bir mesaj gösterilir; ham yanıt gösterilmez (yalnızca
 `GibApiError.raw` içinde tutulur).
 
+**GİB kesintisi (HTTP 502/503/504):** GİB'in arka uç sunucuları çalışmadığında
+ön sunucusu (nginx) servis uçlarına (`assos-login`, `dispatch`) "503 Service
+Temporarily Unavailable" döndürür; statik giriş sayfası ise bir önbellek
+sunucusundan servis edildiği için o sırada açılmaya devam eder. Hem `login()`
+hem `dispatch()` bu üç durum kodunda teknik bir "HTTP 503" yerine şunu
+gösterir: *"GİB portalı şu an hizmet vermiyor (HTTP 503). Bu geçici bir GİB
+kesintisi olabilir; art arda denemeyin, birkaç dakika sonra tekrar
+deneyin."* Bu durum oturum hatası sayılmaz (otomatik çıkış yapılmaz). nginx hız
+sınırı aşımlarını da 503 ile reddedebildiğinden mesajda art arda denememe
+uyarısı yer alır.
+
 ### Mükellef sorgusu — `SICIL_VEYA_MERNISTEN_BILGILERI_GETIR` (`RG_BASITFATURA`)
 
 ```json

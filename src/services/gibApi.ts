@@ -91,6 +91,19 @@ function oturumHatasiMi(mesaj: string): boolean {
   return OTURUM_HATASI_ANAHTAR_KELIMELER.some((kelime) => kucukMesaj.includes(kelime));
 }
 
+// GİB'in arka uç sunucuları çalışmadığında (bakım/yoğunluk) ön sunucusu (nginx)
+// 502/503/504 döndürür. Bu, uygulamadan ya da kullanıcının hesabından
+// kaynaklanan bir sorun değil, geçici bir GİB kesintisidir; teknik bir "HTTP 503"
+// yerine anlaşılır bir açıklama gösteriyoruz. nginx hız sınırı aşımlarını da 503
+// ile reddedebildiğinden, art arda denememeleri de hatırlatılıyor.
+function gibKesintisiMi(status: number): boolean {
+  return status === 502 || status === 503 || status === 504;
+}
+
+function gibKesintisiMesaji(status: number): string {
+  return `GİB portalı şu an hizmet vermiyor (HTTP ${status}). Bu geçici bir GİB kesintisi olabilir; art arda denemeyin, birkaç dakika sonra tekrar deneyin.`;
+}
+
 /**
  * Merkezi hata işleyici: bir GibApiError oturum hatasıysa yerel oturumu
  * temizler (useAuthStore token'ı sıfırlar, App.tsx otomatik olarak Login
@@ -202,7 +215,9 @@ async function dispatch<T = unknown>(
     }
 
     if (response.status >= 400) {
-      const msg = extractErrorMessage(responseData) ?? `GİB portalı ${response.status} durum kodu döndürdü.`;
+      const msg = gibKesintisiMi(response.status)
+        ? gibKesintisiMesaji(response.status)
+        : extractErrorMessage(responseData) ?? `GİB portalı ${response.status} durum kodu döndürdü.`;
       throw new GibApiError(msg, responseData, oturumHatasiMi(msg));
     }
   } catch (err) {
@@ -285,6 +300,8 @@ function kisaDuzMetinMi(v: unknown): v is string {
 // okunabilir hata mesajı varsa (messages/error/message) onu kullanır; ham yanıtı
 // (HTML sayfası, JSON dökümü vb.) ASLA kullanıcıya göstermez.
 function girisHatasiMesaji(status: number, data: unknown): string {
+  if (gibKesintisiMi(status)) return gibKesintisiMesaji(status);
+
   const gibMesaji = extractErrorMessage(data);
   if (kisaDuzMetinMi(gibMesaji)) return gibMesaji;
 
