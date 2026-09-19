@@ -297,7 +297,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
   // handleIptalBaslat/handleIptalOnayla) — ikisi de gerçek DevTools
   // yakalamasıyla doğrulandı.
   const handleAksiyon = (aksiyonAdi: string, item: TaslakFatura) => {
-    console.log(`${aksiyonAdi} tıklandı:`, item.ettn);
+    if (__DEV__) console.log(`${aksiyonAdi} tıklandı:`, item.ettn);
   };
 
   const handleSilBaslat = (item: TaslakFatura) => {

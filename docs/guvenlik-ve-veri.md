@@ -41,14 +41,23 @@ web'de tüm okuma/yazma/silme işlemleri sessizce no-op.
 
 ## Uygulama içi loglama
 
-`gibApi.ts` içinde geliştirme sürecinden kalma, GİB'e giden/gelen ham
-veriyi (`console.log`) basan tanı satırları var. Bunlar şifreyi düz metin
-**basmıyor** ama gürültülü; canlıya geçmeden önce ayıklanması planlanıyor
-(bkz. [Issue #15](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/15)).
-`login()`/`logout()` (assos-login) fonksiyonları da giriş isteğinin gövdesini
-loglar — bu, şifrenin **düz metin olarak** cihazın kendi konsol/log
-çıktısında görünmesi anlamına gelir (uzak bir sunucuya gitmez, ama yerel
-log dosyalarına/`adb logcat`'e yansıyabilir).
+Tüm tanı logları (`console.log`) `if (__DEV__)` altında: **release
+derlemesinde (APK/AAB) Metro bunları koddan tamamen ayıklar**, cihaz
+log'una/`adb logcat`'e hiçbir şey yazılmaz. Geliştirme derlemesinde bile:
+
+- İstek gövdesi (oturum token'ı, fatura/kişi verisi) **basılmaz**; yalnızca
+  hangi `cmd`/`pageName`'in gönderildiği loglanır.
+- `login()` gövdesi (şifre içerir) ve assos-login yanıtı (oturum token'ı
+  içerir) ile `logout()` gövdesi (token içerir) **hiç loglanmaz**.
+- GİB'in ham yanıtları (mükellef/fatura verisi içerebilir) yalnızca geliştirme
+  derlemesinde basılır; canlı doğrulama sırasında yanıt şeklini görmek için
+  bilinçli olarak tutuluyor.
+
+> **Not:** v1.0.0 APK'sı (`builds/` klasöründeki dosya) bu düzeltmeden
+> ÖNCEKİ koddan üretildi; onda `login()` şifreyi düz metin olarak log'a
+> yazıyor. Bu düzeltmeleri içeren yeni bir derleme alınana kadar o APK'yı
+> dağıtmayın/kullanmayın (bkz.
+> [Issue #15](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/15)).
 
 ## Repo güvenliği
 

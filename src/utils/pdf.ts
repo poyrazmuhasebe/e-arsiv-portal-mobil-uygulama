@@ -96,7 +96,7 @@ export async function pdfPaylas(html: string, dialogTitle?: string, filigranMetn
  * orada paylaşım sayfasına düşülür — bu, iOS'un kendi standart yoludur.
  */
 export async function pdfIndir(html: string, filigranMetni?: string): Promise<void> {
-  console.log('pdfIndir çağrıldı, Platform.OS =', Platform.OS);
+  if (__DEV__) console.log('pdfIndir çağrıldı, Platform.OS =', Platform.OS);
   if (Platform.OS !== 'android') {
     await pdfPaylas(html, "PDF'i Kaydet", filigranMetni);
     return;

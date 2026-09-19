@@ -182,10 +182,11 @@ async function dispatch<T = unknown>(
     jp: JSON.stringify(payload),
   });
 
-  // Geçici tanı çıktısı: cihazda/terminalde gerçekte neyin gönderildiğini
-  // görmek için. Şifre gövdede düz metin gittiğinden, canlı teşhisi
-  // bitirince bu satırı kaldırın.
-  console.log('GÖNDERİLEN DATA:', JSON.stringify({ cmd, pageName, url: BASE_URL, body }));
+  // Tanı çıktısı yalnızca geliştirme (__DEV__) derlemesinde çalışır ve
+  // gövdeyi (oturum token'ı + fatura/kişi verisi) ASLA basmaz: yalnızca hangi
+  // komutun gittiği loglanır. Release derlemesinde tüm log satırları Metro
+  // tarafından koddan tamamen ayıklanır.
+  if (__DEV__) console.log('GİB İSTEĞİ:', { cmd, pageName });
 
   let responseData: unknown;
   try {
@@ -194,10 +195,10 @@ async function dispatch<T = unknown>(
     // JSON.stringify kullanıyoruz çünkü Metro/Hermes konsolu iç içe objeleri
     // bazen "[Object]" olarak kısaltıyor; stringify edilmiş hali her zaman
     // tam olarak okunabilir.
-    console.log('GİB YANITI (ham):', JSON.stringify(responseData));
+    if (__DEV__) console.log('GİB YANITI (ham):', JSON.stringify(responseData));
     const rawMessages = (responseData as DispatchEnvelope | null)?.messages;
     if (rawMessages) {
-      console.log('GİB YANITI (messages):', JSON.stringify(rawMessages));
+      if (__DEV__) console.log('GİB YANITI (messages):', JSON.stringify(rawMessages));
     }
 
     if (response.status >= 400) {
@@ -262,7 +263,7 @@ const MOCK_TOKEN = 'TEST_MOCK_TOKEN_123';
 
 export async function login(kullaniciKodu: string, kullaniciSifresi: string): Promise<string> {
   if (IS_TEST_MODE) {
-    console.log('MOCK LOGIN:', { kullaniciKodu });
+    if (__DEV__) console.log('MOCK LOGIN:', { kullaniciKodu });
     return Promise.resolve(MOCK_TOKEN);
   }
 
@@ -274,8 +275,6 @@ export async function login(kullaniciKodu: string, kullaniciSifresi: string): Pr
     sifre2: kullaniciSifresi,
     parola: '1',
   });
-
-  console.log('GÖNDERİLEN DATA (assos-login):', JSON.stringify({ url: ASSOS_LOGIN_URL, body }));
 
   let res: AxiosResponse<unknown>;
   try {
@@ -290,9 +289,6 @@ export async function login(kullaniciKodu: string, kullaniciSifresi: string): Pr
     }
     throw new GibApiError('Beklenmeyen bir hata oluştu.', err);
   }
-
-  console.log('GİB ASSOS YANITI:', res.data);
-  console.log('GİB ASSOS YANITI (stringify):', JSON.stringify(res.data));
 
   const token = extractAssosToken(res.data);
   if (!token) {
@@ -326,12 +322,11 @@ export async function login(kullaniciKodu: string, kullaniciSifresi: string): Pr
  */
 export async function logout(token: string): Promise<void> {
   if (IS_TEST_MODE) {
-    console.log('MOCK LOGOUT');
+    if (__DEV__) console.log('MOCK LOGOUT');
     return Promise.resolve();
   }
 
   const body = buildFormBody({ assoscmd: 'logout', rtype: 'json', token });
-  console.log('GÖNDERİLEN DATA (assos-logout):', JSON.stringify({ url: ASSOS_LOGIN_URL, body }));
 
   let res: AxiosResponse<unknown>;
   try {
@@ -340,7 +335,7 @@ export async function logout(token: string): Promise<void> {
     throw new GibApiError('Çıkış isteği gönderilemedi.', err);
   }
 
-  console.log('GİB ASSOS LOGOUT YANITI:', JSON.stringify(res.data));
+  if (__DEV__) console.log('GİB ASSOS LOGOUT YANITI:', JSON.stringify(res.data));
 }
 
 // ---------------------------------------------------------------------------
@@ -367,7 +362,7 @@ export async function getKullaniciBilgileri(token: string): Promise<KullaniciBil
     token,
   );
 
-  console.log('GİB KULLANICI HAM YANIT:', JSON.stringify(result));
+  if (__DEV__) console.log('GİB KULLANICI HAM YANIT:', JSON.stringify(result));
 
   const veri = (result ?? {}) as Record<string, unknown>;
   const asString = (v: unknown): string | undefined => (typeof v === 'string' && v.length > 0 ? v : undefined);
@@ -404,7 +399,7 @@ export async function mukellefBilgisiGetir(
     // Test modunda gerçek bir mükellef veritabanı yok; VKN (10 hane) için
     // sahte bir şirket, TCKN (11 hane) için sahte bir şahıs kaydı dönüyoruz
     // ki FaturaKesimScreen'in iki farklı doldurma davranışı da test edilebilsin.
-    console.log('MOCK MÜKELLEF BİLGİSİ GETİR:', { vknTckn: temiz });
+    if (__DEV__) console.log('MOCK MÜKELLEF BİLGİSİ GETİR:', { vknTckn: temiz });
     if (temiz.length === 11) {
       return Promise.resolve({ unvan: '', ad: 'TEST', soyad: 'KULLANICI', vergiDairesi: 'Marmara Kurumlar' });
     }
@@ -425,7 +420,7 @@ export async function mukellefBilgisiGetir(
   // dispatch() zaten her çağrıda genel "GİB YANITI (ham)" logunu basıyor;
   // bu satır aynı veriyi bu fonksiyona özel, terminalde aramayı
   // kolaylaştıran bir etiketle tekrar yazdırıyor.
-  console.log('GİB MÜKELLEF HAM YANIT:', JSON.stringify(result));
+  if (__DEV__) console.log('GİB MÜKELLEF HAM YANIT:', JSON.stringify(result));
 
   if (typeof result === 'string') return result ? { unvan: result } : undefined;
   if (!result || typeof result !== 'object') return undefined;
@@ -641,7 +636,7 @@ export async function faturaKaydet(
   taslak: FaturaTaslagi,
 ): Promise<FaturaKaydetSonucu> {
   if (IS_TEST_MODE) {
-    console.log('MOCK FATURA KAYDET:', JSON.stringify(taslak, null, 2));
+    if (__DEV__) console.log('MOCK FATURA KAYDET:', JSON.stringify(taslak, null, 2));
     return Promise.resolve({ ettn: `MOCK-ETTN-${Date.now()}` });
   }
 
@@ -738,7 +733,7 @@ export async function taslakGetir(
   const bitis = filtre.bitisTarihi ?? ggAaYyyy(bugun);
 
   if (IS_TEST_MODE) {
-    console.log('MOCK TASLAK GETIR:', { baslangic, bitis });
+    if (__DEV__) console.log('MOCK TASLAK GETIR:', { baslangic, bitis });
     return Promise.resolve(MOCK_TASLAKLAR);
   }
 
@@ -753,7 +748,7 @@ export async function taslakGetir(
     token,
   );
 
-  console.log('GİB TASLAK HAM YANIT:', JSON.stringify(result));
+  if (__DEV__) console.log('GİB TASLAK HAM YANIT:', JSON.stringify(result));
 
   if (Array.isArray(result)) return result;
   if (result && typeof result === 'object' && Array.isArray((result as { data?: unknown }).data)) {
@@ -780,7 +775,7 @@ export async function faturaSil(
   aciklama: string,
 ): Promise<void> {
   if (IS_TEST_MODE) {
-    console.log('MOCK FATURA SİL:', { ettn: taslak.ettn, aciklama });
+    if (__DEV__) console.log('MOCK FATURA SİL:', { ettn: taslak.ettn, aciklama });
     return Promise.resolve();
   }
 
@@ -835,7 +830,7 @@ export async function iptalTalebiOlustur(
   talepAciklama: string,
 ): Promise<void> {
   if (IS_TEST_MODE) {
-    console.log('MOCK İPTAL TALEBİ OLUŞTUR:', { ettn: taslak.ettn, talepAciklama });
+    if (__DEV__) console.log('MOCK İPTAL TALEBİ OLUŞTUR:', { ettn: taslak.ettn, talepAciklama });
     return Promise.resolve();
   }
 
@@ -889,11 +884,11 @@ export async function telefonnoSorgula(token: string): Promise<string> {
 
   try {
     const onIzlemeYaniti = await dispatch('EARSIV_PORTAL_TELEFONNO_SORGULA', 'RG_BASITTASLAKLAR', {}, token);
-    console.log('GİB TELEFONNO_SORGULA (ön-hazırlık) HAM YANIT:', JSON.stringify(onIzlemeYaniti));
+    if (__DEV__) console.log('GİB TELEFONNO_SORGULA (ön-hazırlık) HAM YANIT:', JSON.stringify(onIzlemeYaniti));
   } catch (err) {
     // Yanıtı kullanmıyoruz — yalnızca GİB'in gerçek arayüzündeki istek
     // sırasını taklit ediyoruz; bu istek hata verse bile akışa devam ediyoruz.
-    console.log('GİB TELEFONNO_SORGULA (ön-hazırlık) hata verdi, yoksayılıyor:', err);
+    if (__DEV__) console.log('GİB TELEFONNO_SORGULA (ön-hazırlık) hata verdi, yoksayılıyor:', err);
   }
 
   const bilgi = await kullaniciBilgileriDetayGetir(token);
@@ -947,7 +942,7 @@ export async function kullaniciBilgileriDetayGetir(token: string): Promise<Kulla
     token,
   );
 
-  console.log('GİB KULLANICI BİLGİLERİ (RG_KULLANICI) HAM YANIT:', JSON.stringify(result));
+  if (__DEV__) console.log('GİB KULLANICI BİLGİLERİ (RG_KULLANICI) HAM YANIT:', JSON.stringify(result));
 
   const veri = (result ?? {}) as Record<string, unknown>;
   const asStr = (v: unknown): string => (typeof v === 'string' ? v : '');
@@ -989,7 +984,7 @@ export async function kullaniciBilgileriKaydet(
   bilgi: KullaniciDetayBilgisi,
 ): Promise<void> {
   if (IS_TEST_MODE) {
-    console.log('MOCK KULLANICI BİLGİLERİ KAYDET:', bilgi);
+    if (__DEV__) console.log('MOCK KULLANICI BİLGİLERİ KAYDET:', bilgi);
     return Promise.resolve();
   }
 
@@ -1019,7 +1014,7 @@ export async function kullaniciBilgileriKaydet(
  */
 export async function smsSifreGonder(token: string, cepTel: string): Promise<string> {
   if (IS_TEST_MODE) {
-    console.log('MOCK SMS GÖNDER:', { cepTel });
+    if (__DEV__) console.log('MOCK SMS GÖNDER:', { cepTel });
     return Promise.resolve('MOCK-OID');
   }
 
@@ -1030,7 +1025,7 @@ export async function smsSifreGonder(token: string, cepTel: string): Promise<str
     token,
   );
 
-  console.log('GİB SMS GÖNDER HAM YANIT:', JSON.stringify(result));
+  if (__DEV__) console.log('GİB SMS GÖNDER HAM YANIT:', JSON.stringify(result));
 
   if (typeof result === 'string' && result.length > 0) return result;
   if (result && typeof result === 'object') {
@@ -1067,7 +1062,7 @@ export async function smsSifreOnayla(
   oid: string,
 ): Promise<void> {
   if (IS_TEST_MODE) {
-    console.log('MOCK SMS ONAYLA:', { ettn: taslak.ettn, smsKodu, oid });
+    if (__DEV__) console.log('MOCK SMS ONAYLA:', { ettn: taslak.ettn, smsKodu, oid });
     return Promise.resolve();
   }
 
@@ -1121,7 +1116,7 @@ export async function faturaHTMLGetir(
   onayDurumu?: string,
 ): Promise<string> {
   if (IS_TEST_MODE) {
-    console.log('MOCK FATURA HTML GETIR:', { ettn });
+    if (__DEV__) console.log('MOCK FATURA HTML GETIR:', { ettn });
     return Promise.resolve(MOCK_FATURA_HTML(ettn));
   }
 
@@ -1134,7 +1129,7 @@ export async function faturaHTMLGetir(
 
   // HTML gövdesi çok uzun olabileceğinden konsolu boğmamak için kısaltıyoruz.
   const onizleme = typeof result === 'string' ? result : JSON.stringify(result);
-  console.log('GİB FATURA HTML HAM YANIT (ilk 300 karakter):', onizleme.slice(0, 300));
+  if (__DEV__) console.log('GİB FATURA HTML HAM YANIT (ilk 300 karakter):', onizleme.slice(0, 300));
 
   if (typeof result === 'string' && result.length > 0) return result;
   if (result && typeof result === 'object') {
@@ -1170,7 +1165,7 @@ export async function iptalItirazTalepleriGetir(
   const bitis = filtre.bitisTarihi ?? bugun;
 
   if (IS_TEST_MODE) {
-    console.log('MOCK İPTAL/İTİRAZ TALEPLERİ GETİR:', { baslangic, bitis });
+    if (__DEV__) console.log('MOCK İPTAL/İTİRAZ TALEPLERİ GETİR:', { baslangic, bitis });
     return Promise.resolve([]);
   }
 
@@ -1181,7 +1176,7 @@ export async function iptalItirazTalepleriGetir(
     token,
   );
 
-  console.log('GİB İPTAL/İTİRAZ TALEPLERİ HAM YANIT:', JSON.stringify(result));
+  if (__DEV__) console.log('GİB İPTAL/İTİRAZ TALEPLERİ HAM YANIT:', JSON.stringify(result));
 
   if (Array.isArray(result)) return result;
   if (result && typeof result === 'object' && Array.isArray((result as { data?: unknown }).data)) {
@@ -1204,7 +1199,7 @@ export async function iptalItirazTalepDurumGuncelle(
   retAciklama = '',
 ): Promise<void> {
   if (IS_TEST_MODE) {
-    console.log('MOCK İPTAL/İTİRAZ TALEP DURUM GÜNCELLE:', { oid: talep.iptalItirazOid, kabul, retAciklama });
+    if (__DEV__) console.log('MOCK İPTAL/İTİRAZ TALEP DURUM GÜNCELLE:', { oid: talep.iptalItirazOid, kabul, retAciklama });
     return Promise.resolve();
   }
 

@@ -84,8 +84,9 @@ bu sayfa onların tematik bir özetidir.
 - Tevkifat oranı kontrolünde falsy check kullanılıyor (0 ile "tevkifat yok"
   ayrışmıyor) — şu an ulaşılamıyor ama kırılgan bir kalıp.
   ([Issue #4](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/4))
-- `gibApi.ts` içindeki tanı amaçlı `console.log` satırları canlıya
-  geçmeden önce ayıklanmalı.
+- ~~`gibApi.ts` içindeki tanı amaçlı `console.log` satırları canlıya
+  geçmeden önce ayıklanmalı.~~ — **yapıldı**: tüm loglar `if (__DEV__)`
+  altında (release'de ayıklanır); şifre/token içeren loglar tamamen kaldırıldı.
   ([Issue #15](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/15))
 - `faturaHesap.ts`'teki hesaplama fonksiyonları için birim testi yok.
   ([Issue #16](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/16))
