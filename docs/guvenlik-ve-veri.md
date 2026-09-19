@@ -16,7 +16,8 @@ sunucuya **gitmez**.
 | `gib_kullanici_kodu` | Kullanıcı kodu (şifre değil) | Aynı, token ile birlikte |
 | `gib_hatirlanan_kullanici_kodu` | Login formunu önceden doldurmak için kullanıcı kodu | `LoginScreen` — "Kullanıcı Kodunu Hatırla" işaretliyse, **çıkış yapılsa bile** kalır |
 | ~~`gib_hatirlanan_sifre`~~ | **Artık kullanılmıyor.** v1.0.0'da "Şifreyi Hatırla" ile kaydedilen şifre | `LoginScreen` açılışta bu anahtarı **siler** (eski kurulumlardan göç) |
-| `gib_alici_defteri` | En fazla 50 kayıtlı alıcı (JSON dizi) | `aliciDefteri.ts` — bir fatura başarıyla oluşturulunca otomatik eklenir/güncellenir |
+| `gib_alici_defteri_<kullanıcı kodu>` | O hesaba özel, en fazla 50 kayıtlı alıcı (JSON dizi). Anahtardaki kod, karakter kodlarının onaltılık gösterimidir | `aliciDefteri.ts` — bir fatura başarıyla oluşturulunca otomatik eklenir/güncellenir. **Defter hesaplar arasında paylaşılmaz**: birden fazla mükellefin hesabına giren bir mali müşavir yalnızca o hesabın alıcılarını görür |
+| ~~`gib_alici_defteri`~~ | **Artık kullanılmıyor.** Eski sürümlerdeki, tüm hesapların paylaştığı ortak defter | Uygulama her açılışta bu anahtarı **siler** (kime ait olduğu bilinemediğinden başka bir hesaba taşınamaz) |
 
 **Önemli ayrım:** `gib_token`/`gib_kullanici_kodu` çifti **oturumun kendisi**
 içindir (uygulama açıkken "giriş yapılmış" durumunu temsil eder).

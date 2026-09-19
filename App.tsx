@@ -13,6 +13,7 @@ import TaslaklarScreen from './src/screens/TaslaklarScreen';
 import IptalItirazTalepleriScreen from './src/screens/IptalItirazTalepleriScreen';
 import KullaniciBilgileriScreen from './src/screens/KullaniciBilgileriScreen';
 import { useAuthStore } from './src/store/useAuthStore';
+import { eskiOrtakAliciDefteriniSil } from './src/utils/aliciDefteri';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -31,6 +32,8 @@ export default function App() {
   const [isRestoring, setIsRestoring] = useState(true);
 
   useEffect(() => {
+    // Eski sürümlerden kalan, hesaplar arası ortak alıcı defterini sil.
+    eskiOrtakAliciDefteriniSil();
     restoreSession().finally(() => setIsRestoring(false));
   }, [restoreSession]);
 
