@@ -35,6 +35,16 @@ web'de tüm okuma/yazma/silme işlemleri sessizce no-op.
 - **Şifre hiçbir koşulda cihazda saklanmıyor.** v1.0.0'daki "Şifreyi
   Hatırla" seçeneği kaldırıldı; eski sürümden kalmış kayıtlı şifre, uygulama
   ilk açıldığında otomatik silinir. Şifre her girişte yeniden girilir.
+- **Fatura PDF'leri geçici tutuluyor.** "Paylaş"/"İndir" ile üretilen
+  `Fatura_<zaman>.pdf` dosyaları (alıcı VKN/unvan/tutar içerir, şifresiz)
+  uygulamanın belge dizinine yazılır ve otomatik silinir: yeni bir PDF
+  üretilmeden önce ve uygulama her açıldığında **1 saatten eski** olanlar,
+  **çıkış yapıldığında ise hepsi** silinir (`src/utils/dosyaTemizlik.ts`;
+  yalnızca `Fatura_<sayı>.pdf` desenine uyan dosyalara dokunur). Taze dosyalar,
+  paylaşılan uygulamanın dosyayı okuyabilmesi için 1 saat korunur. Bu dosyalar
+  Android otomatik yedeğine girmez (yedek kuralı yalnızca `sharedpref` içerir,
+  `SecureStore` hariç). "İndir" ile kullanıcının seçtiği klasöre kaydedilen
+  kopyalar bu temizliğin dışındadır — onlar kullanıcının kendi dosyasıdır.
 - Fatura içerikleri (kalemler, tutarlar) cihazda kalıcı saklanmıyor — form
   kapatılınca/uygulamadan çıkılınca kaybolur. Kalıcı olan tek şey, başarılı
   bir fatura sonrası **alıcı bilgisinin** adres defterine yazılmasıdır (mal/

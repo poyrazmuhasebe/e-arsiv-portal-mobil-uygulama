@@ -14,6 +14,7 @@ import IptalItirazTalepleriScreen from './src/screens/IptalItirazTalepleriScreen
 import KullaniciBilgileriScreen from './src/screens/KullaniciBilgileriScreen';
 import { useAuthStore } from './src/store/useAuthStore';
 import { eskiOrtakAliciDefteriniSil } from './src/utils/aliciDefteri';
+import { eskiFaturaPdfleriniSil } from './src/utils/dosyaTemizlik';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -34,6 +35,8 @@ export default function App() {
   useEffect(() => {
     // Eski sürümlerden kalan, hesaplar arası ortak alıcı defterini sil.
     eskiOrtakAliciDefteriniSil();
+    // Önceki kullanımlardan kalan fatura PDF'lerini (1 saatten eski) temizle.
+    eskiFaturaPdfleriniSil();
     restoreSession().finally(() => setIsRestoring(false));
   }, [restoreSession]);
 

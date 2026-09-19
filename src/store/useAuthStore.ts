@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { login as gibLogin, logout as gibLogout, getKullaniciBilgileri } from '../services/gibApi';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '../utils/secureStorage';
+import { eskiFaturaPdfleriniSil } from '../utils/dosyaTemizlik';
 import type { KullaniciBilgisi } from '../types/gib';
 
 const TOKEN_KEY = 'gib_token';
@@ -80,6 +81,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     await Promise.all([deleteSecureItem(TOKEN_KEY), deleteSecureItem(KULLANICI_KODU_KEY)]);
+    // Çıkışta, oturum boyunca üretilen tüm fatura PDF'lerini (kişisel/mali veri
+    // içerirler) cihazdan sil. Hata fırlatmaz; çıkışı asla engellemez.
+    await eskiFaturaPdfleriniSil(0);
     set({
       token: null,
       kullaniciKodu: null,

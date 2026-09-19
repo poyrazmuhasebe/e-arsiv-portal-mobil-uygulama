@@ -10,6 +10,8 @@ import * as Sharing from 'expo-sharing';
 // okumasına izin vermemesiydi — aşağıdaki Base64 yaklaşımı bunu çözüyor.)
 import * as FileSystem from 'expo-file-system/legacy';
 
+import { eskiFaturaPdfleriniSil } from './dosyaTemizlik';
+
 // GİB'in döndürdüğü HTML bazen <meta charset> içermiyor; bu durumda
 // Türkçe karakterler (ş, ı, ğ vb.) PDF'e yanlış kodlanabiliyor.
 function utf8MetaEkle(html: string): string {
@@ -65,6 +67,8 @@ async function pdfBase64Uret(html: string, filigranMetni?: string): Promise<stri
  * çapraz bir filigran olarak eklenir.
  */
 export async function generatePDF(html: string, filigranMetni?: string): Promise<string> {
+  // Önceki oturumlardan/paylaşımlardan kalan eski PDF'leri temizle.
+  await eskiFaturaPdfleriniSil();
   const base64 = await pdfBase64Uret(html, filigranMetni);
   const yeniUri = `${FileSystem.documentDirectory}Fatura_${Date.now()}.pdf`;
   await FileSystem.writeAsStringAsync(yeniUri, base64, { encoding: FileSystem.EncodingType.Base64 });
