@@ -85,10 +85,32 @@ bazı dosyaları çalıştırmak için: `npm test -- aliciDefteri gibApi`.
 4. TypeScript hataları `npx tsc --noEmit` ile her değişiklikten sonra
    kontrol edilir.
 
-## Yayına hazırlık (henüz yapılmadı)
+## Derleme (EAS Build)
 
-- [ ] `app.json` üzerinden gerçek uygulama ikonu/isim/versiyon ayarları
-- [ ] EAS Build ile iOS/Android native paket üretimi ve mağaza yayın
-      hazırlığı
+```bash
+npx eas-cli build -p android --profile preview
+```
 
-Bkz. [Issue #17](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/17).
+`eas.json` profilleri:
+
+- `preview` → dahili dağıtım, Android'de **APK** (`buildType: apk`); telefona
+  doğrudan kurulabilen paket.
+- `production` → mağaza paketi, `autoIncrement` açık.
+
+Sürüm `app.json`'dan okunur (`appVersionSource: local`); yeni bir derlemeden
+önce `app.json` ve `package.json` sürümü elle artırılır. Derleme çıktıları
+`builds/` klasöründe tutulur, git'e eklenmez (`.gitignore`).
+`blockedPermissions` ve release'de logların ayıklanması yalnızca gerçek
+derlemede etkilidir, Expo Go'da değil (bkz.
+[guvenlik-ve-veri.md](guvenlik-ve-veri.md)).
+
+## Yayına hazırlık
+
+- [x] `app.json`: uygulama adı, özel ikonlar, Android `package` / iOS
+      `bundleIdentifier`, EAS `projectId`
+- [x] İlk Android APK (v1.0.0, `preview` profili) — **log düzeltmesinden önce
+      alındı, kullanılmamalı** (bkz. [guvenlik-ve-veri.md](guvenlik-ve-veri.md))
+- [ ] Düzeltmeleri içeren yeni APK (v1.0.1) —
+      [Issue #22](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/22)
+- [ ] `production` (AAB) derlemesi, iOS paketi ve mağaza yayın hazırlığı —
+      [Issue #17](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/17)

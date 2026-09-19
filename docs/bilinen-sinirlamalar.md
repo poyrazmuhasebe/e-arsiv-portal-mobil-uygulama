@@ -37,8 +37,9 @@ bu sayfa onların tematik bir özetidir.
   Taslak/Kesilen Faturalar listesindeki tutar — GİB'in liste yanıtında belgenin
   para birimini taşıyan bir alan olup olmadığı doğrulanmadı.
   ([Issue #3](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/3))
-- **İtiraz Talebi Oluştur, Taslak Düzenle** — şu an yalnızca `console.log`
-  yer tutucular, gerçek işlevleri yok. (Taslak **Sil** ve **İptal Talebi
+- **İtiraz Talebi Oluştur, Taslak Düzenle** — düğmeler görünür ama gerçek
+  işlevleri yok: `handleAksiyon` yalnızca geliştirme modunda (`__DEV__`) bir
+  `console.log` yazar, GİB'e istek atmaz. (Taslak **Sil** ve **İptal Talebi
   Oluştur** artık gerçek isteklerle çalışıyor.)
   ([Issue #7](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/7),
   [Issue #11](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/11))
@@ -80,6 +81,7 @@ bu sayfa onların tematik bir özetidir.
   defteri açmanın (52 SecureStore okuması) ne kadar sürdüğü. Bir kayıt bir
   cihazın sınırını aşarsa yazma reddedilir ve kullanıcıya "Kaydedilemedi"
   bildirilir.
+  ([Issue #23](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/23))
 - ~~"Kayıtlı Mal/Hizmet Adı" defteri.~~ — **yapıldı** (hesaba özel, en fazla
   50 ad; fatura formunda "Kayıtlı Mal/Hizmet Seç"). Cihazda canlı denenmesi
   gerekiyor.
@@ -129,5 +131,16 @@ bu sayfa onların tematik bir özetidir.
 
 ## Yayına Hazırlık
 
-- `app.json` ikon/isim/versiyon ve EAS Build henüz yapılmadı.
+- ~~`app.json` ikon/isim/versiyon ve EAS Build henüz yapılmadı.~~ — **kısmen
+  yapıldı**: `app.json` (ad, ikonlar, paket kimliği), `eas.json` ve ilk Android
+  APK (v1.0.0) hazır. **Kalan:** `production` (AAB) derlemesi, iOS paketi,
+  mağaza yayın hazırlığı.
   ([Issue #17](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/17))
+- **v1.0.0 APK'sı güncel değil** — log düzeltmesinden ve sonraki güvenlik
+  sıkılaştırmalarından önce alındı; düzeltmeleri içeren yeni derleme (v1.0.1)
+  alınana kadar kullanılmamalı.
+  ([Issue #22](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/22))
+- **Cihazda denenmemiş değişiklikler** —
+  [cihazda-denenecekler.md](cihazda-denenecekler.md)'deki liste henüz
+  tamamlanmadı.
+  ([Issue #24](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/24))

@@ -2,7 +2,11 @@
 
 Kodda yapılmış, otomatik testlerden (`npm test`) geçmiş ama **henüz telefonda
 (Expo Go) görülmemiş** değişikliklerin kontrol listesi. Denendikçe `- [ ]` →
-`- [x]` yapın; sorun çıkarsa ilgili Issue'ya not düşün.
+`- [x]` yapın; sorun çıkarsa ilgili Issue'ya not düşün. Listenin tamamlanması
+[Issue #24](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/24)
+ile, SecureStore'un gerçek cihaz doğrulaması
+[Issue #23](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/23)
+ile takip ediliyor.
 
 Başlatma (`E:\earsiv-app` içinde):
 

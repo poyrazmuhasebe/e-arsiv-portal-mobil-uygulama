@@ -115,7 +115,7 @@ birleştirir ve tek bir `FaturaFormState` (bkz. `src/types/faturaForm.ts`)
   otomatik ayarlayayım mı?" diye sorulur (`yediGunKuraliUygula`). Bu kural
   GİB'in kendi kısıtlamasının **istemci tarafında** tekrarıdır — GİB
   teknik olarak daha eskiye izin verse de uygulama önden uyarır.
-- Doküman Para Birimi (`PARA_BIRIMLERI`, 176 gerçek ISO kod) ve Döviz Kuru.
+- Doküman Para Birimi (`PARA_BIRIMLERI`, 177 gerçek kod) ve Döviz Kuru.
 - Fatura Tipi (`FATURA_TIPLERI`, 13 gerçek değer: `SATIS`, `IADE`,
   `TEVKIFAT`, `TEVKIFATIADE`, `ISTISNA`, `OZELMATRAH`, `IHRACKAYITLI`,
   `KONAKLAMAVERGISI`, `YTBSATIS`, `YTBISTISNA`, `YTBIADE`, `YTBTEVKIFAT`,
@@ -236,8 +236,9 @@ uyarıyı tetiklemez (onları zorunlu-alan kontrolü yakalar).
     modalında gösterilir; modalın üst çubuğunda **İndir** (PDF, paylaşım
     penceresi açmadan) ve **Paylaş** (native paylaşım sayfası) ikonları var.
   - **Düzenle** — yalnızca "Taslak" (onaylanmamış) durumundaki belgelerde
-    görünür; şu an yalnızca `console.log` yer tutucu (`handleAksiyon`),
-    gerçek işlevi yok.
+    görünür; şu an yalnızca yer tutucu (`handleAksiyon`: geliştirme modunda
+    `console.log`, GİB'e istek yok), gerçek işlevi yok (bkz.
+    [Issue #11](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/11)).
   - **Sil** — yalnızca "Taslak" durumunda; GİB'in kendi arayüzündeki gerçek
     iki adımlı akış birebir uygulandı: (1) "Bu belgeyi silmek üzeresiniz."
     uyarısı + "Uyarıyı okudum" onay kutusu işaretlenmeden ilerlenemez,

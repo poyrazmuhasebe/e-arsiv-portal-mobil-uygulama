@@ -1,7 +1,13 @@
 # Proje Yapısı
 
 ```
+index.ts                       # Expo giriş noktası (registerRootComponent)
 App.tsx                        # Navigasyon kökü, tema (MD3DarkTheme)
+app.json                       # Expo yapılandırması (ad, ikonlar, paket kimliği, eklentiler, engellenen izinler)
+eas.json                       # EAS Build profilleri (preview: APK, production)
+assets/                        # Uygulama ikonu, Android uyarlanabilir ikon katmanları, favicon, splash
+builds/                        # Yerel/EAS derleme çıktıları (APK) — git dışı
+docs/                          # Bu dokümantasyon
 src/
   screens/
     LoginScreen.tsx
@@ -21,6 +27,7 @@ src/
   components/
     SecimAlani.tsx              # Yeniden kullanılabilir dropdown/seçici
     DuyuruKutusu.tsx            # Giriş ekranındaki GİB duyuru kutusu
+    FaturaWebView.tsx           # Fatura HTML görüntüleyici (en az yetkili WebView)
   constants/
     faturaConstants.ts          # Para birimi/fatura tipi/ülke/birim/vergi/tevkifat listeleri
     duyurular.ts                # GİB duyuruları (metin + bitiş anı)

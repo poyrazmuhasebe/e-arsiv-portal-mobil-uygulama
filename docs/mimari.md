@@ -26,7 +26,9 @@ sunucularına istek atıyor (bkz.
 | Güvenli depolama | expo-secure-store | Token, "beni hatırla" bilgileri, alıcı ve mal/hizmet defterleri — hepsi şifrelenmiş yerel depoda, yalnızca o telefonda (sunucu/bulut/eşitleme yok). Defterler kayıt başına ayrı anahtara bölünür (`bolunmusDefter.ts`, bkz. [guvenlik-ve-veri.md](guvenlik-ve-veri.md)) |
 | PDF | expo-print + expo-sharing + expo-file-system/legacy | Bkz. aşağıdaki "PDF üretim akışı" |
 | Tarih/saat seçici | @react-native-community/datetimepicker v9 | `onValueChange`/`onDismiss` API'si (v9'da `onChange` deprecated) |
-| Fatura HTML önizleme | react-native-webview | GİB'in döndürdüğü ham HTML doğrudan render ediliyor |
+| Fatura HTML önizleme | react-native-webview | GİB'in döndürdüğü HTML güvenilmez sayılıp `FaturaWebView.tsx` içinde en az yetkiyle gösteriliyor (JavaScript varsayılan kapalı, gezinme engelli, önbellek/çerez yok — bkz. [guvenlik-ve-veri.md](guvenlik-ve-veri.md#fatura-görüntüleme-webview)) |
+| Uygulama kilidi | expo-local-authentication | Açılışta ve uzun arka plandan sonra cihazın kendi kilidiyle (biyometri/PIN) doğrulama (`uygulamaKilidi.ts`, `KilitScreen.tsx`) |
+| Test | Node'un yerleşik test çalıştırıcısı (`node --test`) + `tsc` | Ek bağımlılık yok; RN/Expo/axios modülleri sahtelenir, GİB'e istek atılmaz (bkz. [kurulum-ve-gelistirme.md](kurulum-ve-gelistirme.md#testler)) |
 
 ## Veri akışı — Fatura Kesim Formu örneği
 
