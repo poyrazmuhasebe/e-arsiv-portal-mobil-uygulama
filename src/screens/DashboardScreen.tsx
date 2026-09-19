@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityIndicator, Appbar, Card, Text, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Appbar, Card, Switch, Text, useTheme } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAuthStore } from '../store/useAuthStore';
+import {
+  cihazKilidiVarMi,
+  kilidiAcmayiDene,
+  kilitAyariAcikMi,
+  kilitAyariniKaydet,
+  kilitHataMesaji,
+} from '../utils/uygulamaKilidi';
 import type { RootStackParamList } from '../../App';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
@@ -24,6 +31,37 @@ export default function DashboardScreen({ navigation }: Props) {
   const isLoggingOut = useAuthStore((s) => s.isLoggingOut);
 
   const [localBusy, setLocalBusy] = useState(false);
+
+  // Uygulama kilidi ayarı (bkz. src/utils/uygulamaKilidi.ts).
+  const [kilitAcik, setKilitAcik] = useState(true);
+  const [cihazKilidiVar, setCihazKilidiVar] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      setKilitAcik(await kilitAyariAcikMi());
+      setCihazKilidiVar(await cihazKilidiVarMi());
+    })();
+  }, []);
+
+  const handleKilitDegistir = async (yeniDeger: boolean) => {
+    if (yeniDeger) {
+      await kilitAyariniKaydet(true);
+      setKilitAcik(true);
+      return;
+    }
+    // Kilidi KAPATMAK için önce kimlik doğrulanır; aksi halde kilidi açık bir
+    // telefonu eline geçiren biri korumayı kendisi kapatabilirdi.
+    if (cihazKilidiVar) {
+      const sonuc = await kilidiAcmayiDene('Uygulama kilidini kapatmak için doğrulayın');
+      if (!sonuc.basarili) {
+        const mesaj = kilitHataMesaji(sonuc.hata);
+        if (mesaj) Alert.alert('Kilit kapatılamadı', mesaj);
+        return;
+      }
+    }
+    await kilitAyariniKaydet(false);
+    setKilitAcik(false);
+  };
 
   const unvan = (kullaniciBilgisi?.unvan as string | undefined) ?? kullaniciKodu ?? 'Mükellef';
 
@@ -151,6 +189,28 @@ export default function DashboardScreen({ navigation }: Props) {
             </Card.Content>
           </Card>
         ))}
+
+        <Card mode="elevated" style={styles.card}>
+          <Card.Content style={styles.cardContent}>
+            <Text variant="displaySmall">🔒</Text>
+            <View style={styles.cardTextGroup}>
+              <Text variant="titleMedium">Uygulama Kilidi</Text>
+              <Text variant="bodySmall" style={styles.cardSubtitle}>
+                {!cihazKilidiVar
+                  ? 'Cihazınızda ekran kilidi (PIN/desen/parmak izi) tanımlı değil; kilit kullanılamıyor.'
+                  : kilitAcik
+                    ? 'Açılışta ve uzun süre arka planda kaldıktan sonra cihaz kilidiyle doğrulama istenir.'
+                    : 'Kapalı: uygulama doğrulama istemeden açılır.'}
+              </Text>
+            </View>
+            <Switch
+              value={kilitAcik && cihazKilidiVar}
+              onValueChange={handleKilitDegistir}
+              disabled={!cihazKilidiVar}
+              accessibilityLabel="Uygulama kilidi"
+            />
+          </Card.Content>
+        </Card>
       </ScrollView>
     </SafeAreaView>
   );

@@ -70,6 +70,31 @@ log'una/`adb logcat`'e hiçbir şey yazılmaz. Geliştirme derlemesinde bile:
 > dağıtmayın/kullanmayın (bkz.
 > [Issue #15](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/15)).
 
+## Uygulama kilidi
+
+Oturum (token) cihazda kalıcı saklandığı için, kilidi açık bir telefonu eline
+geçiren biri uygulamayı açıp mükellef adına işlem yapamasın diye
+`expo-local-authentication` ile **cihazın kendi kilit yöntemi** (parmak izi, yüz,
+PIN, desen, parola) istenir. Uygulamaya özel ayrı bir şifre **tutulmaz**;
+doğrulamayı işletim sistemi yapar.
+
+- **Ne zaman:** kayıtlı bir oturum geri yüklendiğinde (uygulama açılışı) ve
+  uygulama arka planda **3 dakikadan** uzun kaldıktan sonra öne dönünce. Yeni bir
+  girişten hemen sonra sorulmaz (şifre zaten girildi). 3 dakikalık pay, SMS
+  imza kodunu okuyup dönmek gibi kısa dışarı çıkışlarda sürekli sorulmaması içindir
+  (`KILIT_ZAMAN_ASIMI_MS`, `src/utils/uygulamaKilidi.ts`).
+- **Kilitliyken altındaki ekranlar silinmez:** kilit ekranı, yarım kalmış bir fatura
+  formunu koruyacak şekilde üste biner; doğrulanınca kullanıcı kaldığı yerden devam eder.
+- **Ayar:** Dashboard'daki "Uygulama Kilidi" anahtarı (varsayılan **açık**). Kapatmak
+  için önce kimlik doğrulanır. Ayar `gib_uygulama_kilidi` anahtarında saklanır.
+- **Kilit uygulanamıyorsa açık kalır (fail-open):** cihazda hiç kilit yöntemi
+  tanımlı değilse (ya da doğrulama API'si hata verirse) kilit uygulanmaz; kullanıcı
+  kendi telefonunda dışarıda kalmasın diye. Kilit ekranındaki "Oturumu Kapat"
+  düğmesi her durumda bir çıkış yolu sağlar.
+- **Sınırlama:** son uygulamalar (recents) önizlemesi ayrıca korunmuyor (bkz.
+  bilinen sınırlamalar). Expo Go'da iOS'ta Face ID desteklenmez, cihaz parolasına
+  düşülür; gerçek derlemede Face ID çalışır.
+
 ## Fatura görüntüleme (WebView)
 
 "Görüntüle" ile GİB'in döndürdüğü fatura HTML'i `src/components/FaturaWebView.tsx`

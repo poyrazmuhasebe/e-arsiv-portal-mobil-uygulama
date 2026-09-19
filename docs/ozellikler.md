@@ -37,6 +37,11 @@
 - Sağ üstte "Güvenli Çıkış" ikonu; onay diyaloğundan sonra
   `useAuthStore.logout()` çağrılır (bkz. aşağıdaki "Oturum Yönetimi").
 
+- **Uygulama Kilidi** kartı (sayfanın altında): cihazın kilit yöntemiyle
+  doğrulama istenip istenmeyeceğini açıp kapatan anahtar. Kapatmak için önce
+  kimlik doğrulanır. Ayrıntılar için bkz.
+  [guvenlik-ve-veri.md — Uygulama kilidi](guvenlik-ve-veri.md).
+
 ## Kullanıcı Bilgileri (`src/screens/KullaniciBilgileriScreen.tsx`)
 
 GİB'e kayıtlı mükellef/firma bilgilerini görüntüleme ve düzenleme ekranı —
