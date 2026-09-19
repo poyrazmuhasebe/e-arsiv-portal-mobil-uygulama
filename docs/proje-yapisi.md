@@ -31,13 +31,19 @@ src/
   constants/
     faturaConstants.ts          # Para birimi/fatura tipi/ülke/birim/vergi/tevkifat listeleri
     duyurular.ts                # GİB duyuruları (metin + bitiş anı)
+    hukukiMetinler.ts           # Uygulama içi aydınlatma/gizlilik/şartlar TASLAKLARI
+  config/
+    hesapSunucu.ts              # Hesap sunucusu adresi (EXPO_PUBLIC_HESAP_API_URL)
   services/
     gibApi.ts                   # GİB API istemcisi (dispatch/assos-login)
+    hesapApi.ts                 # Hesap sunucusu (Worker) istemcisi — GİB alanlarını reddeder
     gibHataMesajlari.ts         # Bilinen GİB/ağ hata metinlerinin Türkçe açıklamaları
   store/
-    useAuthStore.ts             # Zustand — oturum/token yönetimi
+    useAuthStore.ts             # Zustand — GİB oturumu/token yönetimi
+    useHesapStore.ts            # Zustand — uygulama hesabı oturumu (AYRI store)
   types/
     gib.ts                      # Fatura/alıcı/GİB yanıt tipleri
+    ortam.d.ts                  # process.env için dar tip tanımı
     faturaForm.ts                # Fatura kesim formunun yerel state tipleri
   utils/
     secureStorage.ts             # Platform-güvenli SecureStore sarmalayıcı
@@ -51,6 +57,8 @@ src/
     kimlikDogrula.ts              # VKN/TCKN kontrol basamağı
     dosyaTemizlik.ts              # Eski fatura PDF'lerini silme
     uygulamaKilidi.ts             # Cihaz kilidiyle uygulama kilidi
+    hesapDogrulama.ts             # Hesap alan kuralları (worker/src/dogrulama.ts ile aynı)
+    gibSahibi.ts                  # GİB oturumunun sahibi olan uygulama hesabı
     faturaHesap.ts                 # KDV/iskonto/tevkifat hesaplama mantığı
     pdf.ts                          # HTML → PDF, indirme (SAF) / paylaşma
 test/

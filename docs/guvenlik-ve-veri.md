@@ -1,24 +1,46 @@
 # Güvenlik ve Veri — Ne Nerede Saklanıyor
 
-## Temel ilke: sunucusuz, üçüncü taraf yok
+## Temel ilke: GİB verisi cihazda kalır, hesap verisi Cloudflare'e gider
 
-Uygulamanın kendi backend'i yok. Her ağ isteği doğrudan
+Uygulamanın **iki ayrı veri akışı** vardır ve bunlar birbirinden tamamen
+ayrıdır.
+
+**1. GİB tarafı — sunucusuz (değişmedi).** GİB istekleri doğrudan
 `earsivportal.efatura.gov.tr`'ye gider (bkz.
-[gib-entegrasyonu.md](gib-entegrasyonu.md)). Kullanıcı kodu, şifre, VKN/TCKN,
-fatura içerikleri — hiçbiri Anthropic, Expo, veya başka bir üçüncü taraf
+[gib-entegrasyonu.md](gib-entegrasyonu.md)). GİB kullanıcı kodu, GİB şifresi,
+GİB token'ı, VKN/TCKN, unvan, fatura içerikleri, alıcı ve mal/hizmet
+defterleri — hiçbiri Cloudflare'e, Expo'ya ya da başka bir üçüncü taraf
 sunucuya **gitmez**.
+
+**2. Uygulama hesabı tarafı — Cloudflare (YENİ).** Uygulamayı kullanmak için
+bir hesap gerekir. E-posta, uygulama kullanıcı adı ve şifre kendi Cloudflare
+Worker'ımıza **gönderilir**; şifre orada scrypt ile özetlenir ve D1'de
+**yalnızca özeti saklanır**. Her istekte IP adresi gibi bağlantı bilgileri
+Cloudflare'e **ulaşır**. Cloudflare **yeni bir üçüncü taraftır** ve veri
+**yurt dışında** (Avrupa Birliği) durur.
+
+"Gönderilen" ile "saklanan" arasındaki ayrım önemlidir: şifre gönderilir ama
+saklanmaz; sağlayıcı token'ları (sosyal giriş aşamasında) gönderilir ama
+saklanmaz.
+
+Tasarım ve kararlar: [hesap-sistemi.md](hesap-sistemi.md).
+Hukuki metin taslakları: [hukuk/](hukuk/).
 
 ## Cihazda saklanan veriler (`expo-secure-store`, şifrelenmiş)
 
 | Anahtar | İçerik | Nerede yazılır/silinir |
 |---|---|---|
-| `gib_token` | Oturum token'ı | `useAuthStore.login()` (yalnızca "beni hatırla" işaretliyse) → `logout()`'ta silinir |
+| `gib_token` | GİB oturum token'ı | `useAuthStore.login()` → `logout()`'ta silinir. NOT: `login()` bir `remember` parametresi alır ama `LoginScreen` bunu geçmez, yani varsayılan `true` ile her girişte yazılır |
 | `gib_kullanici_kodu` | Kullanıcı kodu (şifre değil) | Aynı, token ile birlikte |
 | `gib_hatirlanan_kullanici_kodu` | Login formunu önceden doldurmak için kullanıcı kodu | `LoginScreen` — "Kullanıcı Kodunu Hatırla" işaretliyse, **çıkış yapılsa bile** kalır |
 | ~~`gib_hatirlanan_sifre`~~ | **Artık kullanılmıyor.** v1.0.0'da "Şifreyi Hatırla" ile kaydedilen şifre | `LoginScreen` açılışta bu anahtarı **siler** (eski kurulumlardan göç) |
 | `gib_alici_dizin_<kullanıcı kodu>` + `gib_alici_kayit_<kullanıcı kodu>_<yuva>` | O hesaba özel, en fazla 50 kayıtlı alıcı: **her alıcı ayrı bir anahtarda** (tek kaydın JSON'u), sırayı küçük bir dizin anahtarı tutar (bkz. aşağıda "Parçalı saklama"). Anahtardaki kod, karakter kodlarının onaltılık gösterimidir (`hesapAnahtari.ts`) | `aliciDefteri.ts` → `bolunmusDefter.ts` — bir fatura başarıyla oluşturulunca otomatik eklenir/güncellenir; "Alıcı Defteri" ekranından adres/ülke düzenlenir, silinir, elle eklenir. **Defter hesaplar arasında paylaşılmaz**: birden fazla mükellefin hesabına giren bir mali müşavir yalnızca o hesabın alıcılarını görür |
 | `gib_malhizmet_dizin_<kullanıcı kodu>` + `gib_malhizmet_kayit_<kullanıcı kodu>_<yuva>` | O hesaba özel, en fazla 50 mal/hizmet **adı** (her ad ayrı anahtarda, en son kullanılan başta). Anahtarlar alıcı defteriyle aynı biçimde üretilir | `malHizmetDefteri.ts` → `bolunmusDefter.ts` — fatura başarıyla oluşturulunca kalem adları eklenir; fatura formundaki "Kayıtlı Mal/Hizmet Seç" diyaloğundan silinir. Hesaplar arasında paylaşılmaz |
 | ~~`gib_alici_defteri_<kullanıcı kodu>`~~, ~~`gib_malhizmet_defteri_<kullanıcı kodu>`~~ | **Artık kullanılmıyor.** Önceki sürümün hesaba özel ama TEK değerli defterleri (JSON dizi) | Defterin ilk okunmasında/yazılmasında yeni biçime **taşınır**, taşıma doğrulanınca silinir (bkz. "Eski biçimden taşıma") |
+| `gib_uygulama_kilidi` | Uygulama kilidi ayarı ('1'/'0'; kişisel veri yok) | `src/utils/uygulamaKilidi.ts` — Dashboard'daki anahtardan değişir; çıkışta silinmez |
+| **`hesap_oturum`** | Uygulama hesabı oturumu: kullanıcı kimliği, e-posta, uygulama kullanıcı adı, e-posta doğrulandı bayrağı, erişim token'ı ve bitiş anları. **GİB verisi yok.** 2 KB altında tutulur | `useHesapStore` — giriş/kayıtta yazılır, "Hesaptan çık"ta silinir |
+| **`hesap_yenileme`** | Yenileme token'ı (ayrı anahtarda: en hassas değer tek başına dursun) | Aynı. Her yenilemede döndürülür (rotasyon) |
+| **`hesap_gib_sahibi`** | GİB oturumunu açan uygulama hesabının kimliği. `gib_` DEĞİL `hesap_` öneklidir: GİB verisi değildir | `useAuthStore.login()` yazar, `logout()` siler. Açılışta eşleşmiyorsa GİB oturumu geri yüklenmez (bkz. aşağıda) |
 | `gib_kapatilan_duyurular` | Giriş ekranında kapatılan GİB duyurularının kimlikleri (JSON dizi; kişisel veri yok, hesaba özel değil) | `src/utils/duyuru.ts` — × ile kapatınca eklenir; yalnızca hâlâ tanımlı duyuruların kimlikleri tutulur |
 | ~~`gib_alici_defteri`~~ | **Artık kullanılmıyor.** Eski sürümlerdeki, tüm hesapların paylaştığı ortak defter | Uygulama her açılışta bu anahtarı **siler** (kime ait olduğu bilinemediğinden başka bir hesaba taşınamaz) |
 
@@ -250,3 +272,92 @@ uygulamanın hiç kullanmadığı izinler):
 - Gerçek bir VKN/TCKN/kullanıcı kodu/şifre hiçbir commit'te
   bulunmamalı — her commit öncesi bu kontrol ediliyor. Kod içinde
   görülen `11111111111` gibi değerler test/örnek VKN'lerdir.
+
+## Hangi veri nerede (hesap sistemiyle birlikte)
+
+| Veri | Cihaz | Cloudflare D1 (AB) | Workers Logs | GİB |
+|---|---|---|---|---|
+| E-posta | ✔ | ✔ | ✖ | ✖ |
+| Uygulama kullanıcı adı | ✔ | ✔ | ✖ | ✖ |
+| Uygulama şifresi | **✖ hiç saklanmaz** | yalnızca **scrypt özeti** | ✖ | ✖ |
+| Hesap oturum token'ları | ✔ | yenileme token'ının **SHA-256 özeti** | ✖ | ✖ |
+| IP adresi / bağlantı bilgisi | — | ✖ | Cloudflare'e **ulaşır** | GİB'e de ulaşır |
+| GİB kullanıcı kodu | ✔ | **✖ asla** | **✖ asla** | ✔ |
+| GİB şifresi | **✖ hiç saklanmaz** | **✖ asla** | **✖ asla** | ✔ |
+| GİB oturum token'ı | ✔ | **✖ asla** | **✖ asla** | ✔ |
+| VKN/TCKN, unvan | ✔ | **✖ asla** | **✖ asla** | ✔ |
+| Fatura içerikleri | ✔ (geçici PDF) | **✖ asla** | **✖ asla** | ✔ |
+| Alıcı ve mal/hizmet defterleri | ✔ | **✖ asla** | **✖ asla** | ✖ |
+
+**Workers Logs:** Cloudflare'de yeni Worker'larda varsayılan olarak açıktır ve
+istek üstverisini saklar (ücretsiz planda 3, ücretli planda 7 gün). Bizim
+yapılandırmamızda **istek üstverisi kaydı kapatılmıştır**
+(`observability.logs.invocation_logs: false`). `console.*` ile istek gövdesi,
+`Authorization` başlığı, şifre, token, e-posta ve kullanıcı adı **hiçbir
+koşulda** yazılmaz; hatalar yalnızca sabit bir hata kodu ve uç nokta adıyla
+kaydedilir.
+
+**Veri konumu:** D1 veritabanı Cloudflare'in **Avrupa Birliği** yetki alanında
+(`--jurisdiction eu`) oluşturulur; bu seçim **geri alınamaz**. Türkiye'de
+barındırma seçeneği yoktur. Bu, KVKK m.9 anlamında bir yurt dışına aktarımdır
+— hukuki değerlendirme için bkz. [hukuk/](hukuk/) ve
+[Issue #36](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/36).
+
+## GİB oturumunun sahibi
+
+`gib_token` ve `gib_kullanici_kodu` anahtarlarında hesap kimliği yoktu. Hesap
+sistemi eklenince bu bir sızma yolu olurdu: cihazda kalan bir GİB oturumu,
+sonra giren **herhangi bir** uygulama hesabına sessizce geri yüklenir ve o
+kişi başkasının GİB oturumunu — dolayısıyla o hesabın alıcı ve mal/hizmet
+defterlerini — görürdü.
+
+Çözüm (`src/utils/gibSahibi.ts`):
+
+- GİB oturumu kaydedilirken **sahibinin kimliği** de `hesap_gib_sahibi`
+  anahtarına yazılır.
+- Açılışta uygulama hesabı oturumu yoksa ya da kimlik eşleşmiyorsa GİB oturumu
+  **geri yüklenmez**: GİB'de kapatılmaya çalışılır ve `gib_token` ile
+  `gib_kullanici_kodu` silinir.
+- Güncellemeden sonraki ilk açılışta cihazda duran **sahipsiz `gib_token`
+  silinir** (ilk giren hesaba bağlanmaz).
+- `gib_hatirlanan_kullanici_kodu` ve defterler **silinmez**.
+
+### Bilinen artık risk: aynı telefonda iki hesap, aynı GİB hesabı
+
+Alıcı ve mal/hizmet defterlerinin anahtarları **GİB kullanıcı kodundan**
+üretiliyor (`hesapAnahtari.ts`) ve bu **bilerek değiştirilmedi** —
+değiştirilseydi cihazlarda duran tüm defterler sahipsiz kalır, hangisinin
+hangi yeni hesaba ait olduğu bilinemezdi. Bu yüzden aynı telefonda iki farklı
+uygulama hesabı aynı GİB hesabına girerse **aynı defteri görürler**. Senaryo
+dar; risk bilerek kabul edildi.
+
+## İki ayrı çıkış
+
+| Eylem | Ne yapar |
+|---|---|
+| **GİB oturumunu kapat** | Yalnızca GİB oturumunu kapatır; uygulama hesabı açık kalır ve GİB giriş ekranına dönülür. Başka bir mükellef hesabına geçmenin yolu budur |
+| **Hesaptan çık** | Önce GİB, sonra uygulama hesabı kapatılır; sunucuda yenileme token'ı da iptal edilir |
+
+`gibHatasiniIsle` (GİB oturum hatası) **yalnızca GİB oturumunu** kapatır;
+uygulama hesabı oturumuna dokunmaz.
+
+Hiçbir çıkış `gib_hatirlanan_kullanici_kodu`'nu ya da defterleri **silmez**:
+defterlerin hiçbir yedeği yok (D1'e gitmiyorlar), yanlışlıkla çıkan kullanıcı
+50 kayda kadar veri kaybedebilirdi.
+
+Uygulama kilidi artık **hem** GİB oturumu **hem** uygulama hesabı oturumu
+varken çalışır; kilit ekranındaki düğme her iki oturumu birden kapatır.
+
+## Hesap sunucusuyla haberleşme
+
+- Adres `EXPO_PUBLIC_HESAP_API_URL` ortam değişkeninden okunur. **Sır
+  değildir** ama `EXPO_PUBLIC_*` değişkenleri uygulama paketine düz metin
+  gömüldüğü için oraya yalnızca bu adres konur.
+- Değer tanımsızsa istemci **hiç istek atmaz**: "Hesap sunucusu
+  yapılandırılmamış".
+- Yayın derlemesinde yalnızca `https` kabul edilir; cleartext açılmaz.
+- İstemci, her gövdeyi göndermeden önce yasaklı GİB alan adlarına karşı tarar
+  (`govdeyiDenetle`) ve bulursa isteği **atmaz**. Worker da bilinmeyen
+  alanları reddeder — iki katmanlı koruma.
+- Cloudflare'in hata sayfaları (1101, 1102, 1027) JSON değil **HTML** döner;
+  istemci content-type kontrolü yapıp anlamlı bir Türkçe mesaj gösterir.

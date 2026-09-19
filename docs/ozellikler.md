@@ -1,11 +1,62 @@
 # Özellikler — Ekran Ekran Detaylı Anlatım
 
-## Giriş (`src/screens/LoginScreen.tsx`)
+## Uygulama hesabı akışı
+
+Uygulama artık doğrudan GİB giriş ekranıyla açılmaz. Önce bir **uygulama
+hesabı** gerekir; GİB girişi bu hesaba girdikten sonra gelir. Kararlar ve
+gerekçeler: [hesap-sistemi.md](hesap-sistemi.md).
+
+### Karşılama (`src/screens/KarsilamaScreen.tsx`)
+
+"Kayıt Ol" ve "Giriş Yap". GİB girişi burada **yoktur**. Altta, GİB
+verisinin hesap sunucusuna gitmediğini söyleyen kısa bir bilgi kutusu var.
+
+### Kayıt Ol (`src/screens/HesapKayitScreen.tsx`)
+
+E-posta, **Uygulama Kullanıcı Adı** ve şifre. Kullanıcı adı GİB kullanıcı
+kodundan bağımsızdır: 3–20 karakter, harf/rakam/nokta/alt çizgi ve **en az bir
+harf**. "En az bir harf" kuralı bilinçlidir — yalnızca rakamdan oluşan bir
+değer (VKN, TCKN, çoğu GİB kullanıcı kodu) reddedilir.
+
+Girilen kullanıcı adı, cihazda hatırlanan GİB kullanıcı koduyla **yalnızca
+cihazda** karşılaştırılır; eşitse istek **hiç gönderilmez** ve kullanıcıya
+bunun GİB kodu olduğu söylenir.
+
+Kayıt düğmesinin yakınında Aydınlatma Metni, Gizlilik Politikası ve Hizmet
+Şartları bağlantıları bulunur. **Açık rıza kutucuğu bilerek yoktur**:
+sözleşmenin kurulması için gerekli veriler açık rızaya bağlanmaz.
+
+### Giriş Yap (`src/screens/HesapGirisScreen.tsx`)
+
+E-posta + şifre. Sunucu, yanlış şifre ile kayıtlı olmayan e-posta için
+**birebir aynı** yanıtı döner. "Şifremi unuttum" bağlantısı buradadır.
+
+### E-posta Doğrula (`src/screens/EpostaDogrulaScreen.tsx`)
+
+6 haneli kod. **Doğrulamadan GİB giriş ekranına geçilemez.** Kod 15 dakika
+geçerli, tek kullanımlık ve 5 yanlış denemeden sonra geçersiz. "Kodu yeniden
+gönder" 60 saniyede bir kullanılabilir. Posta gelmezse kullanıcı buradan
+hesaptan çıkabilir.
+
+### Şifremi Unuttum (`src/screens/SifremiUnuttumScreen.tsx`)
+
+İki adım: e-posta ile kod istenir, sonra kod + yeni şifre gönderilir. Şifre
+değişince o hesabın **tüm oturumları** kapanır.
+
+### Hukuki Metinler (`src/screens/HukukiMetinScreen.tsx`)
+
+Aydınlatma metni, gizlilik politikası ve hizmet şartları uygulama içinde
+gösterilir (Google Play gizlilik politikasının uygulama içinde de bulunmasını
+istiyor). **Hepsi taslaktır ve hukuki inceleme bekler.**
+
+## GİB Girişi (`src/screens/LoginScreen.tsx`)
 
 - **GİB duyuru kutusu** (`src/components/DuyuruKutusu.tsx`): formun üstünde,
   süresi dolmamış ve kullanıcının kapatmadığı ilk GİB duyurusu (ör. planlı bakım)
-  gösterilir. Duyurular `src/constants/duyurular.ts`'te elle tanımlanır; uygulamanın
-  kendi sunucusu olmadığı için uzaktan çekilmez, uygulama güncellemesiyle gelir.
+  gösterilir. Duyurular `src/constants/duyurular.ts`'te elle tanımlanır ve
+  uygulama güncellemesiyle gelir; **uzaktan çekilmez**. Uygulamanın artık bir
+  hesap sunucusu var, ama o sunucu bilerek yalnızca hesap işlerini yapıyor —
+  duyuru dağıtmak için kullanılmıyor (bkz. [hesap-sistemi.md](hesap-sistemi.md)).
   Her duyurunun bir `bitis` anı vardır; o an geçince kutu kendiliğinden gizlenir.
   Sağ üstteki × ile kapatılan duyuru cihazda hatırlanır (`gib_kapatilan_duyurular`)
   ve bir daha gösterilmez. Duyurudaki GİB bağlantısına dokununca tarayıcıda açılır.

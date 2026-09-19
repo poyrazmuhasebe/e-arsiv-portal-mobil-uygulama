@@ -1,6 +1,9 @@
-// Giriş ekranında gösterilen GİB duyuruları (ör. planlı bakım). Uygulamanın
-// kendi sunucusu olmadığı için duyurular uzaktan çekilmez; buraya elle eklenir
-// ve uygulama güncellemesiyle dağıtılır. `bitis` geçince duyuru kendiliğinden
+// Giriş ekranında gösterilen GİB duyuruları (ör. planlı bakım). Duyurular
+// uzaktan ÇEKİLMEZ; buraya elle eklenir ve uygulama güncellemesiyle dağıtılır.
+// Uygulamanın artık bir hesap sunucusu (Cloudflare Worker) var, ama o sunucu
+// bilerek yalnızca uygulama hesabı işlerini yapıyor: duyuru dağıtmak için
+// kullanılmıyor, çünkü bu her açılışta Cloudflare'e bir istek daha demek
+// olurdu (bkz. docs/hesap-sistemi.md). `bitis` geçince duyuru kendiliğinden
 // gösterilmez (bayat bir duyuru ekranda kalmasın diye). Metinler GİB'in
 // yayımladığı duyurudan birebir alınır; yalnızca PDF'teki satır kırılımları
 // mobil ekrana göre birleştirilir.

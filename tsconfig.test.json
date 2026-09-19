@@ -12,5 +12,5 @@
     "outDir": "node_modules/.cache/earsiv-test",
     "sourceMap": false
   },
-  "include": ["test/**/*.ts", "test/**/*.d.ts"]
+  "include": ["test/**/*.ts", "test/**/*.d.ts", "src/types/ortam.d.ts"]
 }

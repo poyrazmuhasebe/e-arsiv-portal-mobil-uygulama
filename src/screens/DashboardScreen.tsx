@@ -5,6 +5,7 @@ import { ActivityIndicator, Appbar, Card, Switch, Text, useTheme } from 'react-n
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { useAuthStore } from '../store/useAuthStore';
+import { useHesapStore } from '../store/useHesapStore';
 import {
   cihazKilidiVarMi,
   kilidiAcmayiDene,
@@ -29,6 +30,7 @@ export default function DashboardScreen({ navigation }: Props) {
   const kullaniciKodu = useAuthStore((s) => s.kullaniciKodu);
   const logout = useAuthStore((s) => s.logout);
   const isLoggingOut = useAuthStore((s) => s.isLoggingOut);
+  const hesaptanCik = useHesapStore((s) => s.hesaptanCik);
 
   const [localBusy, setLocalBusy] = useState(false);
 
@@ -65,25 +67,55 @@ export default function DashboardScreen({ navigation }: Props) {
 
   const unvan = (kullaniciBilgisi?.unvan as string | undefined) ?? kullaniciKodu ?? 'Mükellef';
 
-  const handleGuvenliCikis = () => {
-    Alert.alert('Güvenli Çıkış', 'Oturumu kapatmak istediğinize emin misiniz?', [
-      { text: 'İptal', style: 'cancel' },
-      {
-        text: 'Çıkış Yap',
-        style: 'destructive',
-        onPress: async () => {
-          setLocalBusy(true);
-          try {
-            // logout() önce GİB'e EARSIV_PORTAL_LOGOUT isteği atar, o istek
-            // hata verse bile yerel token'ı (SecureStore + state) temizler.
-            // Bkz. src/store/useAuthStore.ts
-            await logout();
-          } finally {
-            setLocalBusy(false);
-          }
+  /**
+   * İKİ AYRI ÇIKIŞ (karar 2026-09-20, docs/hesap-sistemi.md):
+   *
+   * - "GİB oturumunu kapat": yalnızca GİB oturumu kapanır, uygulama hesabı
+   *   açık kalır ve GİB giriş ekranına dönülür. Başka bir mükellef hesabına
+   *   geçmenin yolu budur — mali müşavirin günlük işi.
+   * - "Hesaptan çık": önce GİB, sonra uygulama hesabı kapanır; sunucuda
+   *   yenileme token'ı da iptal edilir.
+   *
+   * Hiçbiri cihazdaki `gib_hatirlanan_kullanici_kodu`'nu ya da alıcı /
+   * mal-hizmet defterlerini SİLMEZ: defterlerin hiçbir yedeği yok (D1'e
+   * gitmiyorlar), yanlışlıkla çıkan kullanıcı veri kaybetmesin.
+   */
+  const handleCikis = () => {
+    Alert.alert(
+      'Çıkış',
+      'Hangi oturumu kapatmak istiyorsunuz? Kayıtlı alıcı ve mal/hizmet defterleriniz iki durumda da telefonunuzda kalır.',
+      [
+        { text: 'İptal', style: 'cancel' },
+        {
+          text: 'GİB oturumunu kapat',
+          onPress: async () => {
+            setLocalBusy(true);
+            try {
+              // logout() önce GİB'e EARSIV_PORTAL_LOGOUT isteği atar, o istek
+              // hata verse bile yerel token'ı (SecureStore + state) temizler.
+              // Uygulama hesabı oturumuna DOKUNMAZ.
+              // Bkz. src/store/useAuthStore.ts
+              await logout();
+            } finally {
+              setLocalBusy(false);
+            }
+          },
         },
-      },
-    ]);
+        {
+          text: 'Hesaptan çık',
+          style: 'destructive',
+          onPress: async () => {
+            setLocalBusy(true);
+            try {
+              await logout();
+              await hesaptanCik();
+            } finally {
+              setLocalBusy(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const cikisYapiliyor = isLoggingOut || localBusy;
@@ -158,7 +190,7 @@ export default function DashboardScreen({ navigation }: Props) {
             <ActivityIndicator size="small" />
           </View>
         ) : (
-          <Appbar.Action icon="logout" accessibilityLabel="Güvenli Çıkış" onPress={handleGuvenliCikis} />
+          <Appbar.Action icon="logout" accessibilityLabel="Çıkış" onPress={handleCikis} />
         )}
       </Appbar.Header>
 

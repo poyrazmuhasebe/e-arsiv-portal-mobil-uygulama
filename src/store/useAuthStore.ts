@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import { login as gibLogin, logout as gibLogout, getKullaniciBilgileri } from '../services/gibApi';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '../utils/secureStorage';
 import { eskiFaturaPdfleriniSil } from '../utils/dosyaTemizlik';
+import {
+  gibOturumuGeriYuklenebilirMi,
+  gibSahibiniKaydet,
+  gibSahibiniOku,
+  gibSahibiniSil,
+} from '../utils/gibSahibi';
 import type { KullaniciBilgisi } from '../types/gib';
 
 const TOKEN_KEY = 'gib_token';
@@ -15,8 +21,23 @@ interface AuthState {
   isLoggingOut: boolean;
   error: string | null;
 
-  login: (kullaniciKodu: string, kullaniciSifresi: string, remember?: boolean) => Promise<void>;
-  restoreSession: () => Promise<void>;
+  /**
+   * `sahipHesapId`: GİB oturumunu açan uygulama hesabının kimliği. Oturumla
+   * birlikte cihaza yazılır ki sonraki açılışta BAŞKA bir hesaba geri
+   * yüklenmesin (bkz. utils/gibSahibi.ts).
+   */
+  login: (
+    kullaniciKodu: string,
+    kullaniciSifresi: string,
+    sahipHesapId: string,
+    remember?: boolean,
+  ) => Promise<void>;
+  /**
+   * `aktifHesapId` null ise ya da cihazdaki GİB oturumunun sahibiyle
+   * eşleşmiyorsa oturum GERİ YÜKLENMEZ: GİB'de kapatılmaya çalışılır ve
+   * cihazdaki anahtarlar silinir.
+   */
+  restoreSession: (aktifHesapId: string | null) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -28,7 +49,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoggingOut: false,
   error: null,
 
-  login: async (kullaniciKodu, kullaniciSifresi, remember = true) => {
+  login: async (kullaniciKodu, kullaniciSifresi, sahipHesapId, remember = true) => {
     set({ isLoading: true, error: null });
     try {
       const token = await gibLogin(kullaniciKodu, kullaniciSifresi);
@@ -39,6 +60,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         // ve kullanıcı kodunu (giriş formunu önceden doldurmak için) saklıyoruz.
         await setSecureItem(TOKEN_KEY, token);
         await setSecureItem(KULLANICI_KODU_KEY, kullaniciKodu);
+        // Oturumun SAHİBİ. Bu bilgi GİB'e değil, yalnızca cihaza yazılır.
+        await gibSahibiniKaydet(sahipHesapId);
       }
 
       set({ token, kullaniciKodu, kullaniciBilgisi, isLoading: false });
@@ -49,19 +72,40 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  restoreSession: async () => {
-    const [token, kullaniciKodu] = await Promise.all([
+  restoreSession: async (aktifHesapId) => {
+    const [token, kullaniciKodu, sahip] = await Promise.all([
       getSecureItem(TOKEN_KEY),
       getSecureItem(KULLANICI_KODU_KEY),
+      gibSahibiniOku(),
     ]);
-    if (token) {
-      set({ token, kullaniciKodu });
-      // Uygulama soğuk başladığında da Header'da mükellef unvanının
-      // görünmesi için; başarısız olursa sessizce login sonrası tekrar
-      // denenir (kullaniciBilgisi null kalır, Header kullaniciKodu'na düşer).
-      const kullaniciBilgisi = await getKullaniciBilgileri(token).catch(() => null);
-      set({ kullaniciBilgisi });
+    if (!token) return;
+
+    if (!gibOturumuGeriYuklenebilirMi(sahip, aktifHesapId)) {
+      // Sahipsiz (güncellemeden önce açılmış) ya da başka bir uygulama
+      // hesabına ait bir GİB oturumu. Geri YÜKLENMEZ: GİB'de kapatılmaya
+      // çalışılır ve cihazdaki anahtarlar silinir.
+      //
+      // `gib_hatirlanan_kullanici_kodu` ve defterler SİLİNMEZ — form yine
+      // dolu gelir, defterler yerinde kalır.
+      try {
+        await gibLogout(token);
+      } catch {
+        // Ağ yoksa ya da token zaten geçersizse yoksay; yerel temizlik yeter.
+      }
+      await Promise.all([
+        deleteSecureItem(TOKEN_KEY),
+        deleteSecureItem(KULLANICI_KODU_KEY),
+        gibSahibiniSil(),
+      ]);
+      return;
     }
+
+    set({ token, kullaniciKodu });
+    // Uygulama soğuk başladığında da Header'da mükellef unvanının
+    // görünmesi için; başarısız olursa sessizce login sonrası tekrar
+    // denenir (kullaniciBilgisi null kalır, Header kullaniciKodu'na düşer).
+    const kullaniciBilgisi = await getKullaniciBilgileri(token).catch(() => null);
+    set({ kullaniciBilgisi });
   },
 
   logout: async () => {
@@ -80,7 +124,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     }
 
-    await Promise.all([deleteSecureItem(TOKEN_KEY), deleteSecureItem(KULLANICI_KODU_KEY)]);
+    await Promise.all([
+      deleteSecureItem(TOKEN_KEY),
+      deleteSecureItem(KULLANICI_KODU_KEY),
+      gibSahibiniSil(),
+    ]);
     // Çıkışta, oturum boyunca üretilen tüm fatura PDF'lerini (kişisel/mali veri
     // içerirler) cihazdan sil. Hata fırlatmaz; çıkışı asla engellemez.
     await eskiFaturaPdfleriniSil(0);

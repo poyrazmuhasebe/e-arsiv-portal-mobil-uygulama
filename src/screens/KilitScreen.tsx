@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Text, useTheme } from 'react-native-paper';
 
 import { useAuthStore } from '../store/useAuthStore';
+import { useHesapStore } from '../store/useHesapStore';
 import { kilidiAcmayiDene, kilitHataMesaji, kilitUygulanamazMi } from '../utils/uygulamaKilidi';
 
 interface Props {
@@ -18,7 +19,18 @@ interface Props {
  */
 export default function KilitScreen({ onAc }: Props) {
   const theme = useTheme();
-  const logout = useAuthStore((s) => s.logout);
+  const gibLogout = useAuthStore((s) => s.logout);
+  const hesaptanCik = useHesapStore((s) => s.hesaptanCik);
+
+  /**
+   * Kilit ekranındaki tek çıkış yolu HER İKİ oturumu da kapatır: telefonu
+   * bulan biri için ara bir durum bırakmanın anlamı yok. Önce GİB, sonra
+   * hesap (sunucuda yenileme token'ı da iptal edilir).
+   */
+  const tumOturumlariKapat = useCallback(async () => {
+    await gibLogout();
+    await hesaptanCik();
+  }, [gibLogout, hesaptanCik]);
 
   const [deneniyor, setDeneniyor] = useState(false);
   const [mesaj, setMesaj] = useState<string | null>(null);
@@ -66,8 +78,8 @@ export default function KilitScreen({ onAc }: Props) {
         <Button mode="contained" icon="lock-open-variant" onPress={dene} loading={deneniyor} disabled={deneniyor} style={styles.buton}>
           Kilidi Aç
         </Button>
-        <Button mode="text" onPress={logout} disabled={deneniyor}>
-          Oturumu Kapat
+        <Button mode="text" onPress={() => void tumOturumlariKapat()} disabled={deneniyor}>
+          Hesaptan Çık
         </Button>
       </View>
     </SafeAreaView>

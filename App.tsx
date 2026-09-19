@@ -14,12 +14,26 @@ import IptalItirazTalepleriScreen from './src/screens/IptalItirazTalepleriScreen
 import KullaniciBilgileriScreen from './src/screens/KullaniciBilgileriScreen';
 import KilitScreen from './src/screens/KilitScreen';
 import AliciDefteriScreen from './src/screens/AliciDefteriScreen';
+import KarsilamaScreen from './src/screens/KarsilamaScreen';
+import HesapKayitScreen from './src/screens/HesapKayitScreen';
+import HesapGirisScreen from './src/screens/HesapGirisScreen';
+import EpostaDogrulaScreen from './src/screens/EpostaDogrulaScreen';
+import SifremiUnuttumScreen from './src/screens/SifremiUnuttumScreen';
+import HukukiMetinScreen from './src/screens/HukukiMetinScreen';
 import { useAuthStore } from './src/store/useAuthStore';
+import { useHesapStore } from './src/store/useHesapStore';
 import { eskiOrtakAliciDefteriniSil } from './src/utils/aliciDefteri';
 import { eskiFaturaPdfleriniSil } from './src/utils/dosyaTemizlik';
 import { kilitGerekliMi, zamanAsimiDolduMu } from './src/utils/uygulamaKilidi';
+import type { HukukiMetinAnahtari } from './src/constants/hukukiMetinler';
 
 export type RootStackParamList = {
+  Karsilama: undefined;
+  HesapKayit: undefined;
+  HesapGiris: undefined;
+  SifremiUnuttum: { eposta?: string } | undefined;
+  HukukiMetin: { metin: HukukiMetinAnahtari };
+  EpostaDogrula: undefined;
   Login: undefined;
   Dashboard: undefined;
   FaturaKesim: undefined;
@@ -31,9 +45,18 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+/** Kilit hem uygulama hesabı hem GİB oturumu için geçerli. */
+function oturumVarMi(): boolean {
+  return (
+    useHesapStore.getState().kullanici !== null || useAuthStore.getState().token !== null
+  );
+}
+
 export default function App() {
   const restoreSession = useAuthStore((s) => s.restoreSession);
+  const oturumuGeriYukle = useHesapStore((s) => s.oturumuGeriYukle);
   const token = useAuthStore((s) => s.token);
+  const hesapKullanicisi = useHesapStore((s) => s.kullanici);
   const [isRestoring, setIsRestoring] = useState(true);
   // Uygulama kilidi (bkz. src/utils/uygulamaKilidi.ts): kayıtlı oturum geri
   // yüklendiğinde ve uzun süre arka planda kaldıktan sonra doğrulama istenir.
@@ -47,14 +70,20 @@ export default function App() {
     eskiFaturaPdfleriniSil();
     (async () => {
       try {
-        await restoreSession();
+        // ÖNCE uygulama hesabı oturumu: GİB oturumunun geri yüklenip
+        // yüklenmeyeceği buna bağlı. restoreSession ARTIK KOŞULSUZ ÇAĞRILMIYOR:
+        // cihazdaki GİB oturumunun sahibi, açık olan uygulama hesabıyla
+        // eşleşmiyorsa (ya da sahipsizse) oturum geri yüklenmez ve silinir.
+        // Bkz. src/utils/gibSahibi.ts, Issue #31.
+        await oturumuGeriYukle();
+        await restoreSession(useHesapStore.getState().kullanici?.id ?? null);
         // Kayıtlı bir oturum geri yüklendiyse, ana ekran görünmeden ÖNCE kilitle.
-        if (useAuthStore.getState().token && (await kilitGerekliMi())) setKilitli(true);
+        if (oturumVarMi() && (await kilitGerekliMi())) setKilitli(true);
       } finally {
         setIsRestoring(false);
       }
     })();
-  }, [restoreSession]);
+  }, [restoreSession, oturumuGeriYukle]);
 
   // Uygulama arka plandan 3 dakikadan uzun sonra dönerse tekrar kilitle.
   useEffect(() => {
@@ -67,7 +96,7 @@ export default function App() {
 
       const gecis = arkaPlanaGecis.current;
       arkaPlanaGecis.current = null;
-      if (!useAuthStore.getState().token || !zamanAsimiDolduMu(gecis, Date.now())) return;
+      if (!oturumVarMi() || !zamanAsimiDolduMu(gecis, Date.now())) return;
       kilitGerekliMi().then((gerekli) => {
         if (gerekli) setKilitli(true);
       });
@@ -75,10 +104,13 @@ export default function App() {
     return () => abonelik.remove();
   }, []);
 
-  // Oturum kapandığında (çıkış/süre dolması) kilit durumu sıfırlanır.
+  // Her iki oturum da kapandığında kilit durumu sıfırlanır.
   useEffect(() => {
-    if (!token) setKilitli(false);
-  }, [token]);
+    if (!token && hesapKullanicisi === null) setKilitli(false);
+  }, [token, hesapKullanicisi]);
+
+  const epostaDogrulandi = hesapKullanicisi?.epostaDogrulandi === true;
+  const kilitGosterilsin = (token !== null || hesapKullanicisi !== null) && kilitli;
 
   // Uygulamanın varsayılan teması: tamamen koyu (Dark Mode). Tek bir
   // PaperProvider burada, en üst katmanda kuruluyor — Login, Dashboard,
@@ -103,13 +135,37 @@ export default function App() {
               accessibilityElementsHidden={kilitli}
             >
               <NavigationContainer theme={NavigationDarkTheme}>
-                {/* Token varlığına göre iki ayrı ekran grubu render ediliyor
-                    (React Navigation'ın önerdiği auth-flow deseni). Token
-                    değiştiğinde (login/logout) yığın otomatik olarak takas edilir,
-                    ekranların kendi içinden manuel navigate/replace çağırmasına
-                    gerek kalmaz. */}
+                {/* Oturum durumuna göre DÖRT ayrı ekran grubu render ediliyor
+                    (React Navigation'ın önerdiği auth-flow deseni). Durum
+                    değiştiğinde yığın otomatik takas edilir, ekranların kendi
+                    içinden manuel navigate/replace çağırmasına gerek kalmaz:
+
+                    1. Uygulama hesabı yok        → Karşılama / Kayıt / Giriş
+                    2. Hesap var, e-posta yok     → E-posta Doğrula (ZORUNLU)
+                    3. Hesap var, GİB oturumu yok → GİB Giriş (bugünkü Login)
+                    4. İkisi de var               → Dashboard grubu
+
+                    Bkz. docs/hesap-sistemi.md → "Ekran durumları". */}
                 <Stack.Navigator screenOptions={{ headerShown: false }}>
-                  {token ? (
+                  {hesapKullanicisi === null ? (
+                    <Stack.Group>
+                      <Stack.Screen name="Karsilama" component={KarsilamaScreen} />
+                      <Stack.Screen name="HesapKayit" component={HesapKayitScreen} />
+                      <Stack.Screen name="HesapGiris" component={HesapGirisScreen} />
+                      <Stack.Screen name="SifremiUnuttum" component={SifremiUnuttumScreen} />
+                      <Stack.Screen name="HukukiMetin" component={HukukiMetinScreen} />
+                    </Stack.Group>
+                  ) : !epostaDogrulandi ? (
+                    <Stack.Group>
+                      <Stack.Screen name="EpostaDogrula" component={EpostaDogrulaScreen} />
+                      <Stack.Screen name="HukukiMetin" component={HukukiMetinScreen} />
+                    </Stack.Group>
+                  ) : token === null ? (
+                    <Stack.Group>
+                      <Stack.Screen name="Login" component={LoginScreen} />
+                      <Stack.Screen name="HukukiMetin" component={HukukiMetinScreen} />
+                    </Stack.Group>
+                  ) : (
                     <Stack.Group>
                       <Stack.Screen name="Dashboard" component={DashboardScreen} />
                       <Stack.Screen name="FaturaKesim" component={FaturaKesimScreen} />
@@ -117,14 +173,13 @@ export default function App() {
                       <Stack.Screen name="IptalItirazTalepleri" component={IptalItirazTalepleriScreen} />
                       <Stack.Screen name="KullaniciBilgileri" component={KullaniciBilgileriScreen} />
                       <Stack.Screen name="AliciDefteri" component={AliciDefteriScreen} />
+                      <Stack.Screen name="HukukiMetin" component={HukukiMetinScreen} />
                     </Stack.Group>
-                  ) : (
-                    <Stack.Screen name="Login" component={LoginScreen} />
                   )}
                 </Stack.Navigator>
               </NavigationContainer>
             </View>
-            {token && kilitli && <KilitScreen onAc={() => setKilitli(false)} />}
+            {kilitGosterilsin && <KilitScreen onAc={() => setKilitli(false)} />}
           </View>
         )}
       </PaperProvider>

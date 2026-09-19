@@ -8,10 +8,16 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_HESAP_API_URL": "https://earsivfatura.poyrazmuhasebe.com"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_HESAP_API_URL": "https://earsivfatura.poyrazmuhasebe.com"
+      }
     }
   },
   "submit": {

@@ -12,6 +12,7 @@ import { Button, Checkbox, Text, TextInput, useTheme } from 'react-native-paper'
 
 import DuyuruKutusu from '../components/DuyuruKutusu';
 import { useAuthStore } from '../store/useAuthStore';
+import { useHesapStore } from '../store/useHesapStore';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '../utils/secureStorage';
 
 // Bu anahtar useAuthStore'un oturum (token) için kullandığı anahtarlardan
@@ -26,6 +27,8 @@ export default function LoginScreen() {
   const theme = useTheme();
   const login = useAuthStore((s) => s.login);
   const isLoading = useAuthStore((s) => s.isLoading);
+  const hesapKullanicisi = useHesapStore((s) => s.kullanici);
+  const hesaptanCik = useHesapStore((s) => s.hesaptanCik);
 
   const [kullaniciKodu, setKullaniciKodu] = useState('');
   const [kullaniciSifresi, setKullaniciSifresi] = useState('');
@@ -51,7 +54,10 @@ export default function LoginScreen() {
     try {
       // Başarılı girişte store'daki token güncellenir; App.tsx bunu
       // dinleyip otomatik olarak Dashboard yığınına geçer (bkz. App.tsx).
-      await login(kullaniciKodu.trim(), kullaniciSifresi);
+      // GİB oturumunun SAHİBİ olarak açık uygulama hesabının kimliği de
+      // cihaza yazılır; böylece bu oturum başka bir hesaba geri yüklenemez
+      // (bkz. src/utils/gibSahibi.ts, Issue #31).
+      await login(kullaniciKodu.trim(), kullaniciSifresi, hesapKullanicisi?.id ?? '');
 
       if (kullaniciKoduHatirla) {
         await setSecureItem(HATIRLANAN_KULLANICI_KODU_KEY, kullaniciKodu.trim());
@@ -67,6 +73,15 @@ export default function LoginScreen() {
           : 'Giriş yapılamadı. Lütfen kullanıcı kodu ve şifrenizi kontrol edin.';
       Alert.alert('Giriş Başarısız', message);
     }
+  };
+
+  // "Hesaptan çık" ile "GİB oturumunu kapat" AYRI eylemlerdir. Burada GİB
+  // oturumu zaten yok; yalnızca uygulama hesabı kapatılır.
+  const handleHesaptanCik = () => {
+    Alert.alert('Hesaptan çık', 'Uygulama hesabınızdan çıkmak istediğinize emin misiniz?', [
+      { text: 'İptal', style: 'cancel' },
+      { text: 'Çık', style: 'destructive', onPress: () => void hesaptanCik() },
+    ]);
   };
 
   return (
@@ -95,7 +110,7 @@ export default function LoginScreen() {
           <View style={styles.form}>
             <TextInput
               mode="outlined"
-              label="Kullanıcı Kodu"
+              label="GİB Kullanıcı Kodu"
               value={kullaniciKodu}
               onChangeText={setKullaniciKodu}
               autoCapitalize="none"
@@ -151,10 +166,25 @@ export default function LoginScreen() {
             </Button>
 
             <Text variant="bodySmall" style={styles.disclaimer}>
-              Bu uygulama GİB'in resmi bir ürünü değildir; kullanıcı kodu ve şifreniz
-              yalnızca cihazınızdan doğrudan e-Arşiv portalına gönderilir. Şifreniz
-              cihazda saklanmaz; her girişte yeniden girmeniz gerekir.
+              Bu uygulama GİB'in resmi bir ürünü değildir. GİB kullanıcı kodunuz,
+              şifreniz ve fatura verileriniz yalnızca cihazınızdan DOĞRUDAN e-Arşiv
+              portalına gider; hesap sunucumuza ya da başka bir üçüncü tarafa hiçbir
+              koşulda gönderilmez. GİB şifreniz cihazda da saklanmaz; her girişte
+              yeniden girmeniz gerekir.{'\n\n'}
+              Uygulama hesabınız (e-posta, kullanıcı adı, şifre özeti) ayrıdır ve
+              Cloudflare'de, Avrupa Birliği'nde saklanır.
             </Text>
+
+            <Button
+              mode="text"
+              onPress={handleHesaptanCik}
+              disabled={isLoading}
+              style={styles.hesapCikis}
+            >
+              {hesapKullanicisi === null
+                ? 'Hesaptan çık'
+                : `Hesaptan çık (${hesapKullanicisi.kullaniciAdi})`}
+            </Button>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -163,6 +193,7 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  hesapCikis: { marginTop: 4 },
   safeArea: { flex: 1 },
   flex: { flex: 1 },
   scrollContent: {

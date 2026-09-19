@@ -1,16 +1,18 @@
 # e-Arşiv Portal Mobil Uygulama
 
-Mali müşavirlerin mükelleflerinin GİB e-Arşiv Portal üzerinden kendi hesaplarıyla e-Arşiv faturası kesebilmesi için geliştirilen, sunucusuz (backend gerektirmeyen) React Native (Expo) mobil uygulaması.
+Mali müşavirlerin mükelleflerinin GİB e-Arşiv Portal üzerinden kendi hesaplarıyla e-Arşiv faturası kesebilmesi için geliştirilen React Native (Expo) mobil uygulaması.
 
 ## ⚠️ Önemli Uyarılar
 
 - **Bu uygulama GİB'in resmi bir ürünü değildir.** Portalın resmî/yayınlanmış bir REST API'si yoktur; uygulama, portalın kendi web arayüzünün kullandığı iç servislere doğrudan istek atar ve GİB bunları haber vermeden değiştirebilir.
-- Kullanıcı kodu ve şifre yalnızca cihazdan doğrudan GİB sunucularına gönderilir, hiçbir üçüncü taraf sunucuya gitmez.
+- **GİB tarafı sunucusuzdur:** GİB kullanıcı kodu, şifre, oturum bilgisi, VKN/TCKN, unvan, fatura içerikleri ile alıcı ve mal/hizmet defterleri yalnızca cihaz ile GİB arasında kalır. Bunların hiçbiri Cloudflare'e ya da başka bir üçüncü tarafa **gitmez**. GİB şifresi cihazda da saklanmaz.
+- **Uygulama hesabı tarafı sunucusuz DEĞİLDİR.** Uygulamayı kullanmak için bir hesap gerekir; e-posta, uygulama kullanıcı adı ve şifre **Cloudflare'e gönderilir**. Şifre orada geri döndürülemez biçimde özetlenir ve veritabanında **yalnızca özeti saklanır**. Her istekte IP adresi gibi bağlantı bilgileri Cloudflare'e ulaşır. Cloudflare yeni bir üçüncü taraftır ve veri **yurt dışında** (Avrupa Birliği) durur. Ayrıntı: [docs/hesap-sistemi.md](docs/hesap-sistemi.md), [docs/hukuk/](docs/hukuk/).
 - **Canlı bir e-Arşiv faturası kesmek/imzalamak gerçek, geri alınması zor bir mali işlemdir.** Doğrulanmamış uçları (bkz. [docs/gib-api-durumu.md](docs/gib-api-durumu.md)) üretime almadan önce mutlaka küçük/kontrollü bir gerçek denemeyle doğrulayın.
 
 ## Özellikler
 
-- GİB e-Arşiv Portal kullanıcı kodu/şifresiyle giriş, güvenli çıkış; şifre cihazda hiçbir koşulda saklanmaz
+- **Uygulama hesabı:** e-posta + uygulama kullanıcı adı + şifre ile kayıt, e-posta doğrulama (6 haneli kod), şifremi unuttum; hesap oturumu ile GİB oturumu ayrı ayrı kapatılabilir
+- GİB e-Arşiv Portal kullanıcı kodu/şifresiyle giriş; GİB şifresi cihazda hiçbir koşulda saklanmaz
 - Fatura kesim formu: VKN/TCKN'den otomatik alıcı bilgisi (kontrol basamağı doğrulamalı), irsaliye, çok kalemli mal/hizmet, iskonto, KDV ve KDV tevkifatı (52 kod), seçilen para biriminin simgesiyle anlık toplamlar
 - Hesaba özel **Alıcı Defteri** ve **Kayıtlı Mal/Hizmet** defteri (yalnızca cihazda, şifreli)
 - Taslak/kesilen faturalar: tarih aralığıyla sorgulama, görüntüleme, PDF indirme/paylaşma, taslak silme, **SMS ile GİB İmza**, iptal talebi oluşturma

@@ -21,6 +21,74 @@ Telefon bağlanamazsa: `npx expo start -c --tunnel`
 hatırlanmışsa). Aşağıdaki "GİB gerekmez" bölümündeki adımlar yalnızca cihazdaki
 veriyle çalışır.
 
+## 2026-09-20 — Uygulama hesabı sistemi
+
+**Hiçbiri henüz telefonda denenmedi.** Aşağıdaki adımların bir kısmı yerel
+Worker, bir kısmı deploy edilmiş Worker gerektirir.
+
+### Yerel Worker gerekir (telefon ile PC aynı Wi-Fi'de)
+
+Hazırlık: `worker/.dev.vars.example` dosyasını `.dev.vars` adıyla kopyalayın,
+`worker/` içinde `npx wrangler d1 migrations apply earsiv-hesap --local` ve
+`npx wrangler dev --ip 0.0.0.0 --port 8787` çalıştırın. Kök dizinde
+`.env.local` dosyasına `EXPO_PUBLIC_HESAP_API_URL=http://<PC-IP>:8787` yazın
+(IP'yi `ipconfig` ile bulun). Windows Güvenlik Duvarı sorunca yalnızca
+**"Özel ağ"** işaretleyin.
+
+- [ ] **Karşılama ekranı** — uygulama artık GİB giriş ekranıyla değil,
+  "Kayıt Ol" / "Giriş Yap" ile açılıyor.
+- [ ] **Kayıt Ol** — e-posta, Uygulama Kullanıcı Adı ve şifre ile hesap
+  açılıyor; alan hataları anlaşılır.
+- [ ] **Yalnızca rakamlı kullanıcı adı reddediliyor** — ör. `34567890`
+  yazınca "en az bir harf içermeli" uyarısı çıkıyor ve **istek gitmiyor**
+  (`wrangler dev` konsolunda istek görünmemeli).
+- [ ] **Hatırlanan GİB kodu çakışması** — daha önce "Kullanıcı Kodunu Hatırla"
+  ile kaydedilmiş GİB kodunu kullanıcı adı alanına yazınca "Bu, GİB kullanıcı
+  kodunuz" uyarısı çıkıyor ve **istek gitmiyor**.
+- [ ] **E-posta Doğrula** — 6 haneli kod ekranı geliyor; yerel Worker'da kod
+  ekranda "Yerel geliştirme: kod ######" olarak da görünüyor.
+- [ ] **Yanlış kod** reddediliyor, doğru kod kabul ediliyor ve GİB giriş
+  ekranına geçiliyor.
+- [ ] **Kodu yeniden gönder** 60 saniyelik geri sayımla çalışıyor.
+- [ ] **Giriş Yap** — çıkıp aynı hesapla tekrar giriliyor.
+- [ ] **Şifremi unuttum** — iki adımlı akış çalışıyor; yeni şifreyle giriş
+  yapılıyor, eski şifre reddediliyor.
+- [ ] **Hukuki metinler** — kayıt ekranındaki üç bağlantı açılıyor,
+  metinlerin başında "TASLAK" uyarısı görünüyor.
+- [ ] **Sunucu kapalıyken** — `wrangler dev`'i durdurup giriş denenince
+  "Hesap sunucusuna ulaşılamadı" mesajı çıkıyor, uygulama çökmüyor.
+
+### GİB gerekir (+ yerel Worker)
+
+- [ ] **GİB giriş ekranı** — etiket artık "GİB Kullanıcı Kodu"; duyuru kutusu
+  hâlâ burada; uyarı metni yeni hâliyle görünüyor.
+- [ ] **"Hesaptan çık" düğmesi** GİB giriş ekranının altında görünüyor ve
+  Karşılama ekranına dönüyor.
+- [ ] **GİB girişi çalışıyor** ve Dashboard'a geçiliyor.
+- [ ] **İki ayrı çıkış** — Dashboard'daki çıkış düğmesi "GİB oturumunu kapat"
+  ve "Hesaptan çık" seçenekleri sunuyor.
+- [ ] **"GİB oturumunu kapat"** GİB giriş ekranına dönüyor, uygulama hesabı
+  **açık kalıyor**.
+- [ ] **"Hesaptan çık"** Karşılama ekranına dönüyor.
+- [ ] **Defterler korunuyor** — her iki çıkıştan sonra da aynı GİB hesabına
+  tekrar girince alıcı defteri ve kayıtlı mal/hizmet adları yerinde.
+- [ ] **Hatırlanan GİB kodu korunuyor** — çıkıştan sonra GİB giriş formu yine
+  dolu geliyor.
+- [ ] **Uygulama kilidi** — hesap oturumu açık ama GİB kapalıyken de kilit
+  ekranı geliyor; kilit ekranındaki düğme artık "Hesaptan Çık".
+- [ ] **Sahipsiz GİB oturumu siliniyor** — güncellemeden önce girilmiş bir
+  cihazda ilk açılışta GİB oturumu geri yüklenmiyor, GİB kodu formda kalıyor.
+
+### Deploy edilmiş Worker gerekir
+
+- [ ] **Gerçek e-posta geliyor** — kayıt sonrası doğrulama kodu gerçekten
+  e-posta ile ulaşıyor (Cloudflare Email Sending **beta**, hiç denenmedi).
+- [ ] **Şifre sıfırlama e-postası** ulaşıyor.
+- [ ] **HTTPS ile çalışıyor** — `.env.local` kaldırılıp
+  `https://earsivfatura.poyrazmuhasebe.com` ile deneniyor.
+- [ ] **EAS preview APK** ile uçtan uca çalışıyor (APK yerel `http://`
+  adrese bağlanamaz, yalnızca deploy edilmiş Worker ile denenebilir).
+
 ## 2026-09-19 oturumu
 
 ### GİB gerekmez

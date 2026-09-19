@@ -25,7 +25,8 @@ declare module 'node:assert/strict' {
     match(deger: string, desen: RegExp, mesaj?: string): void;
     doesNotMatch(deger: string, desen: RegExp, mesaj?: string): void;
     fail(mesaj?: string): never;
-    rejects(islem: Promise<unknown> | (() => Promise<unknown>), beklenen?: RegExp | object, mesaj?: string): Promise<void>;
+    rejects(islem: Promise<unknown> | (() => Promise<unknown>), beklenen?: RegExp | object | ((hata: unknown) => boolean), mesaj?: string): Promise<void>;
+    throws(islem: () => unknown, beklenen?: RegExp | object, mesaj?: string): void;
   }
   const assert: Assert;
   export default assert;

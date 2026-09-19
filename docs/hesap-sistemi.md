@@ -1,11 +1,13 @@
 # Uygulama Hesabı Sistemi
 
-> **DURUM: SUNUCU TARAFI YAZILDI, UYGULAMA TARAFI HENÜZ YOK.**
-> **(b) aşaması tamamlandı:** `worker/` klasörü, D1 şeması ve hesap uçları
-> yazıldı ve yerelde çalışıyor. **Uygulama tarafı henüz yok:** Kayıt Ol /
-> Giriş Yap ekranları ve `hesap_*` SecureStore anahtarları yazılmadı, uygulama
-> hâlâ doğrudan GİB giriş ekranıyla açılıyor ve Worker'a hiçbir istek atmıyor.
-> Worker **hiçbir yere deploy edilmedi**.
+> **DURUM: KOD YAZILDI, HENÜZ DEPLOY EDİLMEDİ VE CİHAZDA DENENMEDİ.**
+> (a), (b) ve (c) aşamaları tamamlandı: `worker/` klasörü, D1 şeması, hesap
+> uçları, uygulama tarafındaki store, istemci ve ekranlar yazıldı; her şey
+> yerelde çalışıyor ve testlerden geçiyor.
+> **Kalanlar:** Worker **hiçbir yere deploy edilmedi**, D1 veritabanı
+> **oluşturulmadı**, e-posta gönderimi **hiç denenmedi** ve hiçbir ekran
+> **telefonda görülmedi**. Sonraki aşamalar: (d) hesap silme, (e) sosyal
+> girişler.
 > Takip: [Issue #26](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/26).
 
 ## Neden bu dosya var
@@ -522,7 +524,7 @@ bağlı parametre, en fazla 100 KB SQL, satır/BLOB en fazla 2 MB.
 |---|---|---|
 | **(a)** | Bu dosya + `docs/README.md` satırı + hukuki taslaklar | ✅ yapıldı |
 | **(b)** | `worker/` iskeleti + D1 migration + kayıt/giriş/oturum + e-posta doğrulama + şifre sıfırlama + oran sınırlama + testler | ✅ yapıldı |
-| **(c)** | Uygulama tarafı: store, istemci, ekranlar, navigasyon, `hesap_gib_sahibi`, iki çıkış, kilit. **İlke değişikliği dokümanları aynı commit'te** | ⬜ |
+| **(c)** | Uygulama tarafı: store, istemci, ekranlar, navigasyon, `hesap_gib_sahibi`, iki çıkış, kilit. **İlke değişikliği dokümanları aynı commit'te** | ✅ yapıldı |
 | **(d)** | Hesap silme: uygulama içi + herkese açık web sayfası | ⬜ |
 | **(e)** | Sosyal girişler, sağlayıcı sağlayıcı — **yalnızca ayrı onayla** | ⬜ |
 
