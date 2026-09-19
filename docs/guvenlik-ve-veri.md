@@ -60,6 +60,24 @@ log'una/`adb logcat`'e hiçbir şey yazılmaz. Geliştirme derlemesinde bile:
 > dağıtmayın/kullanmayın (bkz.
 > [Issue #15](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/15)).
 
+## Android izinleri
+
+Uygulama yalnızca `INTERNET` (GİB'e bağlanmak) ve `VIBRATE` izinlerini
+istiyor (`USE_BIOMETRIC`/`USE_FINGERPRINT`, `expo-secure-store`'un kendi
+bağımlılığı olarak manifest'e giriyor). `app.json`'daki
+`android.blockedPermissions` ile şu izinler **kaldırılıyor** (kütüphane
+manifest'lerinden birleştirilen ya da Expo varsayılanı olarak eklenen, ama
+uygulamanın hiç kullanmadığı izinler):
+
+- `SYSTEM_ALERT_WINDOW` — diğer uygulamaların üstüne katman çizme; ekran
+  üstü sahte arayüz (tapjacking) saldırılarına zemin hazırlayabilen bir izin.
+- `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE` — PDF kaydı
+  `StorageAccessFramework` ile (kullanıcının seçtiği klasöre) ve uygulamanın
+  kendi dizinine yapıldığı için gerekmiyor.
+
+> Not: `blockedPermissions` Expo Go'da uygulanmaz; yalnızca EAS ile alınan
+> gerçek (APK/AAB) derlemede etkilidir.
+
 ## Repo güvenliği
 
 - Repo **private**.
