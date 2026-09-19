@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Appbar, Button, useTheme } from 'react-native-paper';
+import { Appbar, Button, Text, useTheme } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
 import { faturaKaydet, gibHatasiniIsle } from '../services/gibApi';
 import { useAuthStore } from '../store/useAuthStore';
 import { aliciKaydet } from '../utils/aliciDefteri';
-import { faturaOzetiHesapla, kalemHesapla, parseNumara } from '../utils/faturaHesap';
+import { faturaOzetiHesapla, kalemHesapla, kalemlerAralikHatasi, parseNumara } from '../utils/faturaHesap';
 import { vknTcknGecerliMi } from '../utils/kimlikDogrula';
 import {
   VARSAYILAN_BIRIM,
@@ -112,7 +112,9 @@ export default function FaturaKesimScreen({ navigation }: Props) {
       return k.malHizmet.trim().length > 0 && miktar > 0 && birimFiyat > 0;
     });
 
-  const formGecerli = aliciGecerli && kalemlerGecerli;
+  const kalemAralikHatasi = kalemlerAralikHatasi(form.kalemler);
+
+  const formGecerli = aliciGecerli && kalemlerGecerli && !kalemAralikHatasi;
 
   const handleOlustur = async () => {
     if (!formGecerli || !token || kaydediliyor) return;
@@ -219,6 +221,12 @@ export default function FaturaKesimScreen({ navigation }: Props) {
           />
 
           <ToplamlarKarti ozet={ozet} not={form.not} onNotChange={(v) => setForm((p) => ({ ...p, not: v }))} />
+
+          {kalemAralikHatasi && (
+            <Text variant="bodySmall" style={{ color: theme.colors.error, marginTop: 12, textAlign: 'center' }}>
+              {kalemAralikHatasi}
+            </Text>
+          )}
 
           <Button
             mode="contained"

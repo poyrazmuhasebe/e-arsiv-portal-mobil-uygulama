@@ -138,6 +138,15 @@ Ad+Soyad + Adres dolu) ve kalemler (her kalemde Mal/Hizmet adı + miktar>0 +
 birim fiyat>0) kontrolüyle belirlenir; "Oluştur" butonu bu koşul
 sağlanmadan aktif olmaz.
 
+**Sayı girdileri (miktar, birim fiyat, iskonto, döviz kuru)** yalnızca rakam ve
+tek bir ondalık ayraç (nokta ya da virgül) kabul eder (`parseNumara`,
+`src/utils/faturaHesap.ts`). JavaScript'in `Number()`'ının kabul ettiği
+`0x10`, `0b11`, `1e3`, `-5` gibi girdiler reddedilir (0 sayılır).
+Ayrıca `kalemlerAralikHatasi` şu sınırları uygular ve ihlalde "Oluştur"
+düğmesinin altında kırmızı bir uyarı gösterir: **iskonto 0–100**, **miktar en
+fazla 1.000.000.000**, **birim fiyat en fazla 10.000.000.000**. Boş alanlar bu
+uyarıyı tetiklemez (onları zorunlu-alan kontrolü yakalar).
+
 **"Oluştur"a basıldığında** ne olduğu için bkz.
 [gib-entegrasyonu.md](gib-entegrasyonu.md#faturakaydet-fatura-oluşturma-akışı).
 
