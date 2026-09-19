@@ -28,17 +28,44 @@ export const sahteDepo = {
   veriler: new Map<string, string>(),
   /** Doluysa setItemAsync bu hatayı fırlatır (ör. boyut sınırı benzetimi). */
   yazmaHatasi: null as Error | null,
+  /** Doluysa getItemAsync bu hatayı fırlatır (ör. Keystore çözme hatası). */
+  okumaHatasi: null as Error | null,
+  /** Sayıysa, o kadar okuma başarılı olur, sonrakiler hata fırlatır (null: sınırsız). */
+  okumaHakki: null as number | null,
+  /**
+   * Uygulamanın yarıda kapanması benzetimi: sayıysa, o kadar yazma/silme
+   * başarılı olur, sonrakilerin HEPSİ hata fırlatır (null: sınırsız).
+   */
+  islemHakki: null as number | null,
+  /** Gerçekleşen işlem sayıları (performans/maliyet ölçümü için). */
+  sayac: { okuma: 0, yazma: 0, silme: 0 },
 };
+
+function islemHakkiKullan(): void {
+  if (sahteDepo.islemHakki === null) return;
+  if (sahteDepo.islemHakki <= 0) throw new Error('kesinti (uygulama kapandı)');
+  sahteDepo.islemHakki--;
+}
 
 const secureStoreSahtesi = {
   async getItemAsync(anahtar: string): Promise<string | null> {
+    if (sahteDepo.okumaHatasi) throw sahteDepo.okumaHatasi;
+    if (sahteDepo.okumaHakki !== null) {
+      if (sahteDepo.okumaHakki <= 0) throw new Error('okunamadı');
+      sahteDepo.okumaHakki--;
+    }
+    sahteDepo.sayac.okuma++;
     return sahteDepo.veriler.get(anahtar) ?? null;
   },
   async setItemAsync(anahtar: string, deger: string): Promise<void> {
     if (sahteDepo.yazmaHatasi) throw sahteDepo.yazmaHatasi;
+    islemHakkiKullan();
+    sahteDepo.sayac.yazma++;
     sahteDepo.veriler.set(anahtar, deger);
   },
   async deleteItemAsync(anahtar: string): Promise<void> {
+    islemHakkiKullan();
+    sahteDepo.sayac.silme++;
     sahteDepo.veriler.delete(anahtar);
   },
 };
@@ -143,6 +170,10 @@ export function sahteleriSifirla(): void {
   sahtePlatform.OS = 'android';
   sahteDepo.veriler.clear();
   sahteDepo.yazmaHatasi = null;
+  sahteDepo.okumaHatasi = null;
+  sahteDepo.okumaHakki = null;
+  sahteDepo.islemHakki = null;
+  sahteDepo.sayac = { okuma: 0, yazma: 0, silme: 0 };
   sahteAxios.istekler = [];
   sahteAxios.isleyici = beklenmeyenIstek;
   sahteDosyaSistemi.documentDirectory = 'file:///belgeler/';

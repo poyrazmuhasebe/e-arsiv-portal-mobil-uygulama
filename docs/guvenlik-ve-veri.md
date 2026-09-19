@@ -16,8 +16,9 @@ sunucuya **gitmez**.
 | `gib_kullanici_kodu` | Kullanıcı kodu (şifre değil) | Aynı, token ile birlikte |
 | `gib_hatirlanan_kullanici_kodu` | Login formunu önceden doldurmak için kullanıcı kodu | `LoginScreen` — "Kullanıcı Kodunu Hatırla" işaretliyse, **çıkış yapılsa bile** kalır |
 | ~~`gib_hatirlanan_sifre`~~ | **Artık kullanılmıyor.** v1.0.0'da "Şifreyi Hatırla" ile kaydedilen şifre | `LoginScreen` açılışta bu anahtarı **siler** (eski kurulumlardan göç) |
-| `gib_alici_defteri_<kullanıcı kodu>` | O hesaba özel, en fazla 50 kayıtlı alıcı (JSON dizi). Anahtardaki kod, karakter kodlarının onaltılık gösterimidir (`hesapAnahtari.ts`) | `aliciDefteri.ts` — bir fatura başarıyla oluşturulunca otomatik eklenir/güncellenir; "Alıcı Defteri" ekranından adres/ülke düzenlenir, silinir, elle eklenir. **Defter hesaplar arasında paylaşılmaz**: birden fazla mükellefin hesabına giren bir mali müşavir yalnızca o hesabın alıcılarını görür |
-| `gib_malhizmet_defteri_<kullanıcı kodu>` | O hesaba özel, en fazla 50 mal/hizmet **adı** (JSON metin dizisi, en son kullanılan başta). Anahtar alıcı defteriyle aynı biçimde üretilir | `malHizmetDefteri.ts` — fatura başarıyla oluşturulunca kalem adları eklenir; fatura formundaki "Kayıtlı Mal/Hizmet Seç" diyaloğundan silinir. Hesaplar arasında paylaşılmaz |
+| `gib_alici_dizin_<kullanıcı kodu>` + `gib_alici_kayit_<kullanıcı kodu>_<yuva>` | O hesaba özel, en fazla 50 kayıtlı alıcı: **her alıcı ayrı bir anahtarda** (tek kaydın JSON'u), sırayı küçük bir dizin anahtarı tutar (bkz. aşağıda "Parçalı saklama"). Anahtardaki kod, karakter kodlarının onaltılık gösterimidir (`hesapAnahtari.ts`) | `aliciDefteri.ts` → `bolunmusDefter.ts` — bir fatura başarıyla oluşturulunca otomatik eklenir/güncellenir; "Alıcı Defteri" ekranından adres/ülke düzenlenir, silinir, elle eklenir. **Defter hesaplar arasında paylaşılmaz**: birden fazla mükellefin hesabına giren bir mali müşavir yalnızca o hesabın alıcılarını görür |
+| `gib_malhizmet_dizin_<kullanıcı kodu>` + `gib_malhizmet_kayit_<kullanıcı kodu>_<yuva>` | O hesaba özel, en fazla 50 mal/hizmet **adı** (her ad ayrı anahtarda, en son kullanılan başta). Anahtarlar alıcı defteriyle aynı biçimde üretilir | `malHizmetDefteri.ts` → `bolunmusDefter.ts` — fatura başarıyla oluşturulunca kalem adları eklenir; fatura formundaki "Kayıtlı Mal/Hizmet Seç" diyaloğundan silinir. Hesaplar arasında paylaşılmaz |
+| ~~`gib_alici_defteri_<kullanıcı kodu>`~~, ~~`gib_malhizmet_defteri_<kullanıcı kodu>`~~ | **Artık kullanılmıyor.** Önceki sürümün hesaba özel ama TEK değerli defterleri (JSON dizi) | Defterin ilk okunmasında/yazılmasında yeni biçime **taşınır**, taşıma doğrulanınca silinir (bkz. "Eski biçimden taşıma") |
 | `gib_kapatilan_duyurular` | Giriş ekranında kapatılan GİB duyurularının kimlikleri (JSON dizi; kişisel veri yok, hesaba özel değil) | `src/utils/duyuru.ts` — × ile kapatınca eklenir; yalnızca hâlâ tanımlı duyuruların kimlikleri tutulur |
 | ~~`gib_alici_defteri`~~ | **Artık kullanılmıyor.** Eski sürümlerdeki, tüm hesapların paylaştığı ortak defter | Uygulama her açılışta bu anahtarı **siler** (kime ait olduğu bilinemediğinden başka bir hesaba taşınamaz) |
 
@@ -33,26 +34,109 @@ formunu önceden doldurmak**. Kullanıcı çıkış yapsa bile ikinci grup silin
 Expo SDK 57 dokümanı SecureStore için sabit bir boyut sınırı **belgelemiyor**;
 yalnızca büyük değerlerin işletim sistemi tarafından reddedilebileceğini ve
 bazı iOS sürümlerinin tarihsel olarak ~2048 baytın üstünü reddettiğini
-belirtiyor. Bu projede bu sınır **varsayılmıyor**, ölçülen boyutlar şunlar
-(UTF-8, `JSON.stringify` çıktısı; Türkçe harfler 2 bayt):
+belirtiyor. Anahtar **sayısı** için de bir sınır belgelenmiyor. Bu projede
+ikisi de **varsayılmıyor**.
 
-| Defter | Tek kayıt | 50 kayıt |
-|---|---|---|
-| Alıcı (tipik: 45 karakter unvan, 55 karakter adres) | ~269 B | ~13,5 KB |
-| Alıcı (uç: 150 karakter unvan, 250 karakter adres) | ~962 B | ~48 KB |
-| Mal/hizmet adı (tipik: 30 karakter) | ~37 B | ~1,85 KB |
-| Mal/hizmet adı (uç: 200 Türkçe harf) | ~402 B | ~20 KB |
+Önceki sürümde her defter TEK bir değerde JSON dizi olarak duruyordu; dolu bir
+alıcı defteri ~13,5 KB (uçta ~48 KB) ile o tarihsel iOS rakamının çok
+üstündeydi. Artık defterler **kayıt başına ayrı anahtara bölünüyor**; hiçbir
+değer defterin toplam boyutuna bağlı değil. Ölçülen boyutlar (UTF-8,
+`JSON.stringify` çıktısı; Türkçe harfler 2 bayt; `npm test` altyapısıyla 50
+kayıtlık dolu defterde ölçüldü):
 
-Mal/hizmet defterinde bu yüzden kayıt tarihi gibi ek alanlar tutulmuyor,
-yalnızca adlar saklanıyor (tarihle nesne olarak saklamak tipik 50 kaydı
-~4,2 KB'a çıkarıyordu; sıra zaten dizideki konumla korunuyor).
+| Defter | En büyük tek değer | Dizin değeri | Eski biçimde (tek değer) |
+|---|---|---|---|
+| Alıcı (tipik: 45 karakter unvan, 55 karakter adres) | 269 B | 160 B | 13,5 KB |
+| Alıcı (uç: 150 karakter unvan, 250 karakter adres, tümü Türkçe harf) | 955 B | 160 B | 47,8 KB |
+| Mal/hizmet adı (tipik: 30 karakter) | 37 B | 160 B | 1,9 KB |
+| Mal/hizmet adı (uç: 200 Türkçe harf) | 399 B | 160 B | 20 KB |
 
-Yani dolu bir alıcı defteri o tarihsel iOS rakamının çok üstünde. **Hangi
-cihaz/işletim sisteminde kabul edildiği doğrulanmadı.** Bu yüzden
-`setSecureItem` artık yazmanın başarılı olup olmadığını döndürüyor (önceden
-hatayı sessizce yutuyordu) ve defter ekranları, reddedilen bir yazmayı
-kullanıcıya "Kaydedilemedi" diye bildiriyor. Bir cihazda bu uyarı görülürse
-kayıtların parçalara bölünerek saklanması gerekecek.
+Dizin değeri en kötü durumda (yarım kalmış bir yazmadan sonra temizlenecek
+yuvalar da listelenirken) ~310 B'ı geçmez. En büyük tek değer artık **tek bir
+uç alıcı kaydı** (~1 KB): o tarihsel iOS rakamının altında, ama bir kaydın
+kendisi (ör. çok uzun bir adres) bir cihazın kabul ettiğinden büyükse yine
+reddedilebilir. **Gerçek cihazda hangi boyutun kabul edildiği hâlâ
+doğrulanmadı.** `setSecureItem` yazmanın başarılı olup olmadığını döndürür ve
+defter ekranları reddedilen bir yazmayı kullanıcıya "Kaydedilemedi" diye
+bildirir; reddedilen bir yazmada defter bir önceki hâlinde kalır.
+
+Mal/hizmet defterinde kayıt tarihi gibi ek alanlar tutulmuyor, yalnızca adlar
+saklanıyor; sıra dizindeki konumla korunuyor.
+
+### Parçalı saklama (`src/utils/bolunmusDefter.ts`)
+
+Her defter, hesap başına bir **dizin** ve kayıt başına bir **kayıt** anahtarından
+oluşur (`<hex>`: kullanıcı kodunun onaltılık gösterimi, yalnızca `[0-9a-f-]`):
+
+- `gib_alici_dizin_<hex>` → `{"v":1,"k":[3,0,7,…],"t":[]}` — `k`: liste
+  sırasıyla kayıtların yuva numaraları; `t`: veri içerebilecek ama artık
+  listede olmayan (temizlenecek) yuvalar.
+- `gib_alici_kayit_<hex>_<yuva>` → tek bir kaydın JSON'u. Yuva 0…99
+  (2×50): dizindeki en fazla 50 yuvaya dokunmadan tek seferde 50 yeni kayıt
+  yazılabilsin diye. Hesap başına defter başına en fazla 100 anahtar, sabit
+  durumda 50 + 1.
+- Mal/hizmet defteri aynı biçimde: `gib_malhizmet_dizin_<hex>`,
+  `gib_malhizmet_kayit_<hex>_<yuva>`.
+
+Şifreleme değişmedi: hepsi `expo-secure-store` değeridir (Android'de Keystore
+ile şifreli `SharedPreferences`, iOS'ta Keychain). Şifresiz dosya ya da
+veritabanı yok; yeni bağımlılık yok. Değerlendirilen alternatifler:
+`expo-sqlite` Expo Go'da yalnızca şifresiz çalışıyor (SQLCipher Expo Go'da
+desteklenmiyor, SDK 57 dokümanı); `expo-crypto` + dosya ile şifreli tek dosya
+yeni bağımlılık ve uygulamanın kendi anahtar yönetimini gerektirdiği için
+seçilmedi.
+
+**Yarım yazma güvenliği.** Bir işlem (ekle/güncelle/sil) şu sırayla yazar:
+(1) yazılacak yeni yuvalar dizinin `t`'sine eklenir, (2) yeni/değişen kayıtlar
+mevcut dizinin **kullanmadığı** yuvalara yazılır, (3) yeni dizin yazılır —
+kesinleştirme anı budur, (4) artık kullanılmayan yuvalar silinir ve `t`
+boşaltılır. Değişmeyen kayıtlara dokunulmaz. Uygulama herhangi bir adımda
+kapanırsa okunan defter ya tamamen eski ya tamamen yeni hâlidir; arada kalan
+sahipsiz anahtarlar `t`'de kayıtlı olduğundan bir sonraki yazmada silinir.
+SecureStore anahtarları listeleyemediği için sahipsizler böyle **kesin
+olarak** izleniyor; 100 yuvanın hepsi hiçbir zaman taranmaz (Android'de her
+silme diske senkron yazar). Aynı defter üzerindeki işlemler uygulama içinde
+sırayla çalışır (aynı anda iki kayıt aynı boş yuvayı paylaşmaz).
+
+**Okuma hatası ≠ boş defter.** Bir değer okunamazsa (ör. Keystore çözme
+hatası) yazma yapılmaz ve işlem `false` döner ("Kaydedilemedi"); okunamayan
+kaydın üzerine yazılıp kaybolması önlenir. Bozuk (JSON'u okunamayan) tek bir
+kayıt listede atlanır, anahtarı bir sonraki yazmada silinir. Dizin bozuksa
+defter boş görünür (önceki sürümde bozuk defterin davranışı da buydu) ve
+bir sonraki yazma eski yuvaların hepsini temizler.
+
+**İşlem maliyeti** (SecureStore çağrısı, 50 kayıtlı dolu defterde, testte
+sayıldı): listeyi okumak 52 okuma (eski biçim kontrolü + dizin + 50 kayıt,
+paralel istenir); alıcı ekleme/güncelleme/adres düzenleme 52 okuma + 4 yazma +
+1 silme; silme 52 okuma + 2 yazma + 1 silme. Önceki biçimde bunlar 1–2 okuma +
+1 yazmaydı. **Cihazda ne kadar sürdüğü ölçülmedi** (bkz.
+[cihazda-denenecekler.md](cihazda-denenecekler.md)).
+
+### Eski biçimden taşıma
+
+Bir defterin her okunmasında/yazılmasında önce eski tek değerli anahtar
+(`gib_alici_defteri_<hex>` / `gib_malhizmet_defteri_<hex>`) okunur; yoksa
+(normal durum) tek bir okumaya mal olur. Varsa:
+
+1. Eski liste çözülür (geçersiz öğeler atlanır, en fazla 50).
+2. Kayıtlar 0, 1, 2… yuvalarına yazılır, sonra dizin yazılır.
+3. Dizin ve kayıtlar **geri okunup** eski listeyle karşılaştırılır.
+4. **Ancak eşleşirse** eski anahtar silinir. Eşleşmezse dizin silinir, eski
+   anahtar yerinde kalır ve taşıma bir sonraki erişimde baştan denenir.
+
+Taşıma yarıda kesilirse eski anahtar yerinde olduğu için veri kaybolmaz:
+dizin yazılmadan kesildiyse bir sonraki erişim taşımayı baştan yapar (aynı
+yuvalara aynı içerik); dizin yazılıp eski anahtar silinmeden kesildiyse bir
+sonraki erişim doğrulayıp eski anahtarı siler (dizin varken içerik eski
+listeyle eşleşmiyorsa yeni defter geçerli sayılır, eski anahtara yine
+dokunulmaz). Dolu bir defterin taşınması bir kereliğine ~104 okuma + 51 yazma
++ 1 silme tutar. Taşıma tamamlanamazsa (ör.
+cihaz yazmayı reddederse) defter **eski değerden okunarak gösterilmeye devam
+eder**, ama o defter üzerindeki yazmalar `false` döner. Eski değer bozuksa
+(JSON okunamıyor ya da dizi değil — önceki sürüm de bunu boş gösteriyordu ve
+kullanıcı silemiyordu) boş bir yeni defter oluşturulur ve bozuk değer silinir.
+Taşıma yalnızca oturumdaki hesabın anahtarına dokunur; her hesabın defteri, o
+hesapla ilk girişte taşınır.
 
 `secureStorage.ts` sarmalayıcısı, `expo-secure-store`'un yalnızca
 iOS/Android'de çalıştığını (web'de native modül yok) hesaba katıyor —

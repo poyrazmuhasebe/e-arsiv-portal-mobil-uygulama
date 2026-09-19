@@ -11,10 +11,18 @@ import { useAuthStore } from '../store/useAuthStore';
  * (farklı kodlar asla aynı anahtara düşmez). Ör. "123" → `<onek>31-32-33`.
  */
 export function hesabaOzelAnahtar(onek: string): string | null {
+  const kimlik = hesapKimligi();
+  return kimlik === null ? null : onek + kimlik;
+}
+
+/**
+ * Oturumdaki kullanıcı kodunun anahtarlarda kullanılan onaltılık karşılığı
+ * (yalnızca [0-9a-f-]; "_" içermez); oturum yoksa null.
+ */
+export function hesapKimligi(): string | null {
   const kod = useAuthStore.getState().kullaniciKodu?.trim();
   if (!kod) return null;
-  const hex = Array.from(kod)
+  return Array.from(kod)
     .map((c) => c.codePointAt(0)!.toString(16))
     .join('-');
-  return onek + hex;
 }

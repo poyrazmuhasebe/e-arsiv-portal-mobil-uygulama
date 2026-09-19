@@ -38,11 +38,14 @@ test('iki hesabın defteri birbirini görmez', async () => {
   oturumAc('11111111');
   assert.deepEqual((await aliciListesiGetir()).map((a) => a.unvan), ['A MÜŞTERİSİ']);
 
-  // Anahtar, kullanıcı kodunun onaltılık karşılığıyla hesaba özel.
+  // Anahtarlar, kullanıcı kodunun onaltılık karşılığıyla hesaba özel
+  // (dizin + kayıt başına bir anahtar; bkz. bolunmusDefter.ts).
   const anahtarlar = [...sahteDepo.veriler.keys()].sort();
   assert.deepEqual(anahtarlar, [
-    'gib_alici_defteri_31-31-31-31-31-31-31-31',
-    'gib_alici_defteri_32-32-32-32-32-32-32-32',
+    'gib_alici_dizin_31-31-31-31-31-31-31-31',
+    'gib_alici_dizin_32-32-32-32-32-32-32-32',
+    'gib_alici_kayit_31-31-31-31-31-31-31-31_0',
+    'gib_alici_kayit_32-32-32-32-32-32-32-32_0',
   ]);
 });
 
@@ -64,7 +67,7 @@ test('aynı VKN tekrar kaydedilince güncellenip en üste taşınır', async () 
 test('bozuk JSON içeren defter boş liste olarak okunur', async () => {
   oturumAc('kod');
   await aliciKaydet(alici('1460415308', 'A'));
-  const [anahtar] = [...sahteDepo.veriler.keys()];
+  const anahtar = [...sahteDepo.veriler.keys()].find((a) => a.startsWith('gib_alici_dizin_'))!;
   sahteDepo.veriler.set(anahtar, '{bozuk');
   assert.deepEqual(await aliciListesiGetir(), []);
 });

@@ -8,11 +8,23 @@ import * as SecureStore from 'expo-secure-store';
 const isSupported = Platform.OS !== 'web';
 
 export async function getSecureItem(key: string): Promise<string | null> {
-  if (!isSupported) return null;
+  const sonuc = await secureItemOku(key);
+  return sonuc.basarili ? sonuc.deger : null;
+}
+
+export type OkumaSonucu = { basarili: true; deger: string | null } | { basarili: false };
+
+/**
+ * getSecureItem gibi, ama okuma HATASINI "değer yok"tan ayırır. Parçalı
+ * defterler (bolunmusDefter.ts), okunamayan bir değeri yok sayıp üzerine
+ * yazarak veri kaybetmesin diye bunu kullanır. Web'de "değer yok" döner.
+ */
+export async function secureItemOku(key: string): Promise<OkumaSonucu> {
+  if (!isSupported) return { basarili: true, deger: null };
   try {
-    return await SecureStore.getItemAsync(key);
+    return { basarili: true, deger: await SecureStore.getItemAsync(key) };
   } catch {
-    return null;
+    return { basarili: false };
   }
 }
 
@@ -33,11 +45,13 @@ export async function setSecureItem(key: string, value: string): Promise<boolean
   }
 }
 
-export async function deleteSecureItem(key: string): Promise<void> {
-  if (!isSupported) return;
+/** Hata fırlatmaz; silmenin başarılı olup olmadığını döndürür (web'de false). */
+export async function deleteSecureItem(key: string): Promise<boolean> {
+  if (!isSupported) return false;
   try {
     await SecureStore.deleteItemAsync(key);
+    return true;
   } catch {
-    // yoksay
+    return false;
   }
 }

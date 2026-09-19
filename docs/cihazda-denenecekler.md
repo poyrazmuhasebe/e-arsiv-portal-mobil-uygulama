@@ -76,6 +76,54 @@ veriyle çalışır.
 ### Zamanla gözlenecek
 
 - [ ] **SecureStore boyutu** (#9, #10) — alıcı defteri doldukça (özellikle
-  iOS'ta) "Kaydedilemedi" uyarısı çıkıyor mu? Çıkarsa kayıtlar bölünerek
-  saklanmalı (bkz.
-  [guvenlik-ve-veri.md](guvenlik-ve-veri.md#değer-boyutu-securestore)).
+  iOS'ta) "Kaydedilemedi" uyarısı çıkıyor mu? Kayıtlar artık bölünerek
+  saklanıyor (bkz. aşağıdaki "Defterlerin parçalı saklanması" bölümü ve
+  [guvenlik-ve-veri.md](guvenlik-ve-veri.md#değer-boyutu-securestore)); uyarı
+  yine çıkarsa tek bir kaydın kendisi reddediliyor demektir, Issue açın.
+
+## 2026-09-19 — Defterlerin parçalı saklanması
+
+Alıcı defteri ve Kayıtlı Mal/Hizmet listesi artık kayıt başına ayrı SecureStore
+anahtarında; eski tek değerli defterler ilk erişimde taşınıyor. Otomatik
+testler (`npm test`) geçti; aşağıdakiler **telefonda görülmedi**.
+
+**Önemli:** Taşımayı denemek için telefonda **önceki sürümle** kaydedilmiş bir
+defter olmalı. Yeni kodu açmadan önce Alıcı Defteri'nde ve "Kayıtlı Mal/Hizmet
+Seç"te kaç kayıt olduğunu ve ilk birkaçının sırasını not edin.
+
+### GİB gerekmez (kayıtlı oturumla)
+
+- [ ] **Taşıma: kayıtlar kaybolmadı** — yeni kodla uygulamayı açın → Alıcı
+  Defteri: kayıt sayısı (`x/50`) ve sıra, not ettiğinizle aynı; bir kaydın
+  adres/ülke/vergi dairesi alanları doğru. Fatura formunda "Kayıtlı
+  Alıcılardan Seç" aynı listeyi gösteriyor.
+- [ ] **Taşıma: mal/hizmet adları** — Yeni Fatura Kes → bir kalemde "Kayıtlı
+  Mal/Hizmet Seç": adlar ve sıraları önceki gibi.
+- [ ] **Taşıma kalıcı** — uygulamayı tamamen kapatıp (son uygulamalardan
+  kaydırarak) yeniden açın: iki liste de aynı.
+- [ ] **Açılış hızı** — dolu (40–50 kayıtlı) bir Alıcı Defteri ekranı ve
+  "Kayıtlı Alıcılardan Seç" penceresi gözle görülür bir gecikme olmadan
+  (≈1 sn altı) açılıyor mu? İlk açılışta (taşıma sırasında) bir kez daha uzun
+  sürebilir. Özellikle eski/yavaş Android telefonda deneyin; süre not edin.
+- [ ] **Adres düzenle / sil** — Alıcı Defteri'nde bir kaydın adresini
+  değiştirin, bir kaydı silin; ekrandan çıkıp girince ve uygulamayı yeniden
+  açınca değişiklikler duruyor, sıra bozulmuyor.
+- [ ] **Mal/hizmet silme** — "Kayıtlı Mal/Hizmet Seç" → çöp kutusu → onay →
+  ad listeden kalkıyor, uygulama yeniden açılınca geri gelmiyor.
+- [ ] **Yarıda kapatma** (isteğe bağlı) — Alıcı Defteri'nde "Sil"e basıp onay
+  verdikten hemen sonra uygulamayı son uygulamalardan kapatın; yeniden açınca
+  kayıt ya silinmiş ya da yerinde, liste bozuk/eksik değil.
+- [ ] **"Kaydedilemedi" çıkmıyor** — yukarıdaki işlemlerin hiçbirinde
+  "Kaydedilemedi"/"Silinemedi" uyarısı görülmüyor (özellikle iOS'ta).
+
+### GİB gerekir
+
+- [ ] **Elle alıcı ekleme** — Alıcı Defteri → kişi+ ikonu → VKN/TCKN sorgusu →
+  adres → "Deftere Kaydet": kayıt en üstte; uygulama yeniden açılınca duruyor.
+- [ ] **Hesap yalıtımı (taşıma sonrası)** — iki farklı hesapla sırayla giriş:
+  her birinin (taşınmış) alıcı ve mal/hizmet defteri yalnızca kendi hesabında
+  görünüyor; ikinci hesabın eski defteri o hesapla ilk girişte taşınıyor.
+- [ ] **Fatura sonrası otomatik kayıt** — fatura başarıyla oluşturulunca
+  alıcı ve kalem adları deftere ekleniyor; başarı mesajında "kaydedilemedi"
+  notu yok. *Gerçek belge üretir; yalnızca zaten kesilecek bir faturada
+  deneyin.*

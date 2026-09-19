@@ -27,7 +27,12 @@ test('iki hesabın mal/hizmet defteri birbirini görmez', async () => {
   await malHizmetKaydet(['Kira']);
   oturumAc('A');
   assert.deepEqual(await malHizmetListesiGetir(), ['Danışmanlık']);
-  assert.deepEqual([...sahteDepo.veriler.keys()].sort(), ['gib_malhizmet_defteri_41', 'gib_malhizmet_defteri_42']);
+  assert.deepEqual([...sahteDepo.veriler.keys()].sort(), [
+    'gib_malhizmet_dizin_41',
+    'gib_malhizmet_dizin_42',
+    'gib_malhizmet_kayit_41_0',
+    'gib_malhizmet_kayit_42_0',
+  ]);
 });
 
 test('oturum yokken hiçbir şey yazılmaz', async () => {
@@ -63,9 +68,10 @@ test('silme büyük/küçük harf farkını gözetmez, yoksa false', async () =>
 
 test('bozuk içerik ve yazma reddi', async () => {
   oturumAc('kod');
-  await malHizmetKaydet(['A']);
-  const [anahtar] = [...sahteDepo.veriler.keys()];
-  sahteDepo.veriler.set(anahtar, '["B", 5, null]');
+  await malHizmetKaydet(['A', 'B', 'C']);
+  // Metin olmayan / okunamayan kayıtlar atlanır.
+  sahteDepo.veriler.set('gib_malhizmet_kayit_6b-6f-64_0', '5');
+  sahteDepo.veriler.set('gib_malhizmet_kayit_6b-6f-64_2', '{bozuk');
   assert.deepEqual(await malHizmetListesiGetir(), ['B']);
   sahteDepo.yazmaHatasi = new Error('çok büyük');
   assert.equal(await malHizmetKaydet(['C']), false);

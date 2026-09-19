@@ -23,7 +23,7 @@ sunucularına istek atıyor (bkz.
 | Global state | Zustand | Redux'a göre çok daha az boilerplate; yalnızca oturum (`useAuthStore`) için kullanılıyor — form state'leri (fatura kesim formu gibi) bilerek yerel (`useState`) tutuluyor, global store'a taşınmadı |
 | UI kütüphanesi | React Native Paper (Material Design 3, koyu tema) | Hazır, erişilebilir bileşenler; kendi `Select`'i olmadığı için `SecimAlani.tsx` bir Dialog+RadioButton sarmalayıcısı olarak yazıldı |
 | HTTP | Axios | `application/x-www-form-urlencoded` gövdeli isteklerde `URLSearchParams` ile form kodlaması |
-| Güvenli depolama | expo-secure-store | Token, "beni hatırla" bilgileri, adres defteri — hepsi şifrelenmiş yerel depoda |
+| Güvenli depolama | expo-secure-store | Token, "beni hatırla" bilgileri, alıcı ve mal/hizmet defterleri — hepsi şifrelenmiş yerel depoda, yalnızca o telefonda (sunucu/bulut/eşitleme yok). Defterler kayıt başına ayrı anahtara bölünür (`bolunmusDefter.ts`, bkz. [guvenlik-ve-veri.md](guvenlik-ve-veri.md)) |
 | PDF | expo-print + expo-sharing + expo-file-system/legacy | Bkz. aşağıdaki "PDF üretim akışı" |
 | Tarih/saat seçici | @react-native-community/datetimepicker v9 | `onValueChange`/`onDismiss` API'si (v9'da `onChange` deprecated) |
 | Fatura HTML önizleme | react-native-webview | GİB'in döndürdüğü ham HTML doğrudan render ediliyor |

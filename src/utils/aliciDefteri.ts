@@ -1,23 +1,30 @@
-import { deleteSecureItem, getSecureItem, setSecureItem } from './secureStorage';
-import { hesabaOzelAnahtar } from './hesapAnahtari';
+import { deleteSecureItem } from './secureStorage';
+import { defterGuncelle, defterOku, type DefterTanimi } from './bolunmusDefter';
 import { vknTcknGecerliMi } from './kimlikDogrula';
 import type { AliciFormu, KayitliAlici } from '../types/faturaForm';
 
 // Eskiden tüm hesaplar TEK bir ortak defteri paylaşıyordu; birden fazla
 // mükellefin hesabına giren bir mali müşavir, bir müşterisinin alıcılarını
 // (VKN/TCKN, unvan, adres) diğer müşterisi için fatura keserken görüyordu.
-// Artık defter, giriş yapan kullanıcı koduna özel bir anahtarda tutuluyor
-// (bkz. hesapAnahtari.ts).
+// Artık defter, giriş yapan kullanıcı koduna özel anahtarlarda tutuluyor
+// (bkz. hesapAnahtari.ts) ve her kayıt ayrı bir anahtarda (bkz.
+// bolunmusDefter.ts). Hesaba özel ama tek değerli önceki biçim
+// (`gib_alici_defteri_<hex>`) ilk erişimde yeni biçime taşınır.
 const ESKI_ORTAK_DEFTER_KEY = 'gib_alici_defteri';
-const DEFTER_ANAHTAR_ONEKI = 'gib_alici_defteri_';
 export const MAX_ALICI_KAYDI = 50;
 
 /** Kayıt işlemlerinin sonucu; `false` ise kullanıcıya "kaydedilemedi" denmeli. */
 export type DefterSonucu = boolean;
 
-function defterAnahtari(): string | null {
-  return hesabaOzelAnahtar(DEFTER_ANAHTAR_ONEKI);
-}
+const ALICI_DEFTERI: DefterTanimi<KayitliAlici> = {
+  onek: 'gib_alici',
+  eskiOnek: 'gib_alici_defteri_',
+  enFazla: MAX_ALICI_KAYDI,
+  kayitMi: (deger): deger is KayitliAlici =>
+    typeof deger === 'object' &&
+    deger !== null &&
+    typeof (deger as { vknTckn?: unknown }).vknTckn === 'string',
+};
 
 /**
  * Eski sürümlerden kalan, hesaplar arası ORTAK defteri cihazdan siler.
@@ -29,20 +36,7 @@ export async function eskiOrtakAliciDefteriniSil(): Promise<void> {
 }
 
 export async function aliciListesiGetir(): Promise<KayitliAlici[]> {
-  const anahtar = defterAnahtari();
-  if (!anahtar) return [];
-  const ham = await getSecureItem(anahtar);
-  if (!ham) return [];
-  try {
-    const liste = JSON.parse(ham);
-    return Array.isArray(liste) ? liste : [];
-  } catch {
-    return [];
-  }
-}
-
-async function listeyiYaz(anahtar: string, liste: KayitliAlici[]): Promise<DefterSonucu> {
-  return setSecureItem(anahtar, JSON.stringify(liste));
+  return defterOku(ALICI_DEFTERI);
 }
 
 /**
@@ -64,18 +58,15 @@ export function aliciKaydedilebilirMi(alici: AliciFormu): boolean {
  * Geçersiz alıcıda, oturum yokken ya da cihaz depolaması yazmayı reddederse false.
  */
 export async function aliciKaydet(alici: AliciFormu): Promise<DefterSonucu> {
-  const anahtar = defterAnahtari();
-  if (!anahtar || !aliciKaydedilebilirMi(alici)) return false;
-
+  if (!aliciKaydedilebilirMi(alici)) return false;
   const temizVkn = alici.vknTckn.trim();
-  const mevcut = await aliciListesiGetir();
-  const digerleri = mevcut.filter((a) => a.vknTckn.trim() !== temizVkn);
-  const yeniListe: KayitliAlici[] = [
-    { ...alici, vknTckn: temizVkn, kayitTarihi: new Date().toISOString() },
-    ...digerleri,
-  ].slice(0, MAX_ALICI_KAYDI);
-
-  return listeyiYaz(anahtar, yeniListe);
+  return defterGuncelle(ALICI_DEFTERI, (mevcut) => {
+    const digerleri = mevcut.filter((a) => a.vknTckn.trim() !== temizVkn);
+    return [{ ...alici, vknTckn: temizVkn, kayitTarihi: new Date().toISOString() }, ...digerleri].slice(
+      0,
+      MAX_ALICI_KAYDI,
+    );
+  });
 }
 
 /**
@@ -87,25 +78,20 @@ export async function aliciAdresGuncelle(
   vknTckn: string,
   degisiklik: Pick<AliciFormu, 'adres' | 'ulke'>,
 ): Promise<DefterSonucu> {
-  const anahtar = defterAnahtari();
-  if (!anahtar) return false;
   const hedef = vknTckn.trim();
-  const mevcut = await aliciListesiGetir();
-  if (!mevcut.some((a) => a.vknTckn.trim() === hedef)) return false;
-
-  const yeniListe = mevcut.map((a) =>
-    a.vknTckn.trim() === hedef ? { ...a, adres: degisiklik.adres, ulke: degisiklik.ulke } : a,
-  );
-  return listeyiYaz(anahtar, yeniListe);
+  return defterGuncelle(ALICI_DEFTERI, (mevcut) => {
+    if (!mevcut.some((a) => a.vknTckn.trim() === hedef)) return null;
+    return mevcut.map((a) =>
+      a.vknTckn.trim() === hedef ? { ...a, adres: degisiklik.adres, ulke: degisiklik.ulke } : a,
+    );
+  });
 }
 
 /** Kaydı defterden siler. Kayıt yoksa ya da yazma başarısızsa false. */
 export async function aliciSil(vknTckn: string): Promise<DefterSonucu> {
-  const anahtar = defterAnahtari();
-  if (!anahtar) return false;
   const hedef = vknTckn.trim();
-  const mevcut = await aliciListesiGetir();
-  const yeniListe = mevcut.filter((a) => a.vknTckn.trim() !== hedef);
-  if (yeniListe.length === mevcut.length) return false;
-  return listeyiYaz(anahtar, yeniListe);
+  return defterGuncelle(ALICI_DEFTERI, (mevcut) => {
+    const yeniListe = mevcut.filter((a) => a.vknTckn.trim() !== hedef);
+    return yeniListe.length === mevcut.length ? null : yeniListe;
+  });
 }

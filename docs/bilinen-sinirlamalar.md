@@ -70,10 +70,16 @@ bu sayfa onların tematik bir özetidir.
   **yapıldı** ("Kullanıcı İşlemleri > Alıcı Defteri", bkz.
   [ozellikler.md](ozellikler.md)). Cihazda canlı denenmesi gerekiyor.
   ([Issue #9](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/9))
-- **SecureStore değer boyutu doğrulanmadı** — dolu bir alıcı defteri ~13–48 KB;
-  bazı iOS sürümlerinin büyük değerleri reddettiği biliniyor. Yazma reddedilirse
-  artık kullanıcıya bildiriliyor, ama gerçek cihazlarda denenmedi (bkz.
-  [guvenlik-ve-veri.md](guvenlik-ve-veri.md#değer-boyutu-securestore)).
+- ~~**SecureStore değer boyutu**: defter tek değerde ~13–48 KB~~ — **tasarım
+  düzeltildi**: alıcı ve mal/hizmet defterleri artık kayıt başına ayrı
+  SecureStore anahtarında (en büyük tek değer ~1 KB, dizin ~160 B); eski tek
+  değerli defterler ilk erişimde kayıpsız taşınıyor; yarım kalan yazmalar
+  defteri bozmuyor (bkz.
+  [guvenlik-ve-veri.md](guvenlik-ve-veri.md#parçalı-saklama-srcutilsbolunmusdefterts)).
+  **Hâlâ doğrulanmadı:** gerçek cihazlarda kabul edilen değer boyutu ve dolu bir
+  defteri açmanın (52 SecureStore okuması) ne kadar sürdüğü. Bir kayıt bir
+  cihazın sınırını aşarsa yazma reddedilir ve kullanıcıya "Kaydedilemedi"
+  bildirilir.
 - ~~"Kayıtlı Mal/Hizmet Adı" defteri.~~ — **yapıldı** (hesaba özel, en fazla
   50 ad; fatura formunda "Kayıtlı Mal/Hizmet Seç"). Cihazda canlı denenmesi
   gerekiyor.

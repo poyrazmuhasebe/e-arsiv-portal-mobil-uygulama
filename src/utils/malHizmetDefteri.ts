@@ -1,17 +1,21 @@
-import { getSecureItem, setSecureItem } from './secureStorage';
-import { hesabaOzelAnahtar } from './hesapAnahtari';
+import { defterGuncelle, defterOku, type DefterTanimi } from './bolunmusDefter';
+import { hesapKimligi } from './hesapAnahtari';
 
 // "Kayıtlı Mal/Hizmet Adı" defteri: fatura kalemlerinde sık kullanılan
 // mal/hizmet adları. Alıcı defteriyle aynı desende, giriş yapılan kullanıcı
-// koduna ÖZEL bir anahtarda tutulur (bir mükellefin kalemleri diğerinin
-// hesabında görünmez). Yalnızca adlar saklanır (tutar/miktar değil); en son
-// kullanılan en başta. Boyut notu için bkz. docs/guvenlik-ve-veri.md.
-const DEFTER_ANAHTAR_ONEKI = 'gib_malhizmet_defteri_';
+// koduna ÖZEL anahtarlarda ve her ad ayrı bir anahtarda tutulur (bkz.
+// bolunmusDefter.ts; bir mükellefin kalemleri diğerinin hesabında görünmez).
+// Yalnızca adlar saklanır (tutar/miktar değil); en son kullanılan en başta.
+// Tek değerli önceki biçim (`gib_malhizmet_defteri_<hex>`) ilk erişimde
+// taşınır. Boyut notu için bkz. docs/guvenlik-ve-veri.md.
 export const MAX_MAL_HIZMET_KAYDI = 50;
 
-function defterAnahtari(): string | null {
-  return hesabaOzelAnahtar(DEFTER_ANAHTAR_ONEKI);
-}
+const MAL_HIZMET_DEFTERI: DefterTanimi<string> = {
+  onek: 'gib_malhizmet',
+  eskiOnek: 'gib_malhizmet_defteri_',
+  enFazla: MAX_MAL_HIZMET_KAYDI,
+  kayitMi: (deger): deger is string => typeof deger === 'string',
+};
 
 /** Tekrarları ayırt etmek için: kenar boşlukları kırpılmış, Türkçe küçük harf. */
 function karsilastirmaAnahtari(ad: string): string {
@@ -19,16 +23,7 @@ function karsilastirmaAnahtari(ad: string): string {
 }
 
 export async function malHizmetListesiGetir(): Promise<string[]> {
-  const anahtar = defterAnahtari();
-  if (!anahtar) return [];
-  const ham = await getSecureItem(anahtar);
-  if (!ham) return [];
-  try {
-    const liste = JSON.parse(ham);
-    return Array.isArray(liste) ? liste.filter((a): a is string => typeof a === 'string') : [];
-  } catch {
-    return [];
-  }
+  return defterOku(MAL_HIZMET_DEFTERI);
 }
 
 /**
@@ -38,9 +33,6 @@ export async function malHizmetListesiGetir(): Promise<string[]> {
  * Oturum yoksa ya da cihaz depolaması yazmayı reddederse false.
  */
 export async function malHizmetKaydet(adlar: string[]): Promise<boolean> {
-  const anahtar = defterAnahtari();
-  if (!anahtar) return false;
-
   const yeniler: string[] = [];
   const gorulen = new Set<string>();
   for (const ham of adlar) {
@@ -50,21 +42,19 @@ export async function malHizmetKaydet(adlar: string[]): Promise<boolean> {
     gorulen.add(k);
     yeniler.push(ad);
   }
-  if (yeniler.length === 0) return true;
+  if (yeniler.length === 0) return hesapKimligi() !== null;
 
-  const mevcut = await malHizmetListesiGetir();
-  const digerleri = mevcut.filter((a) => !gorulen.has(karsilastirmaAnahtari(a)));
-  const yeniListe = [...yeniler, ...digerleri].slice(0, MAX_MAL_HIZMET_KAYDI);
-  return setSecureItem(anahtar, JSON.stringify(yeniListe));
+  return defterGuncelle(MAL_HIZMET_DEFTERI, (mevcut) => {
+    const digerleri = mevcut.filter((a) => !gorulen.has(karsilastirmaAnahtari(a)));
+    return [...yeniler, ...digerleri].slice(0, MAX_MAL_HIZMET_KAYDI);
+  });
 }
 
 /** Adı defterden siler. Kayıt yoksa ya da yazma başarısızsa false. */
 export async function malHizmetSil(ad: string): Promise<boolean> {
-  const anahtar = defterAnahtari();
-  if (!anahtar) return false;
   const hedef = karsilastirmaAnahtari(ad);
-  const mevcut = await malHizmetListesiGetir();
-  const yeniListe = mevcut.filter((a) => karsilastirmaAnahtari(a) !== hedef);
-  if (yeniListe.length === mevcut.length) return false;
-  return setSecureItem(anahtar, JSON.stringify(yeniListe));
+  return defterGuncelle(MAL_HIZMET_DEFTERI, (mevcut) => {
+    const yeniListe = mevcut.filter((a) => karsilastirmaAnahtari(a) !== hedef);
+    return yeniListe.length === mevcut.length ? null : yeniListe;
+  });
 }

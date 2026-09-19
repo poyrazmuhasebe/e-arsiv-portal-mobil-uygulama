@@ -35,6 +35,7 @@ src/
   utils/
     secureStorage.ts             # Platform-güvenli SecureStore sarmalayıcı
     hesapAnahtari.ts              # Kullanıcı koduna özel SecureStore anahtarı
+    bolunmusDefter.ts             # Defterlerin kayıt başına anahtarda saklanması, taşıma
     aliciDefteri.ts               # Kayıtlı alıcılar (adres defteri)
     malHizmetDefteri.ts           # Kayıtlı mal/hizmet adları
     paraBirimi.ts                 # Tutar etiketleri için para birimi simgesi

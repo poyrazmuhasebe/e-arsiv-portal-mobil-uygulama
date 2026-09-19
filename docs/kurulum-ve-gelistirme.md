@@ -47,6 +47,10 @@ bazı dosyaları çalıştırmak için: `npm test -- aliciDefteri gibApi`.
   `Platform`), `expo-secure-store` (Map; `secureStorage.ts` sarmalayıcısının
   kendisi gerçek kodla çalışır), `axios`, `expo-file-system/legacy`,
   `expo-local-authentication`. `__DEV__` testte `false`'tur.
+- **SecureStore arızaları** (`sahteDepo`): `yazmaHatasi` (her yazma reddedilir,
+  ör. boyut sınırı), `okumaHatasi` / `okumaHakki` (okuma hatası, N okumadan
+  sonra), `islemHakki` (uygulamanın yarıda kapanması: N yazma/silmeden sonra
+  hepsi başarısız), `sayac` (okuma/yazma/silme sayıları).
 - **Testler GİB'e asla istek atmaz**: `axios` tamamen sahtedir; bir testin
   yanıtını tanımlamadığı her istek hata fırlatır.
 - **Node tipleri:** TypeScript 6'da `types` varsayılanı boş ve `@types/node`
@@ -57,7 +61,10 @@ bazı dosyaları çalıştırmak için: `npm test -- aliciDefteri gibApi`.
 - `test/` klasörü ana `tsc --noEmit -p .` kontrolüne de dahildir; testler de
   tip kontrolünden geçer.
 - Kapsam: `kimlikDogrula`, `faturaHesap`, `aliciDefteri` (hesaplar arası
-  yalıtım), `dosyaTemizlik`, `uygulamaKilidi`, `gibApi` (login ve dispatch
+  yalıtım), `malHizmetDefteri`, `bolunmusDefter` (eski biçimden taşıma — tam,
+  her noktada kesilmiş, bozuk, doğrulanamayan; her kesinti noktasında yarım
+  yazma tutarlılığı ve artık anahtar temizliği; okuma/yazma reddi; 50 sınırı;
+  eşzamanlı yazma; değer boyutu), `dosyaTemizlik`, `uygulamaKilidi`, `gibApi` (login ve dispatch
   yanıt/hata yorumlama, oturum hatası → çıkış). Ekranlar (React bileşenleri)
   test edilmiyor; onlar cihazda Expo Go ile denenir.
 
