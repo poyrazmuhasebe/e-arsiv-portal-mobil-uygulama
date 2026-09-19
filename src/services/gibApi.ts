@@ -927,7 +927,7 @@ export async function iptalTalebiOlustur(
  *
  * KRİTİK BULGU (2. tur): `telNo`'yu kullanıp baştaki "0"ı da kırparak
  * `smsSifreGonder`'in gerçek başarılı yakalamasıyla BİREBİR AYNI `jp`'yi
- * (`{"CEPTEL":"5436402500","KCEPTEL":false,"TIP":""}`) gönderdiğimizde bile
+ * (`{"CEPTEL":"5551234567","KCEPTEL":false,"TIP":""}`) gönderdiğimizde bile
  * GİB hâlâ "Genel Sistem Hatası: java.lang.NullPointerException" veriyordu.
  * Yani sorun `CEPTEL`'in DEĞERİ değil, GİB'in kendi arayüzünün "GİB İmza"
  * tıklanınca attığı `EARSIV_PORTAL_TELEFONNO_SORGULA` isteğinin HİÇ

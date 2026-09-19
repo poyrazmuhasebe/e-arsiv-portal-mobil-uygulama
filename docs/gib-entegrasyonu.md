@@ -384,7 +384,7 @@ alanı. SMS Onay ekranında maskeli gösterilir (ör. `(555) 123 45 67`).
 **İki ayrı kırılgan nokta daha vardı:**
 
 1. `telNo`, GİB'in Kullanıcı Bilgileri ekranında başında yurt içi arama
-   öneki `"0"` ile 11 hane tutuluyor (ör. `"05436402500"`), ama 2. adımın
+   öneki `"0"` ile 11 hane tutuluyor (ör. `"05551234567"`), ama 2. adımın
    gerçek başarılı yakalamasındaki `CEPTEL` alanı başında `"0"` OLMADAN 10
    haneydi. `telefonnoSorgula()` artık rakamlara indirgedikten sonra tek
    bir baştaki `"0"`'ı da ayrıca kırpıyor.
