@@ -92,7 +92,12 @@ bu sayfa onların tematik bir özetidir.
   yapıldı**: zaman aşımı mesajı artık mükerrer işlem riskine karşı "önce listeyi
   kontrol edin" diyor, bağlantı yok mesajı netleşti. **Yapılmadı:** sürekli
   görünen bir "çevrimdışı" şeridi — bağlantı durumunu dinlemek için yeni bir
-  bağımlılık (`@react-native-community/netinfo`) gerekiyor; onay bekliyor.
+  bağımlılık (`@react-native-community/netinfo`, Expo Go'da mevcut) gerekiyor;
+  **sonraya bırakıldı**. Eklenirse, "sunucusuz / üçüncü taraf yok" ilkesi
+  gereği kütüphanenin internet erişilebilirlik kontrolü (varsayılan olarak dış
+  bir adrese istek attığı bilinen, kurulumda doğrulanacak) kapatılıp yalnızca
+  cihazın bildirdiği bağlantı durumu kullanılmalı. Not: şerit GİB kesintisini
+  göstermez (o sırada internet vardır); onu HTTP 502/503/504 mesajı karşılıyor.
   ([Issue #14](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/14))
 
 ## Kod Kalitesi / Bakım
