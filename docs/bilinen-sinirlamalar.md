@@ -23,9 +23,12 @@ bu sayfa onların tematik bir özetidir.
 - **GENEL İADE fatura tipi çalışmayabilir** — `iadeTable` alanı her zaman
   boş gönderiliyor, iade edilen orijinal faturayı belirtecek form alanı yok.
   ([Issue #2](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/2))
-- **28/29 vergi türü sessizce yok sayılıyor** — yalnızca `V9015` (KDV
-  Tevkifat) hesaplanıp GİB'e gönderiliyor; Konaklama Vergisi, Damga
-  Vergisi gibi diğer gerçek GİB kodları seçilse bile hiçbir etkisi yok.
+- **28/29 vergi türü desteklenmiyor** — yalnızca `V9015` (KDV Tevkifat)
+  hesaplanıp GİB'e gönderiliyor. Artık **sessizce yok sayılmıyor**: diğer
+  türler seçicide "(henüz desteklenmiyor)" olarak pasif; tevkifat kodu eksik ya
+  da fatura tipiyle uyumsuz tevkifat "Oluştur"u engelliyor. Gerçek hesaplama
+  için her türün GİB'e gönderim şeması (alan adları) canlı bir yakalamayla
+  doğrulanmalı.
   ([Issue #1](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/1))
 - ~~**Tutar etiketlerinde her zaman "₺" gösteriliyor**~~ — **yapıldı**: fatura
   formundaki tutar etiketleri seçilen para biriminin simgesini (TRY ₺, USD $,

@@ -35,6 +35,7 @@ src/
     aliciDefteri.ts               # Kayıtlı alıcılar (adres defteri)
     malHizmetDefteri.ts           # Kayıtlı mal/hizmet adları
     paraBirimi.ts                 # Tutar etiketleri için para birimi simgesi
+    vergiDestegi.ts               # Desteklenen vergi türleri, vergi uyumsuzluğu kontrolü
     kimlikDogrula.ts              # VKN/TCKN kontrol basamağı
     dosyaTemizlik.ts              # Eski fatura PDF'lerini silme
     uygulamaKilidi.ts             # Cihaz kilidiyle uygulama kilidi

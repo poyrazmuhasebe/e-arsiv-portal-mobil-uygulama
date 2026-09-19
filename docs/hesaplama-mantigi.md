@@ -30,6 +30,14 @@ tevkifatOrani  = TEVKIFAT_KODLARI[kod].oran      # ör. 601 → 4, 603 → 7, 80
 tevkifatTutari = kdvTutari × (tevkifatOrani / 10)
 ```
 
+Diğer 28 vergi türü **hesaplanmaz** (GİB'e nasıl gönderildikleri bilinmiyor).
+Bunlar seçicide "(henüz desteklenmiyor)" olarak pasiftir. Ayrıca şu durumlar
+sessizce geçmez, `vergiUyumsuzlukHatasi` (`src/utils/vergiDestegi.ts`) ile
+"Oluştur" pasifleşir ve kırmızı uyarı gösterilir: V9015 seçili ama tevkifat
+kodu seçilmemiş; tevkifat kodu seçili ama Fatura Tipi tevkifatlı bir tür
+değil (önceden bu durumda uyarıya rağmen tevkifat hesaplanıp GİB'e
+gönderiliyordu); herhangi bir kalemde desteklenmeyen bir vergi türü.
+
 `oran` alanı "pay/10" biçiminde ifade edilir — ör. 7 → "7/10" tevkifat
 oranı (satıcı KDV'nin %70'ini alıcıya/vergi dairesine bırakır, %30'unu
 kendisi tahsil eder). 801-825 aralığındaki "tam tevkifat" kodlarında

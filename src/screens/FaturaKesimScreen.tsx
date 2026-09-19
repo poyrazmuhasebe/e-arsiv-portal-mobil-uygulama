@@ -11,6 +11,7 @@ import { aliciKaydet } from '../utils/aliciDefteri';
 import { malHizmetKaydet } from '../utils/malHizmetDefteri';
 import { faturaOzetiHesapla, kalemHesapla, kalemlerAralikHatasi, parseNumara } from '../utils/faturaHesap';
 import { vknTcknGecerliMi } from '../utils/kimlikDogrula';
+import { vergiUyumsuzlukHatasi } from '../utils/vergiDestegi';
 import {
   VARSAYILAN_BIRIM,
   VARSAYILAN_FATURA_TIPI,
@@ -115,7 +116,13 @@ export default function FaturaKesimScreen({ navigation }: Props) {
 
   const kalemAralikHatasi = kalemlerAralikHatasi(form.kalemler);
 
-  const formGecerli = aliciGecerli && kalemlerGecerli && !kalemAralikHatasi;
+  // Desteklenmeyen vergi türü, tevkifat kodu seçilmemiş ya da fatura tipiyle
+  // uyumsuz KDV tevkifatı: GİB'e ekranda görünenden farklı fatura gitmesin diye.
+  const vergiHatasi = vergiUyumsuzlukHatasi(form.kalemler, form.faturaTipi);
+
+  const formHatasi = kalemAralikHatasi ?? vergiHatasi;
+
+  const formGecerli = aliciGecerli && kalemlerGecerli && !formHatasi;
 
   const handleOlustur = async () => {
     if (!formGecerli || !token || kaydediliyor) return;
@@ -233,9 +240,9 @@ export default function FaturaKesimScreen({ navigation }: Props) {
 
           <ToplamlarKarti ozet={ozet} paraBirimi={form.paraBirimi} not={form.not} onNotChange={(v) => setForm((p) => ({ ...p, not: v }))} />
 
-          {kalemAralikHatasi && (
+          {formHatasi && (
             <Text variant="bodySmall" style={{ color: theme.colors.error, marginTop: 12, textAlign: 'center' }}>
-              {kalemAralikHatasi}
+              {formHatasi}
             </Text>
           )}
 

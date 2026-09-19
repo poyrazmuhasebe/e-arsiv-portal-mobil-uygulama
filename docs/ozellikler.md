@@ -156,17 +156,21 @@ birleştirir ve tek bir `FaturaFormState` (bkz. `src/types/faturaForm.ts`)
   Yalnızca **adlar** saklanır; tutar/miktar/birim saklanmaz.
 - Kalem altında anlık hesaplanan **Mal/Hizmet Tutarı** ve **KDV Tutarı**
   gösterilir (bkz. [hesaplama-mantigi.md](hesaplama-mantigi.md)).
-- **"Vergi Seçiniz"** — `VERGI_TURLERI` (29 gerçek GİB kodu) listesinden
-  seçim yapılabilir, ama **yalnızca `V9015` (KDV Tevkifat)** gerçekten
-  hesaplanıp GİB'e gönderiliyor; diğer 28 kod şu an seçilse de sessizce
-  hiçbir etkisi olmuyor (bkz.
-  [bilinen-sinirlamalar.md](bilinen-sinirlamalar.md) ve
-  [Issue #1](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/1)).
+- **"Vergi Seçiniz"** — `VERGI_TURLERI`'nin 29 gerçek GİB kodu listelenir,
+  ama **yalnızca `V9015` (KDV Tevkifat)** seçilebilir; diğer 28 kod
+  "(henüz desteklenmiyor)" ekiyle **pasif** gösterilir (`VERGI_SECENEKLERI`,
+  `src/utils/vergiDestegi.ts`) çünkü GİB'e nasıl gönderildikleri bilinmiyor
+  (bkz. [Issue #1](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/1)).
+  Seçicinin altında bu kısıtı anlatan kısa bir not var.
 - `V9015` seçilip Fatura Tipi de tevkifatı destekliyorsa (`TEVKIFAT`,
   `TEVKIFATIADE`, `YTBTEVKIFAT`, `YTBTEVKIFATIADE`) Tevkifat Kodu seçici
   (`TEVKIFAT_KODLARI`, 52 kod) açılır; kod seçilince oran otomatik dolar ve
-  Tevkifat Tutarı anlık hesaplanır. Fatura Tipi uyumsuzsa kırmızı bir uyarı
-  metni gösterilir.
+  Tevkifat Tutarı anlık hesaplanır.
+- Kalemde **tevkifat kodu seçilmemişse** ya da **Fatura Tipi tevkifatla
+  uyumsuzsa**, kalemin altında ve "Oluştur"un altında kırmızı uyarı çıkar ve
+  "Oluştur" pasif kalır (`vergiUyumsuzlukHatasi`). Önceden kod seçildikten
+  sonra tip SATIŞ'a çevrilirse uyarıya rağmen tevkifat hesaplanıp GİB'e
+  gönderiliyordu; kod seçilmezse tevkifat sessizce uygulanmıyordu.
 
 ### 5. Toplamlar (`ToplamlarKarti.tsx`)
 

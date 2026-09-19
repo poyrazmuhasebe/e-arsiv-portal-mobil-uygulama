@@ -7,6 +7,8 @@
 export interface SecenekOgesi {
   value: string;
   label: string;
+  /** true ise seçicide görünür ama seçilemez (ör. henüz desteklenmeyen vergi türü). */
+  disabled?: boolean;
 }
 
 // Gerçek GİB <select id="gen__1328"> içeriğiyle birebir doğrulandı.

@@ -6,6 +6,7 @@ import SecimAlani from '../../components/SecimAlani';
 import { BIRIMLER, KDV_ORANLARI, TEVKIFAT_KODLARI, VERGI_TURLERI } from '../../constants/faturaConstants';
 import { kalemHesapla } from '../../utils/faturaHesap';
 import { tutarEtiketi } from '../../utils/paraBirimi';
+import { VERGI_SECENEKLERI, kalemVergiHatasi, tevkifatFaturaTipiyleUyumluMu } from '../../utils/vergiDestegi';
 import { malHizmetListesiGetir, malHizmetSil } from '../../utils/malHizmetDefteri';
 import type { KalemFormu } from '../../types/faturaForm';
 import type { KdvOrani } from '../../types/gib';
@@ -20,14 +21,6 @@ interface Props {
   onKalemSil: (id: string) => void;
 }
 
-// Tevkifat yalnızca fatura tipi bunu destekliyorsa anlamlıdır.
-const TEVKIFAT_DESTEKLEYEN_FATURA_TIPLERI = new Set([
-  'TEVKIFAT',
-  'TEVKIFATIADE',
-  'YTBTEVKIFAT',
-  'YTBTEVKIFATIADE',
-]);
-
 export default function MalHizmetKarti({
   kalemler,
   faturaTipi,
@@ -36,7 +29,7 @@ export default function MalHizmetKarti({
   onKalemEkle,
   onKalemSil,
 }: Props) {
-  const tevkifatDesteklenir = TEVKIFAT_DESTEKLEYEN_FATURA_TIPLERI.has(faturaTipi);
+  const tevkifatDesteklenir = tevkifatFaturaTipiyleUyumluMu(faturaTipi);
 
   // "Kayıtlı Mal/Hizmet Seç" diyaloğu: hangi kalem için açıldığı ve defter içeriği.
   const [secimKalemId, setSecimKalemId] = useState<string | null>(null);
@@ -74,6 +67,7 @@ export default function MalHizmetKarti({
         {kalemler.map((kalem, index) => {
           const hesap = kalemHesapla(kalem);
           const vergiEklendi = Boolean(kalem.ekVergi);
+          const vergiHatasi = kalemVergiHatasi(kalem, faturaTipi);
 
           return (
             <Card key={kalem.id} mode="outlined" style={styles.kalemKart}>
@@ -172,9 +166,12 @@ export default function MalHizmetKarti({
                       <SecimAlani
                         label="Vergi Seçiniz"
                         value={kalem.ekVergi?.tur ?? ''}
-                        secenekler={VERGI_TURLERI}
+                        secenekler={VERGI_SECENEKLERI}
                         onSelect={(v) => onKalemGuncelle(kalem.id, { ekVergi: { tur: v } })}
                       />
+                      <Text variant="bodySmall" style={[styles.mutedText, styles.vergiNotu]}>
+                        Şimdilik yalnızca KDV Tevkifat hesaplanıp GİB'e gönderilebiliyor.
+                      </Text>
                     </View>
                   </View>
                 ) : (
@@ -222,11 +219,9 @@ export default function MalHizmetKarti({
                       </>
                     )}
 
-                    {kalem.ekVergi?.tur === 'V9015' && !tevkifatDesteklenir && (
+                    {vergiHatasi && (
                       <Text variant="bodySmall" style={styles.uyariMetni}>
-                        KDV Tevkifat, yalnızca Fatura Tipi "TEVKİFAT" (veya ilgili yatırım teşvik
-                        varyantı) olduğunda hesaba katılır. Şu an Fatura Bilgileri kartından tipi
-                        değiştirin.
+                        {vergiHatasi}
                       </Text>
                     )}
                   </View>
@@ -284,6 +279,7 @@ const styles = StyleSheet.create({
   flexEsit: { flex: 1 },
   mutedText: { opacity: 0.7 },
   uyariMetni: { color: '#f2b8b5' },
+  vergiNotu: { marginTop: 4 },
   ozetSatir: { flexDirection: 'row', justifyContent: 'space-between' },
   satirEkleButonu: { alignSelf: 'flex-start' },
   kayitliSecButonu: { alignSelf: 'flex-start', marginTop: -8 },

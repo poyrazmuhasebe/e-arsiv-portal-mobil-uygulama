@@ -53,7 +53,7 @@ export default function SecimAlani({ label, value, secenekler, onSelect, disable
                 }}
               >
                 {secenekler.map((s) => (
-                  <RadioButton.Item key={s.value} label={s.label} value={s.value} />
+                  <RadioButton.Item key={s.value} label={s.label} value={s.value} disabled={s.disabled} />
                 ))}
               </RadioButton.Group>
             </ScrollView>
