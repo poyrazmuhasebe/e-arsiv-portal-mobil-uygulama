@@ -29,16 +29,16 @@ export default function AliciBilgileriKarti({ token, alici, onAliciChange }: Pro
   const [kayitliModalAcik, setKayitliModalAcik] = useState(false);
 
   useEffect(() => {
+    // VKN/TCKN her değiştiğinde önceki sorgudan kalan unvan/ad/vergi dairesi
+    // HEMEN temizlenir: aksi halde yeni numaranın sorgusu dönene kadar (debounce
+    // + ağ) eski alıcının unvanı yeni numaranın yanında görünür ve form o arada
+    // geçerli sayılabilirdi. Bu alanlar yalnızca bu numaranın GİB sorgusuyla dolar.
+    onAliciChange({ unvan: '', ad: '', soyad: '', vergiDairesi: '' });
+    setSorguHatali(false);
+
     const temiz = alici.vknTckn.trim();
-    if (!token || (temiz.length !== 10 && temiz.length !== 11) || !/^\d+$/.test(temiz)) {
-      return;
-    }
-    // Kontrol basamağı hatalı numara için GİB'e boşuna sorgu atma; önceki
-    // (geçerli) bir sorgudan kalan unvan/ad bilgisini de temizle ki yanlış
-    // numaranın yanında eski alıcının bilgisi görünmesin.
-    if (!vknTcknGecerliMi(temiz)) {
-      onAliciChange({ unvan: '', ad: '', soyad: '', vergiDairesi: '' });
-      setSorguHatali(false);
+    // Eksik ya da kontrol basamağı hatalı numara için GİB'e boşuna sorgu atma.
+    if (!token || !vknTcknGecerliMi(temiz)) {
       return;
     }
 

@@ -98,6 +98,11 @@ birleştirir ve tek bir `FaturaFormState` (bkz. `src/types/faturaForm.ts`)
   kesilmesini engellemek için bilinçli bir tasarım kararıdır.
 - Sorgu başarısız olursa (`sorguHatali`) alanlar temizlenir ve kullanıcıya
   kırmızı bir uyarı metni gösterilir.
+- VKN/TCKN alanı **her değiştiğinde** önceki sorgudan kalan Unvan/Ad/Soyad/
+  Vergi Dairesi hemen temizlenir; yeni numaranın sorgusu dönene kadar eski
+  alıcının unvanı yeni numaranın yanında görünmez ve "Oluştur" bu arada aktif
+  olmaz. Kayıtlı bir alıcı seçildiğinde de unvan bilgisi GİB'den yeniden
+  sorgulanır (adres/ülke korunur).
 - **"Kayıtlı Alıcılardan Seç"** — `aliciDefteri.ts` üzerinden cihazda
   (SecureStore, en fazla 50 kayıt) tutulan, daha önce fatura kesilmiş
   alıcılar arasından tek dokunuşla seçim yapılabilir. Bir fatura başarıyla
