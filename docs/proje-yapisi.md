@@ -34,6 +34,7 @@ src/
     hesapAnahtari.ts              # Kullanıcı koduna özel SecureStore anahtarı
     aliciDefteri.ts               # Kayıtlı alıcılar (adres defteri)
     malHizmetDefteri.ts           # Kayıtlı mal/hizmet adları
+    paraBirimi.ts                 # Tutar etiketleri için para birimi simgesi
     kimlikDogrula.ts              # VKN/TCKN kontrol basamağı
     dosyaTemizlik.ts              # Eski fatura PDF'lerini silme
     uygulamaKilidi.ts             # Cihaz kilidiyle uygulama kilidi

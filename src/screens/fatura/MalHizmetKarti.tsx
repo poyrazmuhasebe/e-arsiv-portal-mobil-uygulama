@@ -4,7 +4,8 @@ import { Button, Card, Dialog, Divider, IconButton, List, Portal, SegmentedButto
 
 import SecimAlani from '../../components/SecimAlani';
 import { BIRIMLER, KDV_ORANLARI, TEVKIFAT_KODLARI, VERGI_TURLERI } from '../../constants/faturaConstants';
-import { kalemHesapla, paraFormatla } from '../../utils/faturaHesap';
+import { kalemHesapla } from '../../utils/faturaHesap';
+import { tutarEtiketi } from '../../utils/paraBirimi';
 import { malHizmetListesiGetir, malHizmetSil } from '../../utils/malHizmetDefteri';
 import type { KalemFormu } from '../../types/faturaForm';
 import type { KdvOrani } from '../../types/gib';
@@ -12,6 +13,8 @@ import type { KdvOrani } from '../../types/gib';
 interface Props {
   kalemler: KalemFormu[];
   faturaTipi: string;
+  /** Tutar etiketlerinde gösterilecek para birimi kodu (yalnızca gösterim). */
+  paraBirimi: string;
   onKalemGuncelle: (id: string, patch: Partial<KalemFormu>) => void;
   onKalemEkle: () => void;
   onKalemSil: (id: string) => void;
@@ -28,6 +31,7 @@ const TEVKIFAT_DESTEKLEYEN_FATURA_TIPLERI = new Set([
 export default function MalHizmetKarti({
   kalemler,
   faturaTipi,
+  paraBirimi,
   onKalemGuncelle,
   onKalemEkle,
   onKalemSil,
@@ -151,13 +155,13 @@ export default function MalHizmetKarti({
                   <Text variant="bodySmall" style={styles.mutedText}>
                     Mal/Hizmet Tutarı
                   </Text>
-                  <Text variant="bodyMedium">{paraFormatla(hesap.netTutar)} ₺</Text>
+                  <Text variant="bodyMedium">{tutarEtiketi(hesap.netTutar, paraBirimi)}</Text>
                 </View>
                 <View style={styles.ozetSatir}>
                   <Text variant="bodySmall" style={styles.mutedText}>
                     KDV Tutarı
                   </Text>
-                  <Text variant="bodyMedium">{paraFormatla(hesap.kdvTutari)} ₺</Text>
+                  <Text variant="bodyMedium">{tutarEtiketi(hesap.kdvTutari, paraBirimi)}</Text>
                 </View>
 
                 <Divider />
@@ -211,7 +215,7 @@ export default function MalHizmetKarti({
                               <Text variant="bodySmall" style={styles.mutedText}>
                                 Hesaplanan KDV Tevkifat Tutarı
                               </Text>
-                              <Text variant="bodyMedium">{paraFormatla(hesap.tevkifatTutari)} ₺</Text>
+                              <Text variant="bodyMedium">{tutarEtiketi(hesap.tevkifatTutari, paraBirimi)}</Text>
                             </View>
                           </>
                         )}

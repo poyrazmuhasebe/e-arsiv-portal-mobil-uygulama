@@ -225,12 +225,13 @@ export default function FaturaKesimScreen({ navigation }: Props) {
           <MalHizmetKarti
             kalemler={form.kalemler}
             faturaTipi={form.faturaTipi}
+            paraBirimi={form.paraBirimi}
             onKalemGuncelle={kalemGuncelle}
             onKalemEkle={kalemEkle}
             onKalemSil={kalemSil}
           />
 
-          <ToplamlarKarti ozet={ozet} not={form.not} onNotChange={(v) => setForm((p) => ({ ...p, not: v }))} />
+          <ToplamlarKarti ozet={ozet} paraBirimi={form.paraBirimi} not={form.not} onNotChange={(v) => setForm((p) => ({ ...p, not: v }))} />
 
           {kalemAralikHatasi && (
             <Text variant="bodySmall" style={{ color: theme.colors.error, marginTop: 12, textAlign: 'center' }}>

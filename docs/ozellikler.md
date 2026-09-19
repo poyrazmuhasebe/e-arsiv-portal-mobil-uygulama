@@ -177,6 +177,13 @@ birleştirir ve tek bir `FaturaFormState` (bkz. `src/types/faturaForm.ts`)
   toplamdan düşülmüş hali).
 - Serbest metin "Not" alanı.
 
+Bu karttaki ve Mal/Hizmet kartındaki tüm tutar etiketleri, Fatura Bilgileri'nde
+seçilen **Doküman Para Birimi**'nin simgesini gösterir: TRY → ₺, USD → $,
+EUR → €, GBP → £; diğer kodlarda kodun kendisi (ör. "1.250,00 CHF"). "$"/"¥"
+gibi birden çok para biriminde kullanılan simgeler karışıklık olmasın diye
+USD dışındakilere verilmez (`paraBirimiSimgesi`, `src/utils/paraBirimi.ts`).
+Bu yalnızca gösterimdir; GİB'e giden `paraBirimi` kodu ve tutarlar değişmez.
+
 Form geçerliliği (`formGecerli`) alıcı (VKN/TCKN kontrol basamağı geçerli + Unvan ya da
 Ad+Soyad + Adres dolu) ve kalemler (her kalemde Mal/Hizmet adı + miktar>0 +
 birim fiyat>0) kontrolüyle belirlenir; "Oluştur" butonu bu koşul

@@ -27,9 +27,12 @@ bu sayfa onların tematik bir özetidir.
   Tevkifat) hesaplanıp GİB'e gönderiliyor; Konaklama Vergisi, Damga
   Vergisi gibi diğer gerçek GİB kodları seçilse bile hiçbir etkisi yok.
   ([Issue #1](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/1))
-- **Tutar etiketlerinde her zaman "₺" gösteriliyor** — seçilen para birimi
-  (176 gerçek kod arasından USD/EUR/vb. olsa bile) UI'da yansımıyor (GİB'e
-  giden veri doğru).
+- ~~**Tutar etiketlerinde her zaman "₺" gösteriliyor**~~ — **yapıldı**: fatura
+  formundaki tutar etiketleri seçilen para biriminin simgesini (TRY ₺, USD $,
+  EUR €, GBP £) ya da diğer kodlarda kodun kendisini gösteriyor
+  (`src/utils/paraBirimi.ts`). GİB'e giden veri değişmedi. **Hâlâ "₺":**
+  Taslak/Kesilen Faturalar listesindeki tutar — GİB'in liste yanıtında belgenin
+  para birimini taşıyan bir alan olup olmadığı doğrulanmadı.
   ([Issue #3](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/3))
 - **İtiraz Talebi Oluştur, Taslak Düzenle** — şu an yalnızca `console.log`
   yer tutucular, gerçek işlevleri yok. (Taslak **Sil** ve **İptal Talebi
