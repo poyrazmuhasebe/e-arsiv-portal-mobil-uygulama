@@ -10,6 +10,8 @@ dokümantasyon burada, konuya göre ayrılmış dosyalarda tutulur:
 | [gib-entegrasyonu.md](gib-entegrasyonu.md) | GİB'in resmî olmayan `dispatch`/`assos-login` API'sinin iç işleyişi |
 | [hesaplama-mantigi.md](hesaplama-mantigi.md) | KDV/iskonto/tevkifat hesaplama formülleri ve GİB'e giden alan adları |
 | [guvenlik-ve-veri.md](guvenlik-ve-veri.md) | Hangi veri nerede (cihazda/GİB'de) saklanıyor, gizlilik yaklaşımı |
+| [hesap-sistemi.md](hesap-sistemi.md) | **Uygulama hesabı (Kayıt Ol / Giriş Yap) ve Cloudflare Worker + D1 tasarımı — PLANLANDI, HENÜZ UYGULANMADI** |
+| [hukuk/](hukuk/) | Aydınlatma metni, gizlilik politikası ve hizmet şartları **taslakları** (hukuki inceleme gerekir) |
 | [gib-api-durumu.md](gib-api-durumu.md) | Her `gibApi.ts` fonksiyonunun canlı doğrulanma durumu (hızlı referans tablosu) |
 | [proje-yapisi.md](proje-yapisi.md) | Klasör/dosya ağacı |
 | [kurulum-ve-gelistirme.md](kurulum-ve-gelistirme.md) | Kurulum, test modu, geliştirme iş akışı, yayına hazırlık |
