@@ -9,6 +9,7 @@ import { faturaKaydet, gibHatasiniIsle } from '../services/gibApi';
 import { useAuthStore } from '../store/useAuthStore';
 import { aliciKaydet } from '../utils/aliciDefteri';
 import { faturaOzetiHesapla, kalemHesapla, parseNumara } from '../utils/faturaHesap';
+import { vknTcknGecerliMi } from '../utils/kimlikDogrula';
 import {
   VARSAYILAN_BIRIM,
   VARSAYILAN_FATURA_TIPI,
@@ -98,8 +99,7 @@ export default function FaturaKesimScreen({ navigation }: Props) {
   const ozet = faturaOzetiHesapla(form.kalemler);
 
   const aliciGecerli =
-    form.alici.vknTckn.trim().length >= 10 &&
-    form.alici.vknTckn.trim().length <= 11 &&
+    vknTcknGecerliMi(form.alici.vknTckn) &&
     (form.alici.unvan.trim().length > 0 ||
       (form.alici.ad.trim().length > 0 && form.alici.soyad.trim().length > 0)) &&
     form.alici.adres.trim().length > 0;

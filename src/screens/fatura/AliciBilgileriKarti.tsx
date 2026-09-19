@@ -6,6 +6,7 @@ import SecimAlani from '../../components/SecimAlani';
 import { ULKELER } from '../../constants/faturaConstants';
 import { mukellefBilgisiGetir } from '../../services/gibApi';
 import { aliciListesiGetir } from '../../utils/aliciDefteri';
+import { vknTcknGecerliMi, vknTcknHatasi } from '../../utils/kimlikDogrula';
 import type { AliciFormu, KayitliAlici } from '../../types/faturaForm';
 
 interface Props {
@@ -30,6 +31,14 @@ export default function AliciBilgileriKarti({ token, alici, onAliciChange }: Pro
   useEffect(() => {
     const temiz = alici.vknTckn.trim();
     if (!token || (temiz.length !== 10 && temiz.length !== 11) || !/^\d+$/.test(temiz)) {
+      return;
+    }
+    // Kontrol basamağı hatalı numara için GİB'e boşuna sorgu atma; önceki
+    // (geçerli) bir sorgudan kalan unvan/ad bilgisini de temizle ki yanlış
+    // numaranın yanında eski alıcının bilgisi görünmesin.
+    if (!vknTcknGecerliMi(temiz)) {
+      onAliciChange({ unvan: '', ad: '', soyad: '', vergiDairesi: '' });
+      setSorguHatali(false);
       return;
     }
 
@@ -77,6 +86,8 @@ export default function AliciBilgileriKarti({ token, alici, onAliciChange }: Pro
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alici.vknTckn, token]);
 
+  const kimlikHatasi = vknTcknHatasi(alici.vknTckn);
+
   const kayitliAcAction = async () => {
     const liste = await aliciListesiGetir();
     setKayitliListe(liste);
@@ -113,6 +124,12 @@ export default function AliciBilgileriKarti({ token, alici, onAliciChange }: Pro
           maxLength={11}
           right={sorgulaniyor ? <TextInput.Icon icon="loading" /> : undefined}
         />
+
+        {kimlikHatasi && (
+          <Text variant="bodySmall" style={styles.hataMetni}>
+            {kimlikHatasi}
+          </Text>
+        )}
 
         {sorguHatali && (
           <Text variant="bodySmall" style={styles.hataMetni}>

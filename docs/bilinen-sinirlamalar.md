@@ -64,7 +64,10 @@ bu sayfa onların tematik bir özetidir.
   ([Issue #9](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/9))
 - "Kayıtlı Mal/Hizmet Adı" defteri.
   ([Issue #10](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/10))
-- Gerçek VKN/TCKN checksum doğrulaması (şu an yalnızca uzunluk kontrolü).
+- ~~Gerçek VKN/TCKN checksum doğrulaması~~ — **yapıldı**
+  (`src/utils/kimlikDogrula.ts`; VKN ve TCKN kontrol basamağı algoritmaları).
+  Yalnızca biçimsel doğrulamadır: numaranın GİB'de kayıtlı olup olmadığını
+  `mukellefBilgisiGetir` sorgusu belirler.
   ([Issue #12](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/12))
 - Kullanıcı dostu hata mesajları (şu an GİB'in ham metni gösteriliyor).
   ([Issue #13](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/13))

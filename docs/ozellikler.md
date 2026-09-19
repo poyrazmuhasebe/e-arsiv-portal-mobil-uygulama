@@ -80,8 +80,11 @@ birleştirir ve tek bir `FaturaFormState` (bkz. `src/types/faturaForm.ts`)
 
 ### 2. Alıcı Bilgileri (`AliciBilgileriKarti.tsx`)
 
-- VKN (10 hane) veya TCKN (11 hane) girildiğinde, 400ms debounce sonrası
-  `mukellefBilgisiGetir` otomatik tetiklenir.
+- VKN (10 hane) veya TCKN (11 hane) girildiğinde önce **kontrol basamağı**
+  yerelde doğrulanır (`src/utils/kimlikDogrula.ts`); hatalıysa alanın altında
+  uyarı gösterilir, GİB'e sorgu atılmaz ve önceki sorgudan kalan unvan/ad
+  temizlenir. Geçerliyse 400ms debounce sonrası `mukellefBilgisiGetir`
+  otomatik tetiklenir.
   - VKN (10 hane) → **Unvan** dolar, Ad/Soyad boş kalır (şirket).
   - TCKN (11 hane) → **Ad/Soyad** dolar, Unvan boş kalır (şahıs).
 - Unvan/Ad/Soyad/Vergi Dairesi alanları **her zaman salt okunur**
@@ -130,7 +133,7 @@ birleştirir ve tek bir `FaturaFormState` (bkz. `src/types/faturaForm.ts`)
   toplamdan düşülmüş hali).
 - Serbest metin "Not" alanı.
 
-Form geçerliliği (`formGecerli`) alıcı (VKN/TCKN uzunluğu + Unvan ya da
+Form geçerliliği (`formGecerli`) alıcı (VKN/TCKN kontrol basamağı geçerli + Unvan ya da
 Ad+Soyad + Adres dolu) ve kalemler (her kalemde Mal/Hizmet adı + miktar>0 +
 birim fiyat>0) kontrolüyle belirlenir; "Oluştur" butonu bu koşul
 sağlanmadan aktif olmaz.
