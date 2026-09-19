@@ -70,6 +70,24 @@ log'una/`adb logcat`'e hiçbir şey yazılmaz. Geliştirme derlemesinde bile:
 > dağıtmayın/kullanmayın (bkz.
 > [Issue #15](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/15)).
 
+## Fatura görüntüleme (WebView)
+
+"Görüntüle" ile GİB'in döndürdüğü fatura HTML'i `src/components/FaturaWebView.tsx`
+içinde, **en az yetkiyle** gösterilir. İçerikteki alanlar (alıcı unvanı, mal/hizmet
+adı, not) üçüncü tarafça belirlenebildiği için HTML güvenilmez sayılır:
+
+- **JavaScript varsayılan olarak kapalıdır.** Fatura boş/bozuk görünürse
+  kullanıcı, uyarıyı onaylayarak "Fatura boş mu görünüyor?" düğmesiyle
+  *gelişmiş görünümü* (JavaScript açık) o oturum için açabilir; her yeni
+  fatura yine kapalı başlar.
+- **Gezinme engellenir:** yalnızca `about:`/`data:` adresleri (yani verdiğimiz
+  HTML'in kendisi) yüklenir; fatura içindeki bağlantılar, `tel:`, `intent:`,
+  `file:` vb. hiçbir yere götürmez.
+- Yeni pencere açma, dosya sistemi erişimi, DOM depolama, çerezler ve önbellek
+  kapalıdır; `incognito` sayesinde fatura içeriği WebView önbelleğinde kalmaz.
+
+PDF üretimi (`expo-print`) ayrı bir yoldur ve bu ayarlardan etkilenmez.
+
 ## Android izinleri
 
 Uygulama yalnızca `INTERNET` (GİB'e bağlanmak) ve `VIBRATE` izinlerini

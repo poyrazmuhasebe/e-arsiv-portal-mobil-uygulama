@@ -16,7 +16,7 @@ import {
 } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
-import { WebView } from 'react-native-webview';
+import FaturaWebView from '../components/FaturaWebView';
 
 import type { RootStackParamList } from '../../App';
 import {
@@ -147,6 +147,9 @@ export default function TaslaklarScreen({ navigation }: Props) {
   // Görüntüle modalındayken PDF İndir/Paylaş'ın filigran olarak kullanacağı
   // metin — "İptal/İtiraz Durumu" varsa (bkz. iptalItirazDurumMetni).
   const [goruntulenenFiligran, setGoruntulenenFiligran] = useState<string | undefined>(undefined);
+  // Fatura HTML'i varsayılan olarak JavaScript kapalı gösterilir; yalnızca fatura
+  // boş/bozuk göründüğünde kullanıcı bilinçli olarak açar (bkz. FaturaWebView).
+  const [faturaJsAcik, setFaturaJsAcik] = useState(false);
   const [pdfIsleniyor, setPdfIsleniyor] = useState(false);
 
   // Listedeki "İndir" butonu için — hangi kartın HTML'i arka planda
@@ -362,11 +365,23 @@ export default function TaslaklarScreen({ navigation }: Props) {
     }
   };
 
+  const handleGelismisGorunum = () => {
+    Alert.alert(
+      'Gelişmiş görünüm',
+      'Fatura sayfasındaki betiklerin (JavaScript) çalışmasına izin verilecek. Bunu yalnızca fatura boş ya da bozuk görünüyorsa kullanın.',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        { text: 'Aç', onPress: () => setFaturaJsAcik(true) },
+      ],
+    );
+  };
+
   const handleGoruntule = async (item: TaslakFatura) => {
     if (!token) return;
     setHtmlModalGorunur(true);
     setHtmlYukleniyor(true);
     setHtmlIcerik(null);
+    setFaturaJsAcik(false);
     setGoruntulenenFiligran(filigranMetni(item));
     try {
       const html = await faturaHTMLGetir(token, item.ettn, item.onayDurumu);
@@ -831,6 +846,11 @@ export default function TaslaklarScreen({ navigation }: Props) {
               Kapat
             </Button>
             {pdfIsleniyor && <ActivityIndicator size="small" style={styles.pdfSpinner} />}
+            {htmlIcerik && !faturaJsAcik && (
+              <Button compact onPress={handleGelismisGorunum}>
+                Fatura boş mu görünüyor?
+              </Button>
+            )}
           </View>
 
           {htmlYukleniyor ? (
@@ -838,7 +858,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
               <ActivityIndicator size="large" />
             </View>
           ) : htmlIcerik ? (
-            <WebView originWhitelist={['*']} source={{ html: htmlIcerik }} style={styles.flex} />
+            <FaturaWebView html={htmlIcerik} javaScriptAcik={faturaJsAcik} />
           ) : (
             <View style={styles.merkezi}>
               <Text variant="bodyMedium" style={styles.mutedText}>
