@@ -21,12 +21,14 @@ veriyle çalışır.
 
 ### GİB gerekmez
 
-- [ ] **GİB bakım duyurusu kutusu** — *yalnızca 20/9/2026 23:59'a kadar
-  denenebilir, sonra kutu kendiliğinden gizlenir.* Giriş ekranının üstünde
-  kırmızımsı kutuda "ELEKTRONİK BELGE SİSTEMLERİNDE YAPILACAK PLANLI BAKIM…"
-  duyurusu tam metniyle görünüyor; alttaki bağlantıya dokununca GİB'in PDF'i
-  tarayıcıda açılıyor; × ile kapanıyor ve uygulama kapatılıp açılınca bir daha
-  gelmiyor. Klavye açıkken form kaydırılarak kullanılabiliyor.
+- [ ] **Bakım sonrası giriş ekranı temiz** — 20/9/2026 23:59'dan sonra giriş
+  ekranında planlı bakım duyurusu **görünmüyor** (süresi dolunca kendiliğinden
+  gizlenmesi beklenir).
+- [ ] **Duyuru kutusunun kendisi** — 19–20/9 bakım duyurusu süresi dolduğu için
+  artık görülemez; kutu, `src/constants/duyurular.ts`'e **bir sonraki GİB duyurusu
+  eklendiğinde** denenecek: tam metin görünüyor, bağlantı tarayıcıda açılıyor, ×
+  ile kapanıyor ve uygulama yeniden açılınca gelmiyor, uzun metinde form
+  kaydırılarak (klavye açıkken de) kullanılabiliyor.
 - [ ] **Alıcı Defteri ekranı açılıyor** (#9) — Dashboard → Kullanıcı İşlemleri →
   Alıcı Defteri: kayıtlar ve `x/50` sayacı görünüyor; arama unvan/ad/VKN ile
   süzüyor.
