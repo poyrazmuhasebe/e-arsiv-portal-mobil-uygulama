@@ -18,6 +18,7 @@ sunucuya **gitmez**.
 | ~~`gib_hatirlanan_sifre`~~ | **Artık kullanılmıyor.** v1.0.0'da "Şifreyi Hatırla" ile kaydedilen şifre | `LoginScreen` açılışta bu anahtarı **siler** (eski kurulumlardan göç) |
 | `gib_alici_defteri_<kullanıcı kodu>` | O hesaba özel, en fazla 50 kayıtlı alıcı (JSON dizi). Anahtardaki kod, karakter kodlarının onaltılık gösterimidir (`hesapAnahtari.ts`) | `aliciDefteri.ts` — bir fatura başarıyla oluşturulunca otomatik eklenir/güncellenir; "Alıcı Defteri" ekranından adres/ülke düzenlenir, silinir, elle eklenir. **Defter hesaplar arasında paylaşılmaz**: birden fazla mükellefin hesabına giren bir mali müşavir yalnızca o hesabın alıcılarını görür |
 | `gib_malhizmet_defteri_<kullanıcı kodu>` | O hesaba özel, en fazla 50 mal/hizmet **adı** (JSON metin dizisi, en son kullanılan başta). Anahtar alıcı defteriyle aynı biçimde üretilir | `malHizmetDefteri.ts` — fatura başarıyla oluşturulunca kalem adları eklenir; fatura formundaki "Kayıtlı Mal/Hizmet Seç" diyaloğundan silinir. Hesaplar arasında paylaşılmaz |
+| `gib_kapatilan_duyurular` | Giriş ekranında kapatılan GİB duyurularının kimlikleri (JSON dizi; kişisel veri yok, hesaba özel değil) | `src/utils/duyuru.ts` — × ile kapatınca eklenir; yalnızca hâlâ tanımlı duyuruların kimlikleri tutulur |
 | ~~`gib_alici_defteri`~~ | **Artık kullanılmıyor.** Eski sürümlerdeki, tüm hesapların paylaştığı ortak defter | Uygulama her açılışta bu anahtarı **siler** (kime ait olduğu bilinemediğinden başka bir hesaba taşınamaz) |
 
 **Önemli ayrım:** `gib_token`/`gib_kullanici_kodu` çifti **oturumun kendisi**

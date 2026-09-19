@@ -2,6 +2,16 @@
 
 ## Giriş (`src/screens/LoginScreen.tsx`)
 
+- **GİB duyuru kutusu** (`src/components/DuyuruKutusu.tsx`): formun üstünde,
+  süresi dolmamış ve kullanıcının kapatmadığı ilk GİB duyurusu (ör. planlı bakım)
+  gösterilir. Duyurular `src/constants/duyurular.ts`'te elle tanımlanır; uygulamanın
+  kendi sunucusu olmadığı için uzaktan çekilmez, uygulama güncellemesiyle gelir.
+  Her duyurunun bir `bitis` anı vardır; o an geçince kutu kendiliğinden gizlenir.
+  Sağ üstteki × ile kapatılan duyuru cihazda hatırlanır (`gib_kapatilan_duyurular`)
+  ve bir daha gösterilmez. Duyurudaki GİB bağlantısına dokununca tarayıcıda açılır.
+  İlk duyuru: 19–20/9/2026 planlı bakım (bitiş 20/9/2026 23:59, Türkiye saati).
+  Yeni duyuru eklemek için diziye yeni bir `id` ile öge eklenir; metin GİB'in
+  duyurusundan birebir alınır.
 - Kullanıcı Kodu + Şifre alanları; şifre alanında göz ikonuyla göster/gizle.
 - **"Kullanıcı Kodunu Hatırla"** — varsayılan olarak işaretli gelir.
   İşaretliyse, başarılı girişten sonra kullanıcı kodu `expo-secure-store`'a

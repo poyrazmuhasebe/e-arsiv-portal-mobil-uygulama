@@ -21,6 +21,12 @@ veriyle çalışır.
 
 ### GİB gerekmez
 
+- [ ] **GİB bakım duyurusu kutusu** — *yalnızca 20/9/2026 23:59'a kadar
+  denenebilir, sonra kutu kendiliğinden gizlenir.* Giriş ekranının üstünde
+  kırmızımsı kutuda "ELEKTRONİK BELGE SİSTEMLERİNDE YAPILACAK PLANLI BAKIM…"
+  duyurusu tam metniyle görünüyor; alttaki bağlantıya dokununca GİB'in PDF'i
+  tarayıcıda açılıyor; × ile kapanıyor ve uygulama kapatılıp açılınca bir daha
+  gelmiyor. Klavye açıkken form kaydırılarak kullanılabiliyor.
 - [ ] **Alıcı Defteri ekranı açılıyor** (#9) — Dashboard → Kullanıcı İşlemleri →
   Alıcı Defteri: kayıtlar ve `x/50` sayacı görünüyor; arama unvan/ad/VKN ile
   süzüyor.

@@ -20,8 +20,10 @@ src/
       ToplamlarKarti.tsx
   components/
     SecimAlani.tsx              # Yeniden kullanılabilir dropdown/seçici
+    DuyuruKutusu.tsx            # Giriş ekranındaki GİB duyuru kutusu
   constants/
     faturaConstants.ts          # Para birimi/fatura tipi/ülke/birim/vergi/tevkifat listeleri
+    duyurular.ts                # GİB duyuruları (metin + bitiş anı)
   services/
     gibApi.ts                   # GİB API istemcisi (dispatch/assos-login)
     gibHataMesajlari.ts         # Bilinen GİB/ağ hata metinlerinin Türkçe açıklamaları
@@ -37,6 +39,7 @@ src/
     malHizmetDefteri.ts           # Kayıtlı mal/hizmet adları
     paraBirimi.ts                 # Tutar etiketleri için para birimi simgesi
     vergiDestegi.ts               # Desteklenen vergi türleri, vergi uyumsuzluğu kontrolü
+    duyuru.ts                     # Gösterilecek duyuru seçimi, kapatılanlar
     kimlikDogrula.ts              # VKN/TCKN kontrol basamağı
     dosyaTemizlik.ts              # Eski fatura PDF'lerini silme
     uygulamaKilidi.ts             # Cihaz kilidiyle uygulama kilidi

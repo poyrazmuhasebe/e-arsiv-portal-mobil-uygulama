@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Checkbox, Text, TextInput, useTheme } from 'react-native-paper';
 
+import DuyuruKutusu from '../components/DuyuruKutusu';
 import { useAuthStore } from '../store/useAuthStore';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '../utils/secureStorage';
 
@@ -80,6 +81,8 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
+          <DuyuruKutusu />
+
           <View style={styles.header}>
             <Text variant="headlineSmall" style={styles.title}>
               E-ARŞİV PORTAL İNTERAKTİF ŞİFRE İLE GİRİŞ EKRANI
