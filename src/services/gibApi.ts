@@ -246,17 +246,61 @@ async function dispatch<T = unknown>(
 // Tarayıcı DevTools > Network yakalamasıyla doğrulandı: assos-login yanıtının
 // gerçek şekli (token'ın hangi alanda geldiği) netleşince bu fonksiyonu
 // duruma göre güncelleyin.
+const MAX_TOKEN_UZUNLUGU = 2048;
+
+// Yanıt gövdesinin oturum token'ı gibi görünüp görünmediği. GİB bir bakım/hata
+// sayfası (HTML) ya da düz metin hata mesajı döndürdüğünde bunlar yanlışlıkla
+// "token" sayılıp sahte bir oturum açılmasın diye: makul uzunlukta olmalı ve
+// boşluk/satır sonu/HTML işareti içermemeli.
+function tokenBicimiGecerliMi(token: string): boolean {
+  return token.length > 0 && token.length <= MAX_TOKEN_UZUNLUGU && !/[\s<>]/.test(token);
+}
+
 function extractAssosToken(data: unknown): string | undefined {
   if (typeof data === 'string') {
     const trimmed = data.trim().replace(/^"+|"+$/g, '');
-    return trimmed.length > 0 ? trimmed : undefined;
+    return tokenBicimiGecerliMi(trimmed) ? trimmed : undefined;
   }
   if (data && typeof data === 'object') {
     const obj = data as Record<string, unknown>;
     const candidate = obj.token ?? obj.Token ?? obj.TOKEN ?? obj.data;
-    if (typeof candidate === 'string' && candidate.length > 0) return candidate;
+    if (typeof candidate === 'string' && tokenBicimiGecerliMi(candidate)) return candidate;
   }
   return undefined;
+}
+
+const GIRIS_MESAJI_MAX_UZUNLUK = 200;
+
+function kisaDuzMetinMi(v: unknown): v is string {
+  return (
+    typeof v === 'string' &&
+    v.trim().length > 0 &&
+    v.length <= GIRIS_MESAJI_MAX_UZUNLUK &&
+    !/[<>]/.test(v) &&
+    !['0', '1', 'true', 'false'].includes(v.trim().toLowerCase())
+  );
+}
+
+// Giriş başarısız olduğunda kullanıcıya gösterilecek mesaj. GİB'in kendi kısa,
+// okunabilir hata mesajı varsa (messages/error/message) onu kullanır; ham yanıtı
+// (HTML sayfası, JSON dökümü vb.) ASLA kullanıcıya göstermez.
+function girisHatasiMesaji(status: number, data: unknown): string {
+  const gibMesaji = extractErrorMessage(data);
+  if (kisaDuzMetinMi(gibMesaji)) return gibMesaji;
+
+  if (data && typeof data === 'object') {
+    const obj = data as Record<string, unknown>;
+    for (const anahtar of ['error', 'message', 'mesaj', 'hata']) {
+      const deger = obj[anahtar];
+      if (kisaDuzMetinMi(deger)) return deger.trim();
+    }
+  } else if (kisaDuzMetinMi(data)) {
+    return data.trim();
+  }
+
+  return status >= 200 && status < 300
+    ? 'Giriş başarısız. Kullanıcı kodunuzu ve şifrenizi kontrol edip tekrar deneyin.'
+    : `GİB portalı beklenmeyen bir yanıt döndürdü (HTTP ${status}). Lütfen daha sonra tekrar deneyin.`;
 }
 
 const MOCK_TOKEN = 'TEST_MOCK_TOKEN_123';
@@ -290,12 +334,14 @@ export async function login(kullaniciKodu: string, kullaniciSifresi: string): Pr
     throw new GibApiError('Beklenmeyen bir hata oluştu.', err);
   }
 
-  const token = extractAssosToken(res.data);
+  // validateStatus tüm durum kodlarını kabul ettiğinden HTTP durumunu burada
+  // kontrol ediyoruz: 2xx dışındaki (ör. 502 bakım sayfası) bir yanıt asla
+  // oturum token'ı olarak yorumlanmamalı.
+  const httpBasarili = res.status >= 200 && res.status < 300;
+  const token = httpBasarili ? extractAssosToken(res.data) : undefined;
   if (!token) {
-    throw new GibApiError(
-      `Giriş başarısız: assos-login yanıtından token okunamadı. Ham yanıt: ${JSON.stringify(res.data)}`,
-      res.data,
-    );
+    // Ham yanıt yalnızca hata nesnesinde (raw) tutuluyor, kullanıcıya gösterilmiyor.
+    throw new GibApiError(girisHatasiMesaji(res.status, res.data), res.data);
   }
   return token;
 }

@@ -111,6 +111,15 @@ assoscmd=logout&rtype=json&token=<token>
 şifre+şifre-tekrar alanlarının bir kalıntısı olabilir, ama isteğin
 çalışması için ikisi de gerekli.
 
+**Yanıt doğrulaması (`login()`):** HTTP durumu 2xx değilse ya da gövde bir
+token gibi görünmüyorsa (boşluk/satır sonu/`<`/`>` içeriyor ya da 2048
+karakterden uzunsa) giriş **başarısız** sayılır. Bu, GİB'in bir bakım/hata
+sayfası (HTML) veya düz metin hata mesajı döndürdüğü durumda bunların
+yanlışlıkla "token" sanılıp sahte bir oturum açılmasını engeller.
+Kullanıcıya yalnızca GİB'in kısa, okunabilir hata mesajı (`messages`/`error`/
+`message`) ya da genel bir mesaj gösterilir; ham yanıt gösterilmez (yalnızca
+`GibApiError.raw` içinde tutulur).
+
 ### Mükellef sorgusu — `SICIL_VEYA_MERNISTEN_BILGILERI_GETIR` (`RG_BASITFATURA`)
 
 ```json
