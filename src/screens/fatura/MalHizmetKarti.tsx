@@ -1,10 +1,11 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Button, Card, Divider, IconButton, SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import React, { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { Button, Card, Dialog, Divider, IconButton, List, Portal, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 
 import SecimAlani from '../../components/SecimAlani';
 import { BIRIMLER, KDV_ORANLARI, TEVKIFAT_KODLARI, VERGI_TURLERI } from '../../constants/faturaConstants';
 import { kalemHesapla, paraFormatla } from '../../utils/faturaHesap';
+import { malHizmetListesiGetir, malHizmetSil } from '../../utils/malHizmetDefteri';
 import type { KalemFormu } from '../../types/faturaForm';
 import type { KdvOrani } from '../../types/gib';
 
@@ -32,6 +33,35 @@ export default function MalHizmetKarti({
   onKalemSil,
 }: Props) {
   const tevkifatDesteklenir = TEVKIFAT_DESTEKLEYEN_FATURA_TIPLERI.has(faturaTipi);
+
+  // "Kayıtlı Mal/Hizmet Seç" diyaloğu: hangi kalem için açıldığı ve defter içeriği.
+  const [secimKalemId, setSecimKalemId] = useState<string | null>(null);
+  const [kayitliAdlar, setKayitliAdlar] = useState<string[]>([]);
+
+  const kayitliSecimiAc = async (kalemId: string) => {
+    setKayitliAdlar(await malHizmetListesiGetir());
+    setSecimKalemId(kalemId);
+  };
+
+  const kayitliAdSec = (ad: string) => {
+    if (secimKalemId) onKalemGuncelle(secimKalemId, { malHizmet: ad });
+    setSecimKalemId(null);
+  };
+
+  const kayitliAdSil = (ad: string) => {
+    Alert.alert('Kaydı Sil', `"${ad}" kayıtlı mal/hizmetlerden silinsin mi?`, [
+      { text: 'Vazgeç', style: 'cancel' },
+      {
+        text: 'Sil',
+        style: 'destructive',
+        onPress: async () => {
+          const basarili = await malHizmetSil(ad);
+          if (!basarili) Alert.alert('Silinemedi', 'Kayıt silinemedi. Lütfen tekrar deneyin.');
+          setKayitliAdlar(await malHizmetListesiGetir());
+        },
+      },
+    ]);
+  };
 
   return (
     <Card mode="elevated" style={styles.card}>
@@ -62,6 +92,15 @@ export default function MalHizmetKarti({
                   value={kalem.malHizmet}
                   onChangeText={(v) => onKalemGuncelle(kalem.id, { malHizmet: v })}
                 />
+                <Button
+                  mode="text"
+                  compact
+                  icon="format-list-bulleted"
+                  onPress={() => kayitliSecimiAc(kalem.id)}
+                  style={styles.kayitliSecButonu}
+                >
+                  Kayıtlı Mal/Hizmet Seç
+                </Button>
 
                 <View style={styles.satir}>
                   <TextInput
@@ -197,6 +236,37 @@ export default function MalHizmetKarti({
           Satır Ekle
         </Button>
       </Card.Content>
+
+      <Portal>
+        <Dialog visible={secimKalemId !== null} onDismiss={() => setSecimKalemId(null)} style={styles.dialog}>
+          <Dialog.Title>Kayıtlı Mal/Hizmetler</Dialog.Title>
+          <Dialog.ScrollArea style={styles.dialogScroll}>
+            {kayitliAdlar.length === 0 ? (
+              <Text variant="bodyMedium" style={[styles.mutedText, styles.bosListe]}>
+                Henüz kayıtlı mal/hizmet yok. Bir fatura başarıyla oluşturulunca kalemlerdeki adlar
+                otomatik kaydedilir.
+              </Text>
+            ) : (
+              <ScrollView>
+                {kayitliAdlar.map((ad) => (
+                  <List.Item
+                    key={ad}
+                    title={ad}
+                    titleNumberOfLines={2}
+                    onPress={() => kayitliAdSec(ad)}
+                    right={() => (
+                      <IconButton icon="delete-outline" accessibilityLabel={`${ad} sil`} onPress={() => kayitliAdSil(ad)} />
+                    )}
+                  />
+                ))}
+              </ScrollView>
+            )}
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button onPress={() => setSecimKalemId(null)}>Kapat</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </Card>
   );
 }
@@ -212,4 +282,8 @@ const styles = StyleSheet.create({
   uyariMetni: { color: '#f2b8b5' },
   ozetSatir: { flexDirection: 'row', justifyContent: 'space-between' },
   satirEkleButonu: { alignSelf: 'flex-start' },
+  kayitliSecButonu: { alignSelf: 'flex-start', marginTop: -8 },
+  dialog: { maxHeight: '80%' },
+  dialogScroll: { paddingHorizontal: 0 },
+  bosListe: { padding: 16 },
 });

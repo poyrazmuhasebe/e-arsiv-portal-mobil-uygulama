@@ -68,7 +68,9 @@ bu sayfa onların tematik bir özetidir.
   bazı iOS sürümlerinin büyük değerleri reddettiği biliniyor. Yazma reddedilirse
   artık kullanıcıya bildiriliyor, ama gerçek cihazlarda denenmedi (bkz.
   [guvenlik-ve-veri.md](guvenlik-ve-veri.md#değer-boyutu-securestore)).
-- "Kayıtlı Mal/Hizmet Adı" defteri.
+- ~~"Kayıtlı Mal/Hizmet Adı" defteri.~~ — **yapıldı** (hesaba özel, en fazla
+  50 ad; fatura formunda "Kayıtlı Mal/Hizmet Seç"). Cihazda canlı denenmesi
+  gerekiyor.
   ([Issue #10](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/10))
 - ~~Gerçek VKN/TCKN checksum doğrulaması~~ — **yapıldı**
   (`src/utils/kimlikDogrula.ts`; VKN ve TCKN kontrol basamağı algoritmaları).

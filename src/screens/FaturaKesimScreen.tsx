@@ -8,6 +8,7 @@ import type { RootStackParamList } from '../../App';
 import { faturaKaydet, gibHatasiniIsle } from '../services/gibApi';
 import { useAuthStore } from '../store/useAuthStore';
 import { aliciKaydet } from '../utils/aliciDefteri';
+import { malHizmetKaydet } from '../utils/malHizmetDefteri';
 import { faturaOzetiHesapla, kalemHesapla, kalemlerAralikHatasi, parseNumara } from '../utils/faturaHesap';
 import { vknTcknGecerliMi } from '../utils/kimlikDogrula';
 import {
@@ -159,7 +160,15 @@ export default function FaturaKesimScreen({ navigation }: Props) {
       // bir sonraki faturada "Kayıtlı Alıcılardan Seç" ile tekrar
       // kullanılabilsin.
       const aliciDeftereYazildi = await aliciKaydet(form.alici);
-      const defterNotu = aliciDeftereYazildi ? '' : '\n\n(Alıcı, cihazdaki alıcı defterine kaydedilemedi.)';
+      // Kalemlerdeki mal/hizmet adları da "Kayıtlı Mal/Hizmet Seç" için kaydedilir.
+      const malHizmetDeftereYazildi = await malHizmetKaydet(form.kalemler.map((k) => k.malHizmet));
+      const kaydedilemeyenler = [
+        aliciDeftereYazildi ? null : 'alıcı defterine',
+        malHizmetDeftereYazildi ? null : 'mal/hizmet defterine',
+      ].filter(Boolean);
+      const defterNotu = kaydedilemeyenler.length
+        ? `\n\n(Cihazdaki ${kaydedilemeyenler.join(' ve ')} kaydedilemedi.)`
+        : '';
       Alert.alert('Taslak Kaydedildi', `Belge No: ${sonuc.ettn}${defterNotu}`, [
         { text: 'Tamam', onPress: () => navigation.navigate('Taslaklar') },
       ]);

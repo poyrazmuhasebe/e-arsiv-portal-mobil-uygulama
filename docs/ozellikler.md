@@ -147,6 +147,13 @@ birleştirir ve tek bir `FaturaFormState` (bkz. `src/types/faturaForm.ts`)
   şekilde silme.
 - Her kalem için: Mal/Hizmet Adı, Miktar, Birim Fiyat, Birim (`BIRIMLER`),
   İskonto Oranı %, KDV Oranı (`SegmentedButtons`, `%0/%1/%10/%20`).
+- **"Kayıtlı Mal/Hizmet Seç"** (her kalemde, adın altında): bu hesaba özel,
+  cihazda tutulan en fazla 50 mal/hizmet adından biri seçilip o kalemin adına
+  yazılır (`src/utils/malHizmetDefteri.ts`). Fatura başarıyla oluşturulunca
+  kalemlerdeki adlar otomatik eklenir (aynı ad büyük/küçük harf farkı
+  gözetilmeden tek kayıt olur ve en üste taşınır; en eski kayıtlar 50'yi
+  aşınca düşer). Diyalogdaki çöp kutusu ikonuyla, onaydan sonra kayıt silinir.
+  Yalnızca **adlar** saklanır; tutar/miktar/birim saklanmaz.
 - Kalem altında anlık hesaplanan **Mal/Hizmet Tutarı** ve **KDV Tutarı**
   gösterilir (bkz. [hesaplama-mantigi.md](hesaplama-mantigi.md)).
 - **"Vergi Seçiniz"** — `VERGI_TURLERI` (29 gerçek GİB kodu) listesinden

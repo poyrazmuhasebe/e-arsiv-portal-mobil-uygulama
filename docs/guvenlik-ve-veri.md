@@ -17,6 +17,7 @@ sunucuya **gitmez**.
 | `gib_hatirlanan_kullanici_kodu` | Login formunu önceden doldurmak için kullanıcı kodu | `LoginScreen` — "Kullanıcı Kodunu Hatırla" işaretliyse, **çıkış yapılsa bile** kalır |
 | ~~`gib_hatirlanan_sifre`~~ | **Artık kullanılmıyor.** v1.0.0'da "Şifreyi Hatırla" ile kaydedilen şifre | `LoginScreen` açılışta bu anahtarı **siler** (eski kurulumlardan göç) |
 | `gib_alici_defteri_<kullanıcı kodu>` | O hesaba özel, en fazla 50 kayıtlı alıcı (JSON dizi). Anahtardaki kod, karakter kodlarının onaltılık gösterimidir (`hesapAnahtari.ts`) | `aliciDefteri.ts` — bir fatura başarıyla oluşturulunca otomatik eklenir/güncellenir; "Alıcı Defteri" ekranından adres/ülke düzenlenir, silinir, elle eklenir. **Defter hesaplar arasında paylaşılmaz**: birden fazla mükellefin hesabına giren bir mali müşavir yalnızca o hesabın alıcılarını görür |
+| `gib_malhizmet_defteri_<kullanıcı kodu>` | O hesaba özel, en fazla 50 mal/hizmet **adı** (JSON metin dizisi, en son kullanılan başta). Anahtar alıcı defteriyle aynı biçimde üretilir | `malHizmetDefteri.ts` — fatura başarıyla oluşturulunca kalem adları eklenir; fatura formundaki "Kayıtlı Mal/Hizmet Seç" diyaloğundan silinir. Hesaplar arasında paylaşılmaz |
 | ~~`gib_alici_defteri`~~ | **Artık kullanılmıyor.** Eski sürümlerdeki, tüm hesapların paylaştığı ortak defter | Uygulama her açılışta bu anahtarı **siler** (kime ait olduğu bilinemediğinden başka bir hesaba taşınamaz) |
 
 **Önemli ayrım:** `gib_token`/`gib_kullanici_kodu` çifti **oturumun kendisi**
@@ -38,6 +39,12 @@ belirtiyor. Bu projede bu sınır **varsayılmıyor**, ölçülen boyutlar şunl
 |---|---|---|
 | Alıcı (tipik: 45 karakter unvan, 55 karakter adres) | ~269 B | ~13,5 KB |
 | Alıcı (uç: 150 karakter unvan, 250 karakter adres) | ~962 B | ~48 KB |
+| Mal/hizmet adı (tipik: 30 karakter) | ~37 B | ~1,85 KB |
+| Mal/hizmet adı (uç: 200 Türkçe harf) | ~402 B | ~20 KB |
+
+Mal/hizmet defterinde bu yüzden kayıt tarihi gibi ek alanlar tutulmuyor,
+yalnızca adlar saklanıyor (tarihle nesne olarak saklamak tipik 50 kaydı
+~4,2 KB'a çıkarıyordu; sıra zaten dizideki konumla korunuyor).
 
 Yani dolu bir alıcı defteri o tarihsel iOS rakamının çok üstünde. **Hangi
 cihaz/işletim sisteminde kabul edildiği doğrulanmadı.** Bu yüzden
@@ -68,7 +75,8 @@ web'de tüm okuma/yazma/silme işlemleri sessizce no-op.
 - Fatura içerikleri (kalemler, tutarlar) cihazda kalıcı saklanmıyor — form
   kapatılınca/uygulamadan çıkılınca kaybolur. Kalıcı olan tek şey, başarılı
   bir fatura sonrası **alıcı bilgisinin** adres defterine yazılmasıdır (mal/
-  hizmet kalemleri, tutarlar değil).
+  hizmet kalemleri, tutarlar değil) ve kalemlerin yalnızca **mal/hizmet
+  adlarının** mal/hizmet defterine yazılmasıdır.
 
 ## Uygulama içi loglama
 
