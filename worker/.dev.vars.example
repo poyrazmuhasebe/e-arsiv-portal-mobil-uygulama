@@ -1,0 +1,25 @@
+# Yerel geliştirme değişkenleri — bu dosyanın KOPYASINI `.dev.vars` adıyla
+# oluşturun. `.dev.vars` git'e GİRMEZ (.gitignore) ve `wrangler deploy` ile
+# Cloudflare'e YÜKLENMEZ; yalnızca `wrangler dev` ve testler okur.
+#
+# Üretimdeki karşılıkları `npx wrangler secret put <AD>` ile verilir.
+
+# Oturum token'larını imzalayan anahtar. Üretimde rastgele ve uzun olmalı:
+#   node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+OTURUM_IMZA_ANAHTARI="yerel-gelistirme-icin-rastgele-olmayan-anahtar-degistirin"
+
+# İsteğe bağlı. Şifre özetine eklenen, veritabanında BULUNMAYAN gizli değer.
+# Değiştirilirse mevcut tüm şifreler doğrulanamaz hale gelir.
+PEPPER=""
+
+# Yerel web önizlemesi (npx expo start --web) için. Üretimde BOŞ bırakılır.
+# Virgülle ayrılmış tam kaynak listesi. Wildcard desteklenmez.
+CORS_IZIN_LISTESI="http://localhost:8081"
+
+# SADECE YEREL GELİŞTİRME. "1" iken e-posta doğrulama ve şifre sıfırlama
+# kodları yanıt gövdesinde `gelistirmeKodu` alanıyla döner ve konsola yazılır,
+# böylece e-posta altyapısı olmadan akış telefonda denenebilir.
+#
+# ÜRETİMDE ASLA AYARLANMAZ. `wrangler.jsonc`'deki `vars` bloğunda bu değişken
+# bilerek yoktur; yalnızca bu dosyadan gelir ve bu dosya deploy edilmez.
+GELISTIRME="1"

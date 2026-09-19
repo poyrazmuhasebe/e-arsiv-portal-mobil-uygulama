@@ -2,5 +2,18 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true
-  }
+  },
+  // `exclude` yazıldığı an expo/tsconfig.base'deki liste MİRAS ALINMAZ, bu
+  // yüzden tabandaki değerler burada yeniden yazılıyor. Sonda eklenen
+  // `worker`, Worker kodunun uygulamanın tip kontrolüne karışmasını engeller;
+  // Worker kendi tsconfig'iyle ayrıca kontrol edilir (worker/tsconfig.json).
+  "exclude": [
+    "node_modules",
+    "babel.config.js",
+    "metro.config.js",
+    "jest.config.js",
+    "android",
+    "ios",
+    "worker"
+  ]
 }

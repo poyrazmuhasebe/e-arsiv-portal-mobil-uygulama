@@ -42,3 +42,14 @@ yarn-error.*
 
 # EAS/yerel derleme çıktıları (büyük ikili dosyalar git dışında tutulur)
 /builds/
+
+# Ortam değişkenleri ve sırlar (.env.example commit'lenir)
+.env
+.env.*
+!.env.example
+
+# Cloudflare Worker — yerel sırlar ve yerel D1/durum dizini
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.wrangler/

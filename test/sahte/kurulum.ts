@@ -162,11 +162,79 @@ const yerelKimlikSahtesi = {
 };
 
 // ---------------------------------------------------------------------------
+// globalThis.fetch
+// ---------------------------------------------------------------------------
+//
+// Node 24'te fetch YERLEŞİK olarak var. Sahte axios yalnızca `axios` modülünü
+// kapsıyordu, dolayısıyla fetch kullanan her kod testte GERÇEKTEN ağa
+// çıkabilirdi. Uygulama hesabı istemcisi (hesapApi.ts) Worker'a fetch ile
+// gidecek; bu sahte olmadan testler Cloudflare'e gerçek istek atardı.
+//
+// Varsayılan davranış: her istek hata fırlatır. Bir test ağ bekliyorsa
+// `sahteFetch.isleyici`'yi kendisi ayarlar.
+
+export interface KaydedilenFetch {
+  url: string;
+  yontem: string;
+  basliklar: Record<string, string>;
+  govde: string | null;
+}
+
+type FetchIsleyici = (istek: KaydedilenFetch) => Response | Promise<Response>;
+
+function beklenmeyenFetch(istek: KaydedilenFetch): never {
+  throw new Error(`Testte beklenmeyen ağ isteği (fetch): ${istek.yontem} ${istek.url}`);
+}
+
+export const sahteFetch = {
+  istekler: [] as KaydedilenFetch[],
+  isleyici: beklenmeyenFetch as FetchIsleyici,
+};
+
+/** Test kolaylığı: JSON gövdeli bir yanıt üretir. */
+export function sahteJsonYanit(veri: unknown, durum = 200): Response {
+  return new Response(JSON.stringify(veri), {
+    status: durum,
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+  });
+}
+
+globalThis.fetch = async function sahteGlobalFetch(
+  girdi: RequestInfo | URL,
+  secenekler?: RequestInit,
+): Promise<Response> {
+  const url =
+    typeof girdi === 'string'
+      ? girdi
+      : girdi instanceof URL
+        ? girdi.toString()
+        : girdi.url;
+
+  const basliklar: Record<string, string> = {};
+  new Headers(secenekler?.headers ?? (girdi instanceof Request ? girdi.headers : undefined)).forEach(
+    (deger, ad) => {
+      basliklar[ad] = deger;
+    },
+  );
+
+  const istek: KaydedilenFetch = {
+    url,
+    yontem: (secenekler?.method ?? (girdi instanceof Request ? girdi.method : 'GET')).toUpperCase(),
+    basliklar,
+    govde: typeof secenekler?.body === 'string' ? secenekler.body : null,
+  };
+  sahteFetch.istekler.push(istek);
+  return sahteFetch.isleyici(istek);
+} as typeof fetch;
+
+// ---------------------------------------------------------------------------
 // Ortak sıfırlama ve Module._load kancası
 // ---------------------------------------------------------------------------
 
 /** Her testten önce çağrılır: tüm sahte durumları varsayılana döndürür. */
 export function sahteleriSifirla(): void {
+  sahteFetch.istekler = [];
+  sahteFetch.isleyici = beklenmeyenFetch;
   sahtePlatform.OS = 'android';
   sahteDepo.veriler.clear();
   sahteDepo.yazmaHatasi = null;

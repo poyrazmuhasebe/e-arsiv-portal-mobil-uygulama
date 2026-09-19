@@ -114,3 +114,109 @@ derlemede etkilidir, Expo Go'da değil (bkz.
       [Issue #22](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/22)
 - [ ] `production` (AAB) derlemesi, iOS paketi ve mağaza yayın hazırlığı —
       [Issue #17](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/17)
+
+## Hesap sunucusu (Cloudflare Worker + D1)
+
+Uygulama hesabı sistemi ayrı bir Worker'da, aynı repodaki `worker/`
+klasöründe durur (kendi `package.json` ve `tsconfig.json`'ı ile). Tasarım,
+kararlar ve gerekçeler: [hesap-sistemi.md](hesap-sistemi.md).
+
+> **Bu Worker'a GİB verisi HİÇBİR KOŞULDA gitmez.** Her uç nokta yalnızca izin
+> verilen alanları kabul eder ve bilinmeyen alanı reddeder; D1 şemasında GİB'e
+> ait hiçbir tablo ya da sütun yoktur. `worker/test/gibVerisi.test.ts` bunu
+> her testte doğrular.
+
+### Kurulum ve yerel çalıştırma
+
+```bash
+cd worker
+```
+
+```bash
+npm install
+```
+
+Sırları verin — `.dev.vars.example` dosyasını `.dev.vars` adıyla kopyalayın ve
+içindeki açıklamaları izleyin. `.dev.vars` **git'e girmez** ve
+`wrangler deploy` ile Cloudflare'e **yüklenmez**.
+
+Yerel veritabanını hazırlayın:
+
+```bash
+npx wrangler d1 migrations apply earsiv-hesap --local
+```
+
+Sunucuyu başlatın (telefondan erişilecekse `--ip 0.0.0.0` şart):
+
+```bash
+npx wrangler dev --ip 0.0.0.0 --port 8787
+```
+
+`wrangler dev` varsayılan olarak **yereldir** ve yalnızca localhost'u dinler;
+`--ip 0.0.0.0` onu yerel ağa açar. Telefon ile PC aynı Wi-Fi'de olmalı ve
+uygulamadaki `EXPO_PUBLIC_HESAP_API_URL` değeri
+`http://<PC'nin Wi-Fi IPv4 adresi>:8787` olmalıdır (`ipconfig` ile bulunur).
+Windows Güvenlik Duvarı sorduğunda yalnızca **"Özel ağ"** işaretlenir.
+
+### Tip kontrolü ve testler
+
+```bash
+cd worker
+```
+
+```bash
+npm run tip
+```
+
+```bash
+npm test
+```
+
+Testler `@cloudflare/vitest-plugin` ile **gerçek `workerd` çalışma zamanında
+ve gerçek (yerel) D1'e karşı** çalışır; bellek içi sahte bir veritabanı
+kullanılmaz. Migration'lar her testten önce `test/kurulum.ts` tarafından
+uygulanır. Testler hiçbir ağa ve hiçbir gerçek Cloudflare kaynağına
+erişmez (binding'lerde `"remote": true` yoktur).
+
+### Çalıştırılmaması gerekenler
+
+Bu komutlar gerçek Cloudflare hesabına dokunur; **yalnızca proje sahibi**
+çalıştırır: `wrangler login`, `wrangler d1 create`, `wrangler secret put`,
+`wrangler deploy` ve `--remote` alan her komut.
+
+Wrangler varsayılan olarak Cloudflare'e kullanım verisi gönderir;
+`wrangler.jsonc`'de `"send_metrics": false` yazılıdır, ayrıca komutlar
+`WRANGLER_SEND_METRICS=false` ile de çalıştırılabilir.
+
+### Yayına alma (proje sahibi)
+
+1. Cloudflare hesabı ve **Workers Paid** planı.
+2. `npx wrangler login`
+3. `npx wrangler d1 create earsiv-hesap --jurisdiction eu`
+   — **geri alınamaz**: jurisdiction yalnızca oluşturmada seçilir, sonradan
+   değiştirilemez. Bayrağın tam yazımı önce `npx wrangler d1 create --help`
+   ile teyit edilmeli.
+4. Çıktıdaki `database_id`'yi `worker/wrangler.jsonc`'ye yazın (sır değildir,
+   commit'lenir). **Boş bırakmayın:** Wrangler 4.45+ ID'siz bir binding için
+   deploy sırasında kendi veritabanını oluşturabiliyor ve bu durumda
+   jurisdiction seçimi atlanır.
+5. `npx wrangler secret put OTURUM_IMZA_ANAHTARI` (ve istenirse `PEPPER`).
+6. Alan adı Cloudflare'e bağlandıktan sonra `wrangler.jsonc`'ye
+   `"send_email": [{ "name": "EMAIL" }]` eklenir ve `POSTA_GONDEREN`
+   doldurulur. **Cloudflare Email Sending şu an beta** ve Workers Paid
+   gerektiriyor; gerçek bir gönderimle henüz denenmedi
+   ([Issue #28](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/28)).
+7. `npx wrangler d1 migrations apply earsiv-hesap --remote`
+8. `npx wrangler deploy`
+9. İlk deploy'dan sonra Workers Logs'ta hangi alanların kaydedildiği kontrol
+   edilir. Yapılandırmada istek üstverisi kaydı kapalıdır
+   (`observability.logs.invocation_logs: false`).
+
+### Acil durum: bir hesabı elle doğrulama
+
+E-posta gönderimi arızalanırsa kullanıcı uygulamaya giremez (doğrulama
+zorunlu). Geçici çözüm:
+
+```bash
+npx wrangler d1 execute earsiv-hesap --remote --command "UPDATE kullanicilar SET eposta_dogrulandi = 1 WHERE eposta = 'ADRES'"
+```

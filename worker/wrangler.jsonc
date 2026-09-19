@@ -1,0 +1,64 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+
+  "name": "earsiv-hesap",
+  "main": "src/index.ts",
+
+  // nodejs_compat, 2026-08-04 ve sonrası uyumluluk tarihlerinde zaten
+  // varsayılan olarak açık; yine de okunabilirlik için açıkça yazılıyor.
+  // scrypt (node:crypto) buna bağlı.
+  "compatibility_date": "2026-09-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Wrangler'ın Cloudflare'e kullanım verisi göndermesi kapalı.
+  "send_metrics": false,
+
+  // Kayıtlar: console çıktısı tutulur (yalnızca sabit hata kodları yazılır),
+  // ama istek üstverisi (URL, başlıklar, IP) KAYDEDİLMEZ. KVKK gerekçesi:
+  // docs/hesap-sistemi.md → "Hangi veri nerede".
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "logs": {
+      "invocation_logs": false
+    }
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "earsiv-hesap",
+      // YER TUTUCU. `npx wrangler d1 create earsiv-hesap --jurisdiction eu`
+      // çıktısındaki gerçek database_id buraya yazılacak. Sır değildir,
+      // commit'lenir.
+      //
+      // ÖNEMLİ: burası boş bırakılmaz. Wrangler 4.45 ve sonrası, ID'si
+      // yazılmamış bir binding için deploy sırasında KENDİSİ yeni bir
+      // veritabanı oluşturabiliyor ve bu durumda jurisdiction (eu) seçimi
+      // atlanır. Jurisdiction sonradan değiştirilemez.
+      "database_id": "YER-TUTUCU-d1-create-ciktisiyla-degistir"
+      // "remote": true KULLANILMAZ — yerel geliştirme kazara gerçek
+      // veritabanına bağlanmasın diye.
+    }
+  ],
+
+  // Sır OLMAYAN yapılandırma. Sırlar (OTURUM_IMZA_ANAHTARI, PEPPER)
+  // `wrangler secret put` ile ya da git dışı .dev.vars ile verilir.
+  "vars": {
+    // Üretimde CORS tamamen kapalı. Yerel web önizlemesi için .dev.vars'ta
+    // "http://localhost:8081" verilir. Wildcard hiçbir koşulda kullanılmaz.
+    "CORS_IZIN_LISTESI": "",
+    // Alan adı hazır olunca doldurulacak, ör. "dogrulama@ornek.com"
+    "POSTA_GONDEREN": "",
+    "POSTA_GONDEREN_AD": "e-Arşiv Portal"
+  }
+
+  // E-POSTA GÖNDERİMİ — alan adı Cloudflare'e bağlandıktan sonra eklenecek:
+  //
+  //   "send_email": [{ "name": "EMAIL" }]
+  //
+  // Kod bu binding'i isteğe bağlı olarak kullanır (src/eposta.ts). Binding
+  // yokken GELISTIRME=1 ile kodlar yanıt gövdesinde döner; üretimde binding
+  // yoksa kayıt 503 ile başarısız olur. "remote": true EKLENMEZ — yerel
+  // geliştirme gerçek e-posta göndermesin diye.
+}

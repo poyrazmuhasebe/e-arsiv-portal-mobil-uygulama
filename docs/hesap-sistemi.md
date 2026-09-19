@@ -1,10 +1,11 @@
 # Uygulama Hesabı Sistemi
 
-> **DURUM: PLANLANDI, HENÜZ UYGULANMADI.**
-> Bu dosya 2026-09-20'de alınan kararları kaydeder. Bu tarihte kodda hiçbir
-> hesap sistemi yoktur: `worker/` klasörü, D1 veritabanı, Kayıt Ol / Giriş Yap
-> ekranları ve `hesap_*` SecureStore anahtarları **henüz yok**. Uygulama hâlâ
-> doğrudan GİB giriş ekranıyla açılıyor.
+> **DURUM: SUNUCU TARAFI YAZILDI, UYGULAMA TARAFI HENÜZ YOK.**
+> **(b) aşaması tamamlandı:** `worker/` klasörü, D1 şeması ve hesap uçları
+> yazıldı ve yerelde çalışıyor. **Uygulama tarafı henüz yok:** Kayıt Ol /
+> Giriş Yap ekranları ve `hesap_*` SecureStore anahtarları yazılmadı, uygulama
+> hâlâ doğrudan GİB giriş ekranıyla açılıyor ve Worker'a hiçbir istek atmıyor.
+> Worker **hiçbir yere deploy edilmedi**.
 > Takip: [Issue #26](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/26).
 
 ## Neden bu dosya var
@@ -35,9 +36,11 @@ aydınlatma metninde dürüstçe yapılır.
 GİB kullanıcı kodu · GİB şifresi · GİB token'ı · `kullaniciBilgisi`
 (unvan/VKN) · VKN/TCKN · fatura verisi · alıcı defteri · mal/hizmet defteri.
 
-Bu, yalnızca bir niyet beyanı değil, **testle doğrulanacak bir kural**: hesap
-API'sine giden her isteğin gövdesi ve başlıkları bu alanlara karşı kontrol
-edilir, Worker da bilinmeyen alanları reddeder (bkz. "Testler").
+Bu, yalnızca bir niyet beyanı değil, **testle doğrulanan bir kural**:
+`worker/test/gibVerisi.test.ts` bu alanların her birini tek tek Worker'a
+göndermeyi dener ve hepsinin `bilinmeyen_alan` ile reddedildiğini, hiçbir
+kayıt oluşmadığını ve D1 şemasında GİB'i çağrıştıran tek bir sütun adı bile
+bulunmadığını doğrular.
 
 ## Hangi veri nerede
 
@@ -56,8 +59,8 @@ edilir, Worker da bilinmeyen alanları reddeder (bkz. "Testler").
 
 **Workers Logs:** yeni Worker'larda varsayılan olarak açık; console çıktısı ve
 istek meta verisi Cloudflare'de saklanır (Free 3 gün, Paid 7 gün). Bizde
-`observability.logs.invocation_logs` **kapatılacak**, böylece istek meta verisi
-loglanmaz. `console.*` ile istek gövdesi, Authorization başlığı, şifre, token,
+`observability.logs.invocation_logs` **kapatıldı** (`worker/wrangler.jsonc`),
+böylece istek meta verisi loglanmaz. `console.*` ile istek gövdesi, Authorization başlığı, şifre, token,
 e-posta ve kullanıcı adı **hiçbir koşulda** yazılmaz.
 
 ## Alınan kararlar (2026-09-20)
@@ -80,7 +83,7 @@ e-posta ve kullanıcı adı **hiçbir koşulda** yazılmaz.
 | Posta gönderimi | **Cloudflare Email Sending** | Yeni bir üçüncü taraf ve yeni bir KVKK aktarımı eklenmiyor. **Ürün beta** — risk aşağıda |
 | Instagram | **Kapsam dışı** | Kişisel hesaplar için resmî API yok ([Issue #35](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/35)) |
 | Sosyal girişler | **Ayrı aşama**, ayrı onayla | Yerel SDK'lar Expo Go'da çalışmaz, development build gerektirir |
-| Yeni bağımlılık | Uygulamaya **sıfır**; Worker'a yalnızca devDependency | Expo Go deneyimi bozulmaz |
+| Yeni bağımlılık | Uygulamaya **sıfır**; Worker'a yalnızca devDependency (`wrangler`, `typescript`, `vitest`, `@cloudflare/vitest-plugin`, `@types/node`) | Expo Go deneyimi bozulmaz; hiçbiri uygulama paketine girmez |
 | Worker kodu | Aynı repoda **`worker/`** alt klasörü | İstemci ile sunucunun sözleşmesi tek commit'te değişir |
 | Alan adı | **Baştan özel alan adı** | Posta gönderimi, gizlilik politikası ve web hesap silme sayfası zaten alan adı istiyor; adres derlemeye gömüldüğü için sonradan değişirse yeni APK gerekir |
 | CORS | Yalnızca `http://localhost:8081` | **Wildcard hiçbir koşulda yok** |
@@ -117,7 +120,7 @@ E-posta, Uygulama Kullanıcı Adı, şifre.
 ### Oturum ve çevrimdışı davranış
 
 - **Erişim token'ı:** HS256 JWT, 1 saat. Web Crypto ile üretilir (`jose`
-  kurulmaz).
+  kurulmadı; `src/kripto.ts`).
 - **Yenileme token'ı:** 256 bit rastgele, 60 gün, D1'de **yalnızca SHA-256
   özeti**, her yenilemede rotasyon.
 - Ekran geçişi cihazdaki `hesap_oturum` kaydına bakar. **Yenileme token'ının
@@ -252,22 +255,65 @@ gerekmiyor. iOS kapsama girerse eklenecek ([Issue #34](https://github.com/poyraz
 
 ### Uç noktalar
 
+Aşama (b) ile **yazılanlar**:
+
 ```
+GET    /v1/saglik                                              → {tamam:true}
 POST   /v1/kayit                    {eposta, kullaniciAdi, sifre}
 POST   /v1/giris                    {eposta, sifre}
-POST   /v1/oturum/yenile            {yenileme}
-POST   /v1/cikis                    (auth)
-POST   /v1/eposta/kod-gonder        (auth)
+POST   /v1/oturum/yenile            {yenilemeToken}
+POST   /v1/cikis                    {yenilemeToken}
+POST   /v1/eposta/kod-gonder        (auth, gövdesiz)
 POST   /v1/eposta/dogrula           {kod}   (auth)
 POST   /v1/sifre/sifirlama-baslat   {eposta}
 POST   /v1/sifre/sifirlama-tamamla  {eposta, kod, yeniSifre}
+```
+
+Aşama (d)'de eklenecekler:
+
+```
 DELETE /v1/hesap                    {sifre} (auth)
 GET    /hesap-sil                   (herkese açık HTML — Play şartı)
 POST   /hesap-sil                   (herkese açık form)
 ```
 
 Her uç nokta **yalnızca izin verilen alanları** kabul eder ve **bilinmeyen
-alanı reddeder**. Kullanıcı adı biçim kuralını sunucu da uygular.
+alanı reddeder**. Kullanıcı adı biçim kuralını sunucu da uygular. Gövde en
+fazla 4 KB'dır ve `application/json` olmayan içerik tipi 415 ile reddedilir.
+
+Yanıtlar **her zaman JSON**'dur (404 ve 500 dahil) ve `cache-control: no-store`
+taşır. Cloudflare'in kendi hata sayfaları (1101/1102/1027) HTML döndüğü için
+istemci ayrıca content-type kontrolü yapar.
+
+### Yerel geliştirme modu
+
+`GELISTIRME="1"` iken doğrulama ve sıfırlama kodları yanıt gövdesinde
+`gelistirmeKodu` alanıyla döner ve konsola yazılır; böylece akış e-posta
+altyapısı olmadan telefonda denenebilir.
+
+Bu değişken **yalnızca git dışı `.dev.vars` dosyasından** gelir:
+`wrangler.jsonc`'deki `vars` bloğunda bilerek yoktur ve `.dev.vars`
+`wrangler deploy` ile yüklenmez. `worker/test/hesapUclari.test.ts` içindeki
+"geliştirme modu" testi, değişken kapalıyken yanıtta `gelistirmeKodu`
+bulunmadığını doğrular.
+
+### Worker dosya haritası
+
+| Dosya | İş |
+|---|---|
+| `src/index.ts` | Yönlendirme, CORS, genel hata yakalama |
+| `src/turler.ts` | Ortam (binding + değişken) sözleşmesi |
+| `src/yanit.ts` | JSON yanıtları ve `IstekHatasi` |
+| `src/govde.ts` | Gövde okuma, boyut sınırı, **bilinmeyen alan reddi** |
+| `src/dogrulama.ts` | E-posta, kullanıcı adı ve şifre kuralları (saf) |
+| `src/kripto.ts` | Sabit zamanlı karşılaştırma, rastgele değerler, SHA-256, HS256 |
+| `src/sifre.ts` | scrypt özetleme ve doğrulama |
+| `src/oturum.ts` | Oturum oluşturma, rotasyonlu yenileme, iptal |
+| `src/kodlar.ts` | Tek kullanımlık 6 haneli kodlar |
+| `src/oranSinir.ts` | Sabit pencereli oran sınırlama |
+| `src/eposta.ts` | Cloudflare Email Sending (**denenmedi**) |
+| `src/cors.ts` | Açık izin listesi, wildcard yok |
+| `src/uclar/` | Uç nokta işleyicileri |
 
 ### Şifre özeti
 
@@ -353,35 +399,57 @@ Yalnızca ayrı onayla ve development build kararıyla yapılır.
 
 ## Testler
 
-Mevcut altyapı kullanılır (`npm test` → tsc + `node:test`). Worker testleri
-`worker/` içinde vitest + `@cloudflare/vitest-pool-workers` ile **gerçek
-workerd ve gerçek yerel D1'e** karşı çalışır.
+İki ayrı takım var ve **hiçbiri ağa çıkmaz**.
 
-`globalThis.fetch` için bir sahte eklenir: varsayılan olarak "Testte
-beklenmeyen ağ isteği" hatası fırlatır, istekleri kaydeder, `sahteleriSifirla()`
-içinde sıfırlanır. **Testler hiçbir koşulda ağa çıkmaz.**
+### Uygulama tarafı — `npm test` (kök)
 
-En az şunlar test edilir:
+Mevcut altyapı (tsc → CommonJS → `node:test`). **98 test.**
 
-- **GİB verisinin hesap API'sine gitmemesi** — her istek gövdesi ve başlığı
-  GİB token'ı, GİB kullanıcı kodu, VKN/TCKN ve `kullaniciBilgisi` için kontrol
-  edilir
+`globalThis.fetch` artık sahtelendi (`test/sahte/kurulum.ts`): varsayılan
+olarak "Testte beklenmeyen ağ isteği (fetch)" hatası fırlatır, istekleri
+(url, yöntem, başlıklar, gövde) kaydeder ve `sahteleriSifirla()` içinde
+sıfırlanır. Bu, (b) aşamasında eklendi çünkü Node 24'te `fetch` yerleşiktir ve
+sahte axios yalnızca `axios` modülünü kapsıyordu — hesap istemcisi Worker'a
+fetch ile gidecek. `test/agKorumasi.test.ts` bunu doğrular.
+
+### Worker tarafı — `npm test` (`worker/` içinde)
+
+vitest + `@cloudflare/vitest-plugin` ile **gerçek `workerd` çalışma zamanında
+ve gerçek (yerel) D1'e** karşı. Bellek içi sahte veritabanı kullanılmaz.
+**72 test.**
+
+| Dosya | Kapsam |
+|---|---|
+| `test/gibVerisi.test.ts` | GİB alanlarının tek tek reddi, reddedilen istekten sonra kayıt oluşmaması, şemada GİB'i çağrıştıran sütun bulunmaması, yalnızca rakamlı kullanıcı adının reddi, oran sınırı tablosunda düz metin e-posta/IP bulunmaması |
+| `test/hesapUclari.test.ts` | Kayıt, giriş, oturum rotasyonu, çıkış, e-posta doğrulama, şifre sıfırlama, oran sınırlama, yanıt biçimi, CORS, geliştirme modu, eksik yapılandırma |
+| `test/sifre.test.ts` | scrypt özetleme/doğrulama, düz metin saklanmaması, parametrelerin kayıtla taşınması, pepper, bozuk kayıtlar, devasa N koruması |
+| `test/kripto.test.ts` | Sabit zamanlı karşılaştırma, rastgelelik, HS256 üretme/doğrulama, yanlış anahtar, kurcalanmış gövde, süre dolması |
+| `test/dogrulama.test.ts` | E-posta, kullanıcı adı ve şifre kuralları |
+
+Özellikle doğrulananlar:
+
+- **GİB verisinin hesap API'sine gitmemesi** (10 ayrı alan tek tek denenir)
+- Şifrenin düz metin saklanmaması; özetin `scrypt$16384$8$1$…` biçiminde olması
+- Doğrulama kodunun düz metin saklanmaması
+- Yanlış şifre ile olmayan e-postanın **birebir aynı yanıtı** vermesi
+- Yenileme token'ının rotasyonu — eskisinin bir daha geçmemesi
+- Kodun tek kullanımlık olması ve 5 yanlış denemeden sonra kilitlenmesi
+- Şifre sıfırlamanın **tüm oturumları düşürmesi**
+- Oran sınırının gerçekten devreye girmesi (6. kayıt 429)
+- Yanıtların **her zaman JSON** olması, CORS'un **hiçbir koşulda wildcard
+  olmaması**
+- `GELISTIRME` kapalıyken kodun yanıta **eklenmemesi**
+
+### (c) aşamasında eklenecek testler
+
 - Yalnızca rakamdan oluşan ya da hatırlanan GİB koduna eşit kullanıcı adının
-  gönderilmemesi
-- Kayıt ve giriş doğrulamaları; hatalı şifre; aynı e-posta ya da kullanıcı
-  adıyla ikinci kayıt
-- Şifrenin düz metin saklanmaması; özetin algoritma ve parametre taşıması
-- Token imzası ve süresi; bozuk imzalı token'ın reddi
-- Doğrulama kodunun süresi, deneme sayacı ve tek kullanımlık olması
+  **istemciden hiç gönderilmemesi**
 - Oturumu saklama, geri yükleme ve **iki ayrı çıkış**
 - **GİB oturum hatasının hesap oturumunu kapatmaması**
 - Sahipsiz `gib_token`'ın silinmesi; farklı bir hesap girince önceki GİB
   oturumunun geri yüklenmemesi
 - Sunucu erişilemezken ve HTML hata sayfası gelince davranış; çevrimdışıyken
   kayıtlı oturumla GİB ekranına geçilmesi
-- Worker'ın bilinmeyen alanı reddetmesi ve hata yolunda şifre/e-posta
-  loglamaması
-- **Mevcut 95 testin geçmeye devam etmesi**
 
 ## Bilinen riskler ve artık riskler
 
@@ -453,7 +521,7 @@ bağlı parametre, en fazla 100 KB SQL, satır/BLOB en fazla 2 MB.
 | Aşama | İçerik | Durum |
 |---|---|---|
 | **(a)** | Bu dosya + `docs/README.md` satırı + hukuki taslaklar | ✅ yapıldı |
-| **(b)** | `worker/` iskeleti + D1 migration + kayıt/giriş/oturum + e-posta doğrulama + şifre sıfırlama + oran sınırlama + testler | ⬜ |
+| **(b)** | `worker/` iskeleti + D1 migration + kayıt/giriş/oturum + e-posta doğrulama + şifre sıfırlama + oran sınırlama + testler | ✅ yapıldı |
 | **(c)** | Uygulama tarafı: store, istemci, ekranlar, navigasyon, `hesap_gib_sahibi`, iki çıkış, kilit. **İlke değişikliği dokümanları aynı commit'te** | ⬜ |
 | **(d)** | Hesap silme: uygulama içi + herkese açık web sayfası | ⬜ |
 | **(e)** | Sosyal girişler, sağlayıcı sağlayıcı — **yalnızca ayrı onayla** | ⬜ |
