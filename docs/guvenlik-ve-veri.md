@@ -15,7 +15,7 @@ sunucuya **gitmez**.
 | `gib_token` | Oturum token'ı | `useAuthStore.login()` (yalnızca "beni hatırla" işaretliyse) → `logout()`'ta silinir |
 | `gib_kullanici_kodu` | Kullanıcı kodu (şifre değil) | Aynı, token ile birlikte |
 | `gib_hatirlanan_kullanici_kodu` | Login formunu önceden doldurmak için kullanıcı kodu | `LoginScreen` — "Kullanıcı Kodunu Hatırla" işaretliyse, **çıkış yapılsa bile** kalır |
-| `gib_hatirlanan_sifre` | Login formunu önceden doldurmak için şifre | `LoginScreen` — "Şifreyi Hatırla" işaretliyse, **çıkış yapılsa bile** kalır |
+| ~~`gib_hatirlanan_sifre`~~ | **Artık kullanılmıyor.** v1.0.0'da "Şifreyi Hatırla" ile kaydedilen şifre | `LoginScreen` açılışta bu anahtarı **siler** (eski kurulumlardan göç) |
 | `gib_alici_defteri` | En fazla 50 kayıtlı alıcı (JSON dizi) | `aliciDefteri.ts` — bir fatura başarıyla oluşturulunca otomatik eklenir/güncellenir |
 
 **Önemli ayrım:** `gib_token`/`gib_kullanici_kodu` çifti **oturumun kendisi**
@@ -31,9 +31,9 @@ web'de tüm okuma/yazma/silme işlemleri sessizce no-op.
 
 ## Cihazda saklanmayan veriler
 
-- **Şifre asla `gib_token` ile birlikte kalıcı saklanmıyor** — yalnızca
-  "Şifreyi Hatırla" işaretliyse, ayrı bir anahtarda (`gib_hatirlanan_sifre`)
-  ve yalnızca formu önceden doldurmak amacıyla tutuluyor.
+- **Şifre hiçbir koşulda cihazda saklanmıyor.** v1.0.0'daki "Şifreyi
+  Hatırla" seçeneği kaldırıldı; eski sürümden kalmış kayıtlı şifre, uygulama
+  ilk açıldığında otomatik silinir. Şifre her girişte yeniden girilir.
 - Fatura içerikleri (kalemler, tutarlar) cihazda kalıcı saklanmıyor — form
   kapatılınca/uygulamadan çıkılınca kaybolur. Kalıcı olan tek şey, başarılı
   bir fatura sonrası **alıcı bilgisinin** adres defterine yazılmasıdır (mal/

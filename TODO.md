@@ -4,7 +4,7 @@
 
 - [x] Proje iskeleti (Expo + TypeScript, React Navigation, Zustand, React Native Paper)
 - [x] `gibApi.ts` — dispatch/assos-login istemcisi, hata/mesaj ayrıştırma (`error` string/boolean, `data` zarfı her zaman açılıyor)
-- [x] Giriş ekranı (assos-login, SecureStore ile token saklama, "Kullanıcı Kodunu/Şifreyi Hatırla" onay kutuları)
+- [x] Giriş ekranı (assos-login, SecureStore ile token saklama, "Kullanıcı Kodunu Hatırla" onay kutusu; şifre artık hiçbir koşulda saklanmıyor)
 - [x] Auth-flow navigasyonu (token'a göre Login ↔ Dashboard/FaturaKesim/Taslaklar takası)
 - [x] Dashboard (mükellef unvanı — uzun unvanlarda tek satır kısaltma, güvenli çıkış, menü kartları)
 - [x] Güvenli çıkış (`logout`, `assoscmd=logout` ile canlı doğrulandı)

@@ -3,13 +3,14 @@
 ## Giriş (`src/screens/LoginScreen.tsx`)
 
 - Kullanıcı Kodu + Şifre alanları; şifre alanında göz ikonuyla göster/gizle.
-- **"Kullanıcı Kodunu Hatırla" / "Şifreyi Hatırla"** — ikisi de varsayılan
-  olarak işaretli gelir. İşaretliyse, başarılı girişten sonra değer
-  `expo-secure-store`'a (`gib_hatirlanan_kullanici_kodu` /
-  `gib_hatirlanan_sifre` anahtarlarıyla) yazılır ve bir sonraki uygulama
+- **"Kullanıcı Kodunu Hatırla"** — varsayılan olarak işaretli gelir.
+  İşaretliyse, başarılı girişten sonra kullanıcı kodu `expo-secure-store`'a
+  (`gib_hatirlanan_kullanici_kodu` anahtarıyla) yazılır ve bir sonraki uygulama
   açılışında (kullanıcı **çıkış yapmış olsa bile**) form otomatik doldurulur.
   Bu, `useAuthStore`'un oturum token'ı için kullandığı anahtarlardan tamamen
   **ayrı** bir mekanizmadır — biri "formu hatırla", diğeri "oturumu sürdür".
+  **Şifre hiçbir zaman saklanmaz** (eski "Şifreyi Hatırla" seçeneği kaldırıldı;
+  eski sürümden kalmış kayıtlı şifre açılışta silinir).
 - Giriş başarılı olduğunda `useAuthStore.login()` çağrılır; token state'e
   yazılır ve `App.tsx`'teki navigasyon kökü bunu dinleyip otomatik olarak
   Dashboard yığınına geçer (ayrı bir "git" komutu yok).

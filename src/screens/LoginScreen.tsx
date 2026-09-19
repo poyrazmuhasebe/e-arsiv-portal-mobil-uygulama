@@ -13,11 +13,13 @@ import { Button, Checkbox, Text, TextInput, useTheme } from 'react-native-paper'
 import { useAuthStore } from '../store/useAuthStore';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '../utils/secureStorage';
 
-// Bunlar useAuthStore'un oturum (token) için kullandığı anahtarlardan
+// Bu anahtar useAuthStore'un oturum (token) için kullandığı anahtarlardan
 // AYRI: yalnızca giriş FORMUNU önceden doldurmak için, oturum açık
 // olsun/olmasın (çıkış yapılsa bile) kalıcı olarak saklanır.
 const HATIRLANAN_KULLANICI_KODU_KEY = 'gib_hatirlanan_kullanici_kodu';
-const HATIRLANAN_SIFRE_KEY = 'gib_hatirlanan_sifre';
+// Şifre ARTIK HİÇBİR ZAMAN saklanmıyor. Bu anahtar yalnızca v1.0.0'da "Şifreyi
+// Hatırla" ile kaydedilmiş eski şifreleri cihazdan silmek için (göç) tutuluyor.
+const ESKI_HATIRLANAN_SIFRE_KEY = 'gib_hatirlanan_sifre';
 
 export default function LoginScreen() {
   const theme = useTheme();
@@ -28,20 +30,15 @@ export default function LoginScreen() {
   const [kullaniciSifresi, setKullaniciSifresi] = useState('');
   const [sifreGorunur, setSifreGorunur] = useState(false);
   const [kullaniciKoduHatirla, setKullaniciKoduHatirla] = useState(true);
-  const [sifreyiHatirla, setSifreyiHatirla] = useState(true);
 
-  // Daha önce "hatırla" işaretlenmiş bir kullanıcı kodu/şifre varsa formu
-  // otomatik doldur. NOT: Gerçek bir kimlik bilgisini kaynak koduna
-  // gömmüyoruz — bu yalnızca cihazda SecureStore'a (şifrelenmiş) kaydedilmiş,
-  // kullanıcının kendi rızasıyla oluşturduğu bir kayıttır.
+  // Daha önce "hatırla" işaretlenmiş bir kullanıcı kodu varsa formu otomatik
+  // doldur (yalnızca kullanıcı kodu — şifre asla doldurulmaz). Eski
+  // sürümlerden kalmış kayıtlı bir şifre varsa cihazdan siliniyor.
   useEffect(() => {
     (async () => {
-      const [kayitliKullaniciKodu, kayitliSifre] = await Promise.all([
-        getSecureItem(HATIRLANAN_KULLANICI_KODU_KEY),
-        getSecureItem(HATIRLANAN_SIFRE_KEY),
-      ]);
+      await deleteSecureItem(ESKI_HATIRLANAN_SIFRE_KEY);
+      const kayitliKullaniciKodu = await getSecureItem(HATIRLANAN_KULLANICI_KODU_KEY);
       if (kayitliKullaniciKodu) setKullaniciKodu(kayitliKullaniciKodu);
-      if (kayitliSifre) setKullaniciSifresi(kayitliSifre);
     })();
   }, []);
 
@@ -59,11 +56,6 @@ export default function LoginScreen() {
         await setSecureItem(HATIRLANAN_KULLANICI_KODU_KEY, kullaniciKodu.trim());
       } else {
         await deleteSecureItem(HATIRLANAN_KULLANICI_KODU_KEY);
-      }
-      if (sifreyiHatirla) {
-        await setSecureItem(HATIRLANAN_SIFRE_KEY, kullaniciSifresi);
-      } else {
-        await deleteSecureItem(HATIRLANAN_SIFRE_KEY);
       }
     } catch (err) {
       // GİB'den dönen Türkçe hata mesajını (varsa) doğrudan göster,
@@ -142,13 +134,6 @@ export default function LoginScreen() {
                 style={styles.hatirlaOgesi}
                 labelStyle={styles.hatirlaEtiket}
               />
-              <Checkbox.Item
-                label="Şifreyi Hatırla"
-                status={sifreyiHatirla ? 'checked' : 'unchecked'}
-                onPress={() => setSifreyiHatirla((v) => !v)}
-                style={styles.hatirlaOgesi}
-                labelStyle={styles.hatirlaEtiket}
-              />
             </View>
 
             <Button
@@ -164,7 +149,8 @@ export default function LoginScreen() {
 
             <Text variant="bodySmall" style={styles.disclaimer}>
               Bu uygulama GİB'in resmi bir ürünü değildir; kullanıcı kodu ve şifreniz
-              yalnızca cihazınızdan doğrudan e-Arşiv portalına gönderilir.
+              yalnızca cihazınızdan doğrudan e-Arşiv portalına gönderilir. Şifreniz
+              cihazda saklanmaz; her girişte yeniden girmeniz gerekir.
             </Text>
           </View>
         </ScrollView>
