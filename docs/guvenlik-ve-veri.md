@@ -16,7 +16,7 @@ sunucuya **gitmez**.
 | `gib_kullanici_kodu` | Kullanıcı kodu (şifre değil) | Aynı, token ile birlikte |
 | `gib_hatirlanan_kullanici_kodu` | Login formunu önceden doldurmak için kullanıcı kodu | `LoginScreen` — "Kullanıcı Kodunu Hatırla" işaretliyse, **çıkış yapılsa bile** kalır |
 | ~~`gib_hatirlanan_sifre`~~ | **Artık kullanılmıyor.** v1.0.0'da "Şifreyi Hatırla" ile kaydedilen şifre | `LoginScreen` açılışta bu anahtarı **siler** (eski kurulumlardan göç) |
-| `gib_alici_defteri_<kullanıcı kodu>` | O hesaba özel, en fazla 50 kayıtlı alıcı (JSON dizi). Anahtardaki kod, karakter kodlarının onaltılık gösterimidir | `aliciDefteri.ts` — bir fatura başarıyla oluşturulunca otomatik eklenir/güncellenir. **Defter hesaplar arasında paylaşılmaz**: birden fazla mükellefin hesabına giren bir mali müşavir yalnızca o hesabın alıcılarını görür |
+| `gib_alici_defteri_<kullanıcı kodu>` | O hesaba özel, en fazla 50 kayıtlı alıcı (JSON dizi). Anahtardaki kod, karakter kodlarının onaltılık gösterimidir (`hesapAnahtari.ts`) | `aliciDefteri.ts` — bir fatura başarıyla oluşturulunca otomatik eklenir/güncellenir; "Alıcı Defteri" ekranından adres/ülke düzenlenir, silinir, elle eklenir. **Defter hesaplar arasında paylaşılmaz**: birden fazla mükellefin hesabına giren bir mali müşavir yalnızca o hesabın alıcılarını görür |
 | ~~`gib_alici_defteri`~~ | **Artık kullanılmıyor.** Eski sürümlerdeki, tüm hesapların paylaştığı ortak defter | Uygulama her açılışta bu anahtarı **siler** (kime ait olduğu bilinemediğinden başka bir hesaba taşınamaz) |
 
 **Önemli ayrım:** `gib_token`/`gib_kullanici_kodu` çifti **oturumun kendisi**
@@ -25,6 +25,26 @@ içindir (uygulama açıkken "giriş yapılmış" durumunu temsil eder).
 formunu önceden doldurmak**. Kullanıcı çıkış yapsa bile ikinci grup silinmez
 (birinci grup silinir); bu bilinçli bir tasarım kararı, "her seferinde
 şifremi yeniden yazmak zorunda kalmama" beklentisini karşılıyor.
+
+### Değer boyutu (SecureStore)
+
+Expo SDK 57 dokümanı SecureStore için sabit bir boyut sınırı **belgelemiyor**;
+yalnızca büyük değerlerin işletim sistemi tarafından reddedilebileceğini ve
+bazı iOS sürümlerinin tarihsel olarak ~2048 baytın üstünü reddettiğini
+belirtiyor. Bu projede bu sınır **varsayılmıyor**, ölçülen boyutlar şunlar
+(UTF-8, `JSON.stringify` çıktısı; Türkçe harfler 2 bayt):
+
+| Defter | Tek kayıt | 50 kayıt |
+|---|---|---|
+| Alıcı (tipik: 45 karakter unvan, 55 karakter adres) | ~269 B | ~13,5 KB |
+| Alıcı (uç: 150 karakter unvan, 250 karakter adres) | ~962 B | ~48 KB |
+
+Yani dolu bir alıcı defteri o tarihsel iOS rakamının çok üstünde. **Hangi
+cihaz/işletim sisteminde kabul edildiği doğrulanmadı.** Bu yüzden
+`setSecureItem` artık yazmanın başarılı olup olmadığını döndürüyor (önceden
+hatayı sessizce yutuyordu) ve defter ekranları, reddedilen bir yazmayı
+kullanıcıya "Kaydedilemedi" diye bildiriyor. Bir cihazda bu uyarı görülürse
+kayıtların parçalara bölünerek saklanması gerekecek.
 
 `secureStorage.ts` sarmalayıcısı, `expo-secure-store`'un yalnızca
 iOS/Android'de çalıştığını (web'de native modül yok) hesaba katıyor —

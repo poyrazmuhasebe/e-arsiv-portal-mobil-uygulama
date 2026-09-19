@@ -13,6 +13,8 @@ interface Props {
   token: string | null;
   alici: AliciFormu;
   onAliciChange: (patch: Partial<AliciFormu>) => void;
+  /** "Kayıtlı Alıcılardan Seç" düğmesi gösterilsin mi (varsayılan: evet). */
+  kayitliSecimGoster?: boolean;
 }
 
 /**
@@ -21,7 +23,7 @@ interface Props {
  * Unvan/Ad/Soyad/Vergi Dairesi HER ZAMAN salt okunur — yalnızca
  * mukellefBilgisiGetir() sonucuyla doldurulur, kullanıcı elle giremez.
  */
-export default function AliciBilgileriKarti({ token, alici, onAliciChange }: Props) {
+export default function AliciBilgileriKarti({ token, alici, onAliciChange, kayitliSecimGoster = true }: Props) {
   const [sorgulaniyor, setSorgulaniyor] = useState(false);
   const [sorguHatali, setSorguHatali] = useState(false);
 
@@ -111,9 +113,11 @@ export default function AliciBilgileriKarti({ token, alici, onAliciChange }: Pro
     <Card mode="elevated" style={styles.card}>
       <Card.Title title="Alıcı Bilgileri" />
       <Card.Content style={styles.icerik}>
-        <Button mode="outlined" icon="account-search-outline" onPress={kayitliAcAction}>
-          Kayıtlı Alıcılardan Seç
-        </Button>
+        {kayitliSecimGoster && (
+          <Button mode="outlined" icon="account-search-outline" onPress={kayitliAcAction}>
+            Kayıtlı Alıcılardan Seç
+          </Button>
+        )}
 
         <TextInput
           mode="outlined"

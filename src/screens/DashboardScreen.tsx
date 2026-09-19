@@ -121,13 +121,20 @@ export default function DashboardScreen({ navigation }: Props) {
   ];
 
   // GİB'in kendi ana menüsündeki ikinci bölüm: "Kullanıcı İşlemleri" (bkz.
-  // gerçek menü ağacı yakalaması) — şu an tek alt sekmesi var.
+  // gerçek menü ağacı yakalaması). "Alıcı Defteri" GİB'de yok; uygulamanın
+  // cihazda tuttuğu, bu hesaba özel kayıtları yönetir.
   const kullaniciIslemleri: MenuOgesi[] = [
     {
       icon: '👤',
       baslik: 'Kullanıcı Bilgileri',
       altBaslik: 'Firma/mükellef bilgilerinizi görüntüleyin ve güncelleyin',
       onPress: () => navigation.navigate('KullaniciBilgileri'),
+    },
+    {
+      icon: '📇',
+      baslik: 'Alıcı Defteri',
+      altBaslik: 'Bu hesaba kayıtlı alıcıları düzenleyin, silin veya ekleyin',
+      onPress: () => navigation.navigate('AliciDefteri'),
     },
   ];
 

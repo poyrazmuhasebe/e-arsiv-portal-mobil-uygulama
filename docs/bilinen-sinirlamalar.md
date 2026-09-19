@@ -60,8 +60,14 @@ bu sayfa onların tematik bir özetidir.
 
 ## Eksik Özellikler (Yapılacaklar)
 
-- Detaylı Alıcı Defteri yönetim ekranı (düzenleme/silme/elle ekleme).
+- ~~Detaylı Alıcı Defteri yönetim ekranı (düzenleme/silme/elle ekleme).~~ —
+  **yapıldı** ("Kullanıcı İşlemleri > Alıcı Defteri", bkz.
+  [ozellikler.md](ozellikler.md)). Cihazda canlı denenmesi gerekiyor.
   ([Issue #9](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/9))
+- **SecureStore değer boyutu doğrulanmadı** — dolu bir alıcı defteri ~13–48 KB;
+  bazı iOS sürümlerinin büyük değerleri reddettiği biliniyor. Yazma reddedilirse
+  artık kullanıcıya bildiriliyor, ama gerçek cihazlarda denenmedi (bkz.
+  [guvenlik-ve-veri.md](guvenlik-ve-veri.md#değer-boyutu-securestore)).
 - "Kayıtlı Mal/Hizmet Adı" defteri.
   ([Issue #10](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/10))
 - ~~Gerçek VKN/TCKN checksum doğrulaması~~ — **yapıldı**

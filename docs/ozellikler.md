@@ -33,7 +33,8 @@
      [Issue #19](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/19))
 - **"Kullanıcı İşlemleri"** başlıklı ikinci bir bölüm, GİB'in kendi ana
   menüsünün ikinci dalıyla eşleşiyor: **Kullanıcı Bilgileri** →
-  `KullaniciBilgileri` (bkz. aşağıda).
+  `KullaniciBilgileri` (bkz. aşağıda). Ayrıca GİB'de karşılığı olmayan,
+  cihazdaki kayıtlar için **Alıcı Defteri** → `AliciDefteri`.
 - Sağ üstte "Güvenli Çıkış" ikonu; onay diyaloğundan sonra
   `useAuthStore.logout()` çağrılır (bkz. aşağıdaki "Oturum Yönetimi").
 
@@ -62,6 +63,32 @@ GİB'e kayıtlı mükellef/firma bilgilerini görüntüleme ve düzenleme ekran�
   `EARSIV_PORTAL_KULLANICI_BILGILERI_KAYDET` isteğini gönderir.
 - **Bu ekran, "GİB İmza" akışındaki kayıtlı telefon numarasının da tek
   güvenilir kaynağı** — bkz. [gib-entegrasyonu.md](gib-entegrasyonu.md).
+
+## Alıcı Defteri (`src/screens/AliciDefteriScreen.tsx`)
+
+"Kullanıcı İşlemleri > Alıcı Defteri" — GİB'de karşılığı olmayan, uygulamanın
+cihazda tuttuğu **bu hesaba özel** kayıtlı alıcıların yönetimi
+(`src/utils/aliciDefteri.ts`).
+
+- Liste: unvan (ya da ad soyad), VKN/TCKN, vergi dairesi, ülke, adres; üstte
+  kayıt sayısı (`x/50`) ve unvan/ad/VKN ile arama.
+- **Adresi Düzenle:** yalnızca **adres ve ülke** değiştirilebilir; kaydın
+  sırası değişmez. Unvan/Ad/Soyad/Vergi Dairesi burada da düzenlenemez
+  (`aliciAdresGuncelle` yalnızca bu iki alanı yazar).
+- **Sil:** onay penceresinden sonra kayıt defterden silinir.
+- **Elle ekleme** (sağ üstteki kişi+ ikonu): fatura formundaki
+  `AliciBilgileriKarti` birebir kullanılır — VKN/TCKN kontrol basamağı yerelde
+  doğrulanır, Unvan/Ad/Soyad/Vergi Dairesi **salt okunurdur ve yalnızca GİB
+  sorgusuyla** (`mukellefBilgisiGetir`) dolar; adres zorunludur. "Deftere
+  Kaydet" ancak sorgu başarılı olunca aktifleşir. Veri katmanı da
+  (`aliciKaydedilebilirMi`) kontrol basamağı geçersiz ya da unvanı/ad-soyadı
+  boş bir kaydı reddeder. Aynı VKN zaten kayıtlıysa güncelleme onayı, defter
+  doluysa (50) en eski kaydın düşeceği uyarısı gösterilir.
+- Ekleme formu açıkken geri tuşu/hareketi önce formu kapatır.
+- Cihaz depolaması yazmayı reddederse (bkz.
+  [guvenlik-ve-veri.md](guvenlik-ve-veri.md) — boyut notu) işlem sessizce
+  kaybolmaz, "Kaydedilemedi" uyarısı gösterilir. Fatura oluşturma sonrası
+  otomatik kayıt başarısız olursa da başarı mesajına not düşülür.
 
 ## Fatura Kesim Formu (`src/screens/FaturaKesimScreen.tsx` + `src/screens/fatura/*`)
 

@@ -13,6 +13,7 @@ import TaslaklarScreen from './src/screens/TaslaklarScreen';
 import IptalItirazTalepleriScreen from './src/screens/IptalItirazTalepleriScreen';
 import KullaniciBilgileriScreen from './src/screens/KullaniciBilgileriScreen';
 import KilitScreen from './src/screens/KilitScreen';
+import AliciDefteriScreen from './src/screens/AliciDefteriScreen';
 import { useAuthStore } from './src/store/useAuthStore';
 import { eskiOrtakAliciDefteriniSil } from './src/utils/aliciDefteri';
 import { eskiFaturaPdfleriniSil } from './src/utils/dosyaTemizlik';
@@ -25,6 +26,7 @@ export type RootStackParamList = {
   Taslaklar: undefined;
   IptalItirazTalepleri: undefined;
   KullaniciBilgileri: undefined;
+  AliciDefteri: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -114,6 +116,7 @@ export default function App() {
                       <Stack.Screen name="Taslaklar" component={TaslaklarScreen} />
                       <Stack.Screen name="IptalItirazTalepleri" component={IptalItirazTalepleriScreen} />
                       <Stack.Screen name="KullaniciBilgileri" component={KullaniciBilgileriScreen} />
+                      <Stack.Screen name="AliciDefteri" component={AliciDefteriScreen} />
                     </Stack.Group>
                   ) : (
                     <Stack.Screen name="Login" component={LoginScreen} />

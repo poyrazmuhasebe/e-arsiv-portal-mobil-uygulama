@@ -158,8 +158,9 @@ export default function FaturaKesimScreen({ navigation }: Props) {
       // Fatura başarıyla kaydedildiğinde alıcıyı adres defterine yaz —
       // bir sonraki faturada "Kayıtlı Alıcılardan Seç" ile tekrar
       // kullanılabilsin.
-      await aliciKaydet(form.alici);
-      Alert.alert('Taslak Kaydedildi', `Belge No: ${sonuc.ettn}`, [
+      const aliciDeftereYazildi = await aliciKaydet(form.alici);
+      const defterNotu = aliciDeftereYazildi ? '' : '\n\n(Alıcı, cihazdaki alıcı defterine kaydedilemedi.)';
+      Alert.alert('Taslak Kaydedildi', `Belge No: ${sonuc.ettn}${defterNotu}`, [
         { text: 'Tamam', onPress: () => navigation.navigate('Taslaklar') },
       ]);
     } catch (err) {

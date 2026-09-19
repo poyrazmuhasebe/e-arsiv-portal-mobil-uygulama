@@ -10,6 +10,8 @@ src/
     TaslaklarScreen.tsx
     IptalItirazTalepleriScreen.tsx
     KullaniciBilgileriScreen.tsx
+    AliciDefteriScreen.tsx      # Hesaba özel alıcı defteri yönetimi
+    KilitScreen.tsx
     fatura/
       FaturaBilgileriKarti.tsx
       AliciBilgileriKarti.tsx
@@ -29,7 +31,11 @@ src/
     faturaForm.ts                # Fatura kesim formunun yerel state tipleri
   utils/
     secureStorage.ts             # Platform-güvenli SecureStore sarmalayıcı
+    hesapAnahtari.ts              # Kullanıcı koduna özel SecureStore anahtarı
     aliciDefteri.ts               # Kayıtlı alıcılar (adres defteri)
+    kimlikDogrula.ts              # VKN/TCKN kontrol basamağı
+    dosyaTemizlik.ts              # Eski fatura PDF'lerini silme
+    uygulamaKilidi.ts             # Cihaz kilidiyle uygulama kilidi
     faturaHesap.ts                 # KDV/iskonto/tevkifat hesaplama mantığı
     pdf.ts                          # HTML → PDF, indirme (SAF) / paylaşma
 test/
