@@ -24,6 +24,7 @@ src/
     faturaConstants.ts          # Para birimi/fatura tipi/ülke/birim/vergi/tevkifat listeleri
   services/
     gibApi.ts                   # GİB API istemcisi (dispatch/assos-login)
+    gibHataMesajlari.ts         # Bilinen GİB/ağ hata metinlerinin Türkçe açıklamaları
   store/
     useAuthStore.ts             # Zustand — oturum/token yönetimi
   types/

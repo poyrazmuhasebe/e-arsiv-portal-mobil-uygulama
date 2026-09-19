@@ -14,8 +14,9 @@
 - Giriş başarılı olduğunda `useAuthStore.login()` çağrılır; token state'e
   yazılır ve `App.tsx`'teki navigasyon kökü bunu dinleyip otomatik olarak
   Dashboard yığınına geçer (ayrı bir "git" komutu yok).
-- Giriş başarısız olursa GİB'in döndürdüğü Türkçe hata mesajı olduğu gibi
-  gösterilir (bkz. [gib-entegrasyonu.md](gib-entegrasyonu.md)).
+- Giriş başarısız olursa GİB'in döndürdüğü kısa Türkçe hata mesajı gösterilir;
+  bilinen metinler anlaşılır bir açıklamaya çevrilir (bkz.
+  [gib-entegrasyonu.md — Hata mesajlarının çevrilmesi](gib-entegrasyonu.md#hata-mesajlarının-çevrilmesi-gibhatamesajlarits)).
 
 ## Dashboard (`src/screens/DashboardScreen.tsx`)
 

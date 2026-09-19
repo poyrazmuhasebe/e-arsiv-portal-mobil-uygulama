@@ -84,7 +84,7 @@ test('login: ağ yok ve zaman aşımı ayrı mesajlar verir', async () => {
   yanitla(() => {
     throw sahteAgHatasi('ECONNABORTED');
   });
-  assert.match((await hataBekle(login('k', 's'))).message, /zaman aşımı/);
+  assert.match((await hataBekle(login('k', 's'))).message, /zamanında yanıt vermedi/);
 });
 
 // ---------------------------------------------------------------------------
@@ -117,6 +117,19 @@ test('dispatch: error "1" ise GİB mesajı hata olarak döner', async () => {
   assert.equal(hata.oturumHatasi, false);
 });
 
+test('dispatch: bilinen GİB metni anlaşılır açıklamaya çevrilir, oturum hatası sayılmaz', async () => {
+  yanitla({ status: 200, data: { error: '1', messages: [{ type: '7', text: 'Bu işlem için yetkiniz yok' }] } });
+  const hata = await hataBekle(taslakGetir('t', FILTRE));
+  assert.match(hata.message, /^GİB bu isteği reddetti\./);
+  assert.match(hata.message, /"Bu işlem için yetkiniz yok"/);
+  assert.equal(hata.oturumHatasi, false);
+});
+
+test('login: bilinen GİB giriş metni çevrilir', async () => {
+  yanitla({ status: 200, data: { error: '1', messages: [{ text: 'Sisteme giriş için eksik bilgi verildi' }] } });
+  assert.match((await hataBekle(login('k', ''))).message, /^Giriş bilgileri eksik/);
+});
+
 test('dispatch: error true ve mesaj yoksa genel ret mesajı', async () => {
   yanitla({ status: 200, data: { error: true } });
   assert.equal((await hataBekle(taslakGetir('t', FILTRE))).message, 'GİB portalı işlemi reddetti.');
@@ -132,8 +145,8 @@ test('dispatch: 502/503/504 kesinti mesajı', async () => {
 });
 
 test('dispatch: diğer 4xx/5xx durumlarında GİB mesajı ya da durum kodu', async () => {
-  yanitla({ status: 500, data: { messages: [{ text: 'Genel Sistem Hatası' }] } });
-  assert.equal((await hataBekle(taslakGetir('t', FILTRE))).message, 'Genel Sistem Hatası');
+  yanitla({ status: 500, data: { messages: [{ text: 'Genel Sistem Hatası: java.lang.NullPointerException' }] } });
+  assert.match((await hataBekle(taslakGetir('t', FILTRE))).message, /^GİB tarafında beklenmeyen bir sistem hatası.*NullPointerException/s);
   yanitla({ status: 404, data: '' });
   assert.match((await hataBekle(taslakGetir('t', FILTRE))).message, /404 durum kodu/);
 });
@@ -142,11 +155,11 @@ test('dispatch: ağ yok ve zaman aşımı', async () => {
   yanitla(() => {
     throw sahteAgHatasi();
   });
-  assert.match((await hataBekle(taslakGetir('t', FILTRE))).message, /İnternet bağlantınızı kontrol edin/);
+  assert.match((await hataBekle(taslakGetir('t', FILTRE))).message, /İnternet bağlantınızı/);
   yanitla(() => {
     throw sahteAgHatasi('ECONNABORTED');
   });
-  assert.match((await hataBekle(taslakGetir('t', FILTRE))).message, /zaman aşımı/);
+  assert.match((await hataBekle(taslakGetir('t', FILTRE))).message, /zamanında yanıt vermedi/);
 });
 
 test('oturum hatası: işaretlenir ve gibHatasiniIsle oturumu kapatır', async () => {

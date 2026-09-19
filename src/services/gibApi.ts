@@ -16,7 +16,7 @@
 // özellikle SMSSIFRE_GONDER/ONAYLA komutlarının "jp" gövdeleri
 // portal sürümüne göre farklılık gösterebilir.
 
-import axios, { AxiosInstance, AxiosError, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import type {
   AliciBilgisi,
   DispatchEnvelope,
@@ -28,6 +28,7 @@ import type {
   TaslakFatura,
 } from '../types/gib';
 import { KDV_TEVKIFAT_VERGI_TURU } from '../constants/faturaConstants';
+import { agHatasiMesaji, gibMesajiniAnlasilirYap } from './gibHataMesajlari';
 
 // GİB'in yayınladığı test/sandbox portalı — gerçek mükellef hesaplarını
 // etkilemeden fatura kesim akışını (taslak kaydet, SMS onay vb.) denemek
@@ -215,22 +216,18 @@ async function dispatch<T = unknown>(
     }
 
     if (response.status >= 400) {
+      const gibMesaji = extractErrorMessage(responseData);
       const msg = gibKesintisiMi(response.status)
         ? gibKesintisiMesaji(response.status)
-        : extractErrorMessage(responseData) ?? `GİB portalı ${response.status} durum kodu döndürdü.`;
-      throw new GibApiError(msg, responseData, oturumHatasiMi(msg));
+        : gibMesaji
+          ? gibMesajiniAnlasilirYap(gibMesaji)
+          : `GİB portalı ${response.status} durum kodu döndürdü.`;
+      // Oturum hatası tespiti GİB'in HAM metni üzerinden yapılır.
+      throw new GibApiError(msg, responseData, oturumHatasiMi(gibMesaji ?? ''));
     }
   } catch (err) {
     if (err instanceof GibApiError) throw err;
-
-    const axiosErr = err as AxiosError;
-    if (axiosErr?.code === 'ECONNABORTED') {
-      throw new GibApiError('GİB portalına bağlanırken zaman aşımı oluştu. Lütfen tekrar deneyin.', err);
-    }
-    if (axiosErr?.isAxiosError && !axiosErr.response) {
-      throw new GibApiError('GİB portalına ulaşılamadı. İnternet bağlantınızı kontrol edin.', err);
-    }
-    throw new GibApiError('Beklenmeyen bir hata oluştu.', err);
+    throw new GibApiError(agHatasiMesaji(err) ?? 'Beklenmeyen bir hata oluştu.', err);
   }
 
   if (responseData && typeof responseData === 'object') {
@@ -238,7 +235,7 @@ async function dispatch<T = unknown>(
 
     if ('error' in envelope && isGibHatasi(envelope.error)) {
       const mesaj = extractErrorMessage(envelope) ?? 'GİB portalı işlemi reddetti.';
-      throw new GibApiError(mesaj, envelope, oturumHatasiMi(mesaj));
+      throw new GibApiError(gibMesajiniAnlasilirYap(mesaj), envelope, oturumHatasiMi(mesaj));
     }
 
     // ÖNEMLİ: Gerçek GİB yanıtları çoğunlukla "error" alanı İÇERMEDEN
@@ -303,16 +300,16 @@ function girisHatasiMesaji(status: number, data: unknown): string {
   if (gibKesintisiMi(status)) return gibKesintisiMesaji(status);
 
   const gibMesaji = extractErrorMessage(data);
-  if (kisaDuzMetinMi(gibMesaji)) return gibMesaji;
+  if (kisaDuzMetinMi(gibMesaji)) return gibMesajiniAnlasilirYap(gibMesaji);
 
   if (data && typeof data === 'object') {
     const obj = data as Record<string, unknown>;
     for (const anahtar of ['error', 'message', 'mesaj', 'hata']) {
       const deger = obj[anahtar];
-      if (kisaDuzMetinMi(deger)) return deger.trim();
+      if (kisaDuzMetinMi(deger)) return gibMesajiniAnlasilirYap(deger.trim());
     }
   } else if (kisaDuzMetinMi(data)) {
-    return data.trim();
+    return gibMesajiniAnlasilirYap(data.trim());
   }
 
   return status >= 200 && status < 300
@@ -341,14 +338,7 @@ export async function login(kullaniciKodu: string, kullaniciSifresi: string): Pr
   try {
     res = await client.post<unknown>(ASSOS_LOGIN_URL, body);
   } catch (err) {
-    const axiosErr = err as AxiosError;
-    if (axiosErr?.code === 'ECONNABORTED') {
-      throw new GibApiError('GİB portalına bağlanırken zaman aşımı oluştu. Lütfen tekrar deneyin.', err);
-    }
-    if (axiosErr?.isAxiosError && !axiosErr.response) {
-      throw new GibApiError('GİB portalına ulaşılamadı. İnternet bağlantınızı kontrol edin.', err);
-    }
-    throw new GibApiError('Beklenmeyen bir hata oluştu.', err);
+    throw new GibApiError(agHatasiMesaji(err) ?? 'Beklenmeyen bir hata oluştu.', err);
   }
 
   // validateStatus tüm durum kodlarını kabul ettiğinden HTTP durumunu burada

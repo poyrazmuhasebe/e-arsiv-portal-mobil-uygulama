@@ -95,6 +95,44 @@ true` işaretlenir. `gibHatasiniIsle()` bunu görünce `useAuthStore.logout()`
 çağırıp kullanıcıyı otomatik olarak Login ekranına döndürür. Bu liste,
 gerçek bir oturum-süresi-doldu mesajının tam metni görüldükçe genişletilmeli.
 
+Not: Şu an yalnızca "Oluştur" (FaturaKesimScreen) `gibHatasiniIsle`'yi
+kullanıyor; diğer ekranlar `err.message`'ı doğrudan gösteriyor. Tüm ekranlar
+bilinçli olarak ona geçirilmedi: `"süresi dol"` anahtarı, görülmemiş bir SMS
+kodu süre aşımı mesajında da geçebilir ve imza akışında kullanıcıyı yanlışlıkla
+çıkışa atabilir. Gerçek oturum-süresi-doldu metni doğrulanınca ele alınmalı.
+
+## Hata mesajlarının çevrilmesi (`gibHataMesajlari.ts`)
+
+Kullanıcıya gösterilen tüm GİB/ağ hata metinleri tek yerden geçer:
+`src/services/gibHataMesajlari.ts`. `gibApi.ts`, bir `GibApiError`
+oluştururken GİB'in ham metnini `gibMesajiniAnlasilirYap()`'tan geçirir, böylece
+hangi ekran hatayı gösterirse göstersin aynı açıklamayı görür. Oturum hatası
+tespiti ham metin üzerinden yapılmaya devam eder.
+
+Yalnızca bu projede **gerçekten gözlenmiş** metinler çevrilir; çeviride GİB'in
+orijinal metni `(GİB mesajı: "...")` olarak korunur (160 karaktere kısaltılır):
+
+| GİB metni (içerir) | Gösterilen açıklama (özet) |
+|---|---|
+| "Bu işlem için yetkiniz yok" | GİB isteği reddetti; çoğunlukla isteğin tanınmadığını gösterir, hesap yetkisiyle ilgili olmayabilir |
+| "Genel Sistem Hatası" (ör. `java.lang.NullPointerException`) | GİB tarafında beklenmeyen sistem hatası; sonra tekrar deneyin |
+| "Silinmiş belgeler düzenlenemez" | Belge GİB'de silinmiş; listeyi yenileyin |
+| "Sisteme giriş için eksik bilgi verildi" | Giriş bilgileri eksik |
+
+Bilinmeyen metinler **değiştirilmeden** gösterilir. Yeni bir metin ancak
+canlı olarak görüldükten sonra listeye eklenmeli.
+
+Ağ hataları (`agHatasiMesaji`):
+
+- **Zaman aşımı** (axios `ECONNABORTED`/`ETIMEDOUT`, 20 sn): istek GİB'e
+  ulaşmış olabileceği için kullanıcıya körü körüne "tekrar deneyin"
+  **denmez**; fatura oluşturma/silme/imza/iptal gibi işlemlerde önce "Taslak /
+  Kesilen Faturalar" listesinden sonucu kontrol etmesi söylenir (mükerrer işlem
+  riskine karşı).
+- **Yanıt yok** (bağlantı yok ya da GİB'e erişilemiyor): mobil veri/Wi-Fi
+  kontrolü ve GİB'in geçici olarak erişilemiyor olabileceği belirtilir.
+- **HTTP 502/503/504**: mevcut "GİB portalı şu an hizmet vermiyor" mesajı.
+
 ## Confirmed cmd'ler ve `jp` şemaları
 
 Hızlı doğrulama durumu tablosu için bkz. [gib-api-durumu.md](gib-api-durumu.md).

@@ -83,9 +83,16 @@ bu sayfa onların tematik bir özetidir.
   Yalnızca biçimsel doğrulamadır: numaranın GİB'de kayıtlı olup olmadığını
   `mukellefBilgisiGetir` sorgusu belirler.
   ([Issue #12](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/12))
-- Kullanıcı dostu hata mesajları (şu an GİB'in ham metni gösteriliyor).
+- ~~Kullanıcı dostu hata mesajları~~ — **kısmen yapıldı**: gözlenmiş 4 GİB
+  metni tek yerde (`gibHataMesajlari.ts`) anlaşılır Türkçeye çevriliyor, orijinal
+  metin korunuyor. Görülmemiş GİB metinleri hâlâ ham gösteriliyor (tahminle
+  çeviri yapılmıyor); yeni metinler canlıda görüldükçe eklenmeli.
   ([Issue #13](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/13))
-- Offline/ağ hatası senaryolarında daha net geri bildirim.
+- ~~Offline/ağ hatası senaryolarında daha net geri bildirim~~ — **kısmen
+  yapıldı**: zaman aşımı mesajı artık mükerrer işlem riskine karşı "önce listeyi
+  kontrol edin" diyor, bağlantı yok mesajı netleşti. **Yapılmadı:** sürekli
+  görünen bir "çevrimdışı" şeridi — bağlantı durumunu dinlemek için yeni bir
+  bağımlılık (`@react-native-community/netinfo`) gerekiyor; onay bekliyor.
   ([Issue #14](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/14))
 
 ## Kod Kalitesi / Bakım
