@@ -134,4 +134,4 @@ haklarına sahipsiniz.
 
 Başvurularınızı `[İLETİŞİM E-POSTASI]` adresine iletebilirsiniz. Hesabınızı
 uygulama içindeki "Hesabımı Sil" ekranından ya da
-`https://[ALAN ADI]/hesap-sil` adresinden kendiniz de silebilirsiniz.
+`https://earsivfatura.poyrazmuhasebe.com/hesap-sil` adresinden kendiniz de silebilirsiniz.

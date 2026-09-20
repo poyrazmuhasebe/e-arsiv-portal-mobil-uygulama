@@ -101,7 +101,7 @@ yalnızca sabit bir hata kodu ve uç nokta adıyla kaydedilir.
 - Hesap verileriniz, hesabınız var olduğu sürece saklanır.
 - **Hesabınızı iki şekilde silebilirsiniz:**
   1. Uygulama içinden: **Menü → Hesabımı Sil**
-  2. Herkese açık sayfadan: `https://[ALAN ADI]/hesap-sil`
+  2. Herkese açık sayfadan: `https://earsivfatura.poyrazmuhasebe.com/hesap-sil`
 - Silme ile kullanıcı kaydınız, oturumlarınız, varsa sosyal hesap
   bağlantılarınız ve tek kullanımlık kodlarınız veritabanından kaldırılır.
   **Dondurma değil, silmedir.**

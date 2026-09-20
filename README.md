@@ -33,6 +33,23 @@ npx expo start
 
 Expo Go ile QR kodu okutarak çalıştırabilirsiniz. `npx expo start --web` ile tarayıcıda da açılır, ancak güvenli depolama, uygulama kilidi, fatura görüntüleyici (WebView) ve PDF kaydetme gibi cihaz özellikleri web'de sınırlıdır; gerçek deneme telefonda yapılmalıdır.
 
+Uygulama açılışta hesap sunucusuna bağlanır. Adres `.env.example`'de; yerel geliştirme için bu dosyayı `.env.local` adıyla kopyalayıp değeri değiştirin (git'e girmez).
+
+## Hesap sunucusu (`worker/`)
+
+Uygulama hesabı sistemi ayrı bir Cloudflare Worker'ında:
+`https://earsivfatura.poyrazmuhasebe.com`
+
+```bash
+cd worker
+npm install
+npm test
+```
+
+Yerel çalıştırma, sırlar ve dağıtım adımları:
+[docs/kurulum-ve-gelistirme.md](docs/kurulum-ve-gelistirme.md#hesap-sunucusu-cloudflare-worker--d1).
+Tasarım ve kararlar: [docs/hesap-sistemi.md](docs/hesap-sistemi.md).
+
 ## Test ve tip kontrolü
 
 ```bash
@@ -40,7 +57,7 @@ npm test
 npx tsc --noEmit
 ```
 
-Testler GİB'e hiçbir istek atmaz (bkz. [docs/kurulum-ve-gelistirme.md](docs/kurulum-ve-gelistirme.md#testler)).
+Testler GİB'e ve hesap sunucusuna hiçbir istek atmaz — hem `axios` hem `globalThis.fetch` sahtelenmiştir (bkz. [docs/kurulum-ve-gelistirme.md](docs/kurulum-ve-gelistirme.md#testler)). Worker'ın kendi testleri `worker/` içinde, gerçek `workerd` çalışma zamanında ve gerçek yerel D1'e karşı çalışır.
 
 ## Android APK derleme (EAS)
 

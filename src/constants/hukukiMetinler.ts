@@ -80,7 +80,7 @@ export const HUKUKI_METINLER: Record<HukukiMetinAnahtari, HukukiMetin> = {
       {
         baslik: 'Hesabınızı silme',
         govde:
-          'Hesabınızı uygulama içinden silebilirsiniz. Silme ile kullanıcı kaydınız, oturumlarınız ve tek kullanımlık kodlarınız veritabanından kaldırılır — dondurma değil, silmedir.\n\nTelefonunuzdaki alıcı ve mal/hizmet defterleri bundan ETKİLENMEZ; bunlar sunucuda zaten yoktur. Uygulamayı kaldırmak Android\'de bu verileri siler.\n\n(Uygulama içi silme ekranı bir sonraki sürümde geliyor.)',
+          'Hesabınızı iki şekilde silebilirsiniz:\n\n1. Uygulama içinden: Menü → Hesabımı Sil\n2. Herkese açık sayfadan: https://earsivfatura.poyrazmuhasebe.com/hesap-sil\n\nSilme ile kullanıcı kaydınız, oturumlarınız ve tek kullanımlık kodlarınız veritabanından kaldırılır — dondurma değil, silmedir.\n\nTelefonunuzdaki alıcı ve mal/hizmet defterleri bundan ETKİLENMEZ; bunlar sunucuda zaten yoktur. Uygulamayı kaldırmak Android\'de bu verileri siler.',
       },
     ],
   },

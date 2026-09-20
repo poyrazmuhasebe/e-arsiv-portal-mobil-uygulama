@@ -39,6 +39,11 @@
 - [x] Tutar etiketlerinde seçilen para biriminin simgesi (`paraBirimi.ts`, Issue #3)
 - [x] Desteklenmeyen 28 vergi türü artık sessizce yok sayılmıyor: seçicide pasif, uyumsuz tevkifat "Oluştur"u engelliyor (`vergiDestegi.ts`, Issue #1)
 - [x] Giriş ekranında kapatılabilir GİB duyuru kutusu (`DuyuruKutusu.tsx`, `duyurular.ts`)
+- [x] **Uygulama hesabı sistemi** (Issue #26) — uygulama artık GİB giriş ekranıyla değil, Kayıt Ol / Giriş Yap ile açılıyor. Akış: hesap → e-posta doğrulama (zorunlu, 6 haneli kod) → GİB girişi → Dashboard. Kendi Cloudflare Worker'ımız + D1 (`worker/`), AB yetki alanında, canlı: `https://earsivfatura.poyrazmuhasebe.com`. Şifreler scrypt ile özetleniyor, düz metin hiçbir yerde saklanmıyor. **İlke değişti:** GİB tarafı hâlâ sunucusuz, hesap tarafı değil (bkz. [docs/hesap-sistemi.md](docs/hesap-sistemi.md)).
+- [x] GİB oturumu artık bir uygulama hesabına bağlı (`hesap_gib_sahibi`); sahipsiz ya da başka hesaba ait oturum geri yüklenmiyor (Issue #31)
+- [x] İki ayrı çıkış: "GİB oturumunu kapat" ve "Hesaptan çık"; hiçbiri cihazdaki defterleri silmiyor
+- [x] Şifremi unuttum ve hesap silme — uygulama içi ekran + herkese açık web sayfası (Issue #29, Google Play şartı)
+- [x] KVKK aydınlatma metni, gizlilik politikası ve hizmet şartları **TASLAKLARI** (`docs/hukuk/`, hukuki inceleme bekliyor; Issue #36)
 
 ## Doğrulanması Gerekenler / Yapılacaklar
 

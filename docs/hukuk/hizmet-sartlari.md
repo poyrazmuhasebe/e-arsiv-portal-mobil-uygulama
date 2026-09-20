@@ -53,7 +53,7 @@ kullanarak bu koşulları kabul etmiş olursunuz.
 - Hesabınızın güvenliğinden ve hesabınız üzerinden yapılan işlemlerden siz
   sorumlusunuz. Yetkisiz kullanım fark ederseniz derhal bildirin.
 - Hesabınızı dilediğiniz zaman uygulama içinden ya da
-  `https://[ALAN ADI]/hesap-sil` adresinden silebilirsiniz.
+  `https://earsivfatura.poyrazmuhasebe.com/hesap-sil` adresinden silebilirsiniz.
 
 ## 5. GİB bilgileriniz
 

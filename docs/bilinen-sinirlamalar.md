@@ -101,10 +101,13 @@ bu sayfa onların tematik bir özetidir.
   kontrol edin" diyor, bağlantı yok mesajı netleşti. **Yapılmadı:** sürekli
   görünen bir "çevrimdışı" şeridi — bağlantı durumunu dinlemek için yeni bir
   bağımlılık (`@react-native-community/netinfo`, Expo Go'da mevcut) gerekiyor;
-  **sonraya bırakıldı**. Eklenirse, "sunucusuz / üçüncü taraf yok" ilkesi
-  gereği kütüphanenin internet erişilebilirlik kontrolü (varsayılan olarak dış
-  bir adrese istek attığı bilinen, kurulumda doğrulanacak) kapatılıp yalnızca
-  cihazın bildirdiği bağlantı durumu kullanılmalı. Not: şerit GİB kesintisini
+  **sonraya bırakıldı**. Eklenirse, kütüphanenin internet erişilebilirlik
+  kontrolü (varsayılan olarak dış bir adrese istek attığı bilinen, kurulumda
+  doğrulanacak) kapatılıp yalnızca cihazın bildirdiği bağlantı durumu
+  kullanılmalı. Gerekçe artık "hiçbir üçüncü tarafa gitmiyoruz" değil —
+  uygulamanın bir hesap sunucusu var (bkz. [hesap-sistemi.md](hesap-sistemi.md))
+  — ama GİB akışı için eklenen bir kütüphanenin habersizce başka bir adrese
+  istek atması hâlâ istenmiyor. Not: şerit GİB kesintisini
   göstermez (o sırada internet vardır); onu HTTP 502/503/504 mesajı karşılıyor.
   ([Issue #14](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/14))
 
@@ -142,5 +145,20 @@ bu sayfa onların tematik bir özetidir.
   ([Issue #22](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/22))
 - **Cihazda denenmemiş değişiklikler** —
   [cihazda-denenecekler.md](cihazda-denenecekler.md)'deki liste henüz
-  tamamlanmadı.
+  tamamlanmadı. **Uygulama hesabı sisteminin hiçbir ekranı telefonda
+  görülmedi.**
   ([Issue #24](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/24))
+- **Doğrulama e-postasının gerçekten ulaştığı teyit edilmedi.** Cloudflare
+  Email Sending BETA ve postayı yalnızca *teslim için kabul ediyor*; üretimde
+  var olmayan bir adrese yapılan kayıt bile hata vermiyor. E-posta doğrulama
+  ZORUNLU olduğu için, posta ulaşmazsa yeni kullanıcı uygulamaya hiç giremez.
+  ([Issue #28](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/28))
+- **Play Console gereklilikleri:** Data safety formundaki veri silme soruları
+  ve herkese açık gizlilik politikası URL'si henüz tamamlanmadı. Hesap silme
+  yollarının ikisi de hazır (#29).
+  ([Issue #17](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/17),
+  [Issue #36](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/36))
+- **KVKK yurt dışına aktarım** (m.9) çözülmedi: hesap verisi Cloudflare'in AB
+  veri merkezlerinde tutuluyor, Cloudflare için yeterlilik kararı yok ve
+  standart sözleşme meselesi açık. Hukuki metinler TASLAK.
+  ([Issue #36](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/36))

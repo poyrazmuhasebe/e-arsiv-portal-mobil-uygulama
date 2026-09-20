@@ -33,7 +33,7 @@ Metinlerde `[…]` ile işaretli her yer **senin tarafından doldurulacak**:
 - `[VERİ SORUMLUSU VKN/TCKN]`
 - `[VERBİS KAYIT DURUMU]` — kayıt gerekiyorsa numarası
 - `[İLETİŞİM E-POSTASI]` — KVKK başvuruları için
-- `[ALAN ADI]` — Worker ve web sayfalarının alan adı
+- ~~`[ALAN ADI]`~~ — **dolduruldu:** `earsivfatura.poyrazmuhasebe.com`
 - `[YÜRÜRLÜK TARİHİ]`
 
 ## Danışmana özellikle sorulacaklar

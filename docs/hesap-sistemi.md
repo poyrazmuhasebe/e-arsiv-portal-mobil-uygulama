@@ -420,7 +420,7 @@ Yalnızca ayrı onayla ve development build kararıyla yapılır.
 
 ### Uygulama tarafı — `npm test` (kök)
 
-Mevcut altyapı (tsc → CommonJS → `node:test`). **98 test.**
+Mevcut altyapı (tsc → CommonJS → `node:test`). **139 test.**
 
 `globalThis.fetch` artık sahtelendi (`test/sahte/kurulum.ts`): varsayılan
 olarak "Testte beklenmeyen ağ isteği (fetch)" hatası fırlatır, istekleri
@@ -433,7 +433,7 @@ fetch ile gidecek. `test/agKorumasi.test.ts` bunu doğrular.
 
 vitest + `@cloudflare/vitest-plugin` ile **gerçek `workerd` çalışma zamanında
 ve gerçek (yerel) D1'e** karşı. Bellek içi sahte veritabanı kullanılmaz.
-**72 test.**
+**83 test.**
 
 | Dosya | Kapsam |
 |---|---|
@@ -442,6 +442,7 @@ ve gerçek (yerel) D1'e** karşı. Bellek içi sahte veritabanı kullanılmaz.
 | `test/sifre.test.ts` | scrypt özetleme/doğrulama, düz metin saklanmaması, parametrelerin kayıtla taşınması, pepper, bozuk kayıtlar, devasa N koruması |
 | `test/kripto.test.ts` | Sabit zamanlı karşılaştırma, rastgelelik, HS256 üretme/doğrulama, yanlış anahtar, kurcalanmış gövde, süre dolması |
 | `test/dogrulama.test.ts` | E-posta, kullanıcı adı ve şifre kuralları |
+| `test/hesapSil.test.ts` | Hesap silme: şifre doğrulaması, tüm tabloların temizlenmesi, silinen token'ın reddi, herkese açık sayfanın HTML'i ve kullanıcı varlığını sızdırmaması |
 
 Özellikle doğrulananlar:
 
