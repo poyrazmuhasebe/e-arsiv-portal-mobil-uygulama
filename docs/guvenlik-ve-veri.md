@@ -387,3 +387,36 @@ Herkese açık sayfa, kullanıcının var olup olmadığını **sızdırmaz**: y
 şifre ile kayıtlı olmayan adres birebir aynı yanıtı alır. Sayfa hiçbir dış
 kaynak yüklemez (`Content-Security-Policy: default-src 'none'`) ve IP ile
 e-posta başına oran sınırlamasına tabidir.
+
+## Üretimde kayıt denetimi (2026-09-20)
+
+İlk dağıtımdan sonra, gerçekten neyin kaydedildiği **canlı olarak denendi**:
+üretim Worker'ına içinde bilerek hassas veri bulunan 6 istek gönderildi
+(uydurma bir şifre, sahte bir `gibToken` alanı, `Authorization` başlığı,
+bozuk JSON, bilinmeyen yol) ve akış `wrangler tail` ile izlendi.
+
+**Bulunanlar:**
+
+| Ne arandı | Sonuç |
+|---|---|
+| Şifre (istek gövdesinde) | **Bulunamadı** — istek gövdesi hiç kaydedilmiyor |
+| Sahte `gibToken` alanı | **Bulunamadı** |
+| `Authorization` başlığının değeri | **`REDACTED`** — Cloudflare kendisi maskeliyor |
+| E-posta adresi | **Bulunamadı** |
+| `console.*` çıktısı | **Hiç yok** — altı isteğin hiçbirinde tek satır bile yazılmadı |
+
+Üretimdeki `observability` ayarı API'den geri okundu ve
+`"invocation_logs": false` olduğu doğrulandı.
+
+### ⚠️ Ama şunu da bilmek gerekir
+
+`wrangler tail` **canlı akışında** istek üstverisi görünüyor: `cf-connecting-ip`,
+ülke, şehir, yaklaşık koordinatlar, ASN ve operatör adı. Bu akış kalıcı
+değildir (saklanmaz), ama **Cloudflare hesabında Workers Tail yetkisi olan
+herkes trafiği canlı izleyebilir.** Hesap erişimi bu nedenle yetkili kişiyle
+sınırlı tutulmalıdır.
+
+**Doğrulanamayan:** Cloudflare'in *sakladığı* Workers Logs kayıtlarının içeriği
+sorgulanamadı — kullanılan API token'ında Workers Observability okuma izni
+yoktu. `invocation_logs: false` ayarının okunabildiği ama saklanan kayıtların
+içeriğinin görülmediği burada açıkça belirtilir.

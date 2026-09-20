@@ -191,7 +191,11 @@ export async function hesapSilFormu(
   try {
     await oranSiniriUygula(env, "hesap_sil_web_ip", ip, SINIR_GIRIS_IP, simdiSn);
     await oranSiniriUygula(env, "hesap_sil_web", eposta, SINIR_GIRIS_HESAP, simdiSn);
-  } catch {
+  } catch (hata) {
+    // YALNIZCA oran sınırı yakalanır. Veritabanı hatası gibi başka bir sorun
+    // kullanıcıya "çok fazla deneme yaptınız" diye gösterilmemeli — yukarı
+    // fırlatılır ve genel hata yoluna düşer.
+    if (!(hata instanceof IstekHatasi) || hata.kod !== "oran_siniri") throw hata;
     return sayfa(
       `<h1>Hesabınızı silin</h1><p class="hata">Çok fazla deneme yaptınız. Lütfen bir süre sonra tekrar deneyin.</p>`,
     );

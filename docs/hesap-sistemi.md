@@ -543,7 +543,7 @@ bağlı parametre, en fazla 100 KB SQL, satır/BLOB en fazla 2 MB.
 | D1 | `earsiv-hesap`, **jurisdiction `eu`**, bölge EEUR (Prag) |
 | Sırlar | `OTURUM_IMZA_ANAHTARI`, `PEPPER` (Worker secret'ı; bir daha okunamaz) |
 | E-posta | Cloudflare Email Sending, gönderen `dogrulama@earsivfatura.poyrazmuhasebe.com` |
-| Kayıtlar | `observability.logs.invocation_logs: false` — istek üstverisi saklanmıyor |
+| Kayıtlar | `observability.logs.invocation_logs: false` — üretimden geri okunarak doğrulandı. Canlı denemede istek gövdesi, şifre, e-posta ve `gibToken` **kaydedilmedi**; `Authorization` başlığını Cloudflare `REDACTED` yapıyor; `console.*` çıktısı hiç olmadı. Ayrıntı: [guvenlik-ve-veri.md](guvenlik-ve-veri.md#üretimde-kayıt-denetimi-2026-09-20) |
 | CORS | Üretimde boş (hiçbir tarayıcı kaynağına izin yok) |
 
 **E-posta DNS kayıtları alt alan adında:** `cf-bounce.earsivfatura.…` (MX,
