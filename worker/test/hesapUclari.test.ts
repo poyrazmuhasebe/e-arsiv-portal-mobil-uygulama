@@ -463,7 +463,10 @@ describe("yanıt biçimi ve CORS", () => {
 });
 
 describe("geliştirme modu", () => {
-  it("GELISTIRME kapalıyken kod yanıta EKLENMEZ ve posta yapılandırılmamışsa kayıt 503 olur", async () => {
+  it("GELISTIRME kapalıyken doğrulama kodu yanıta EKLENMEZ", async () => {
+    // Üretimde bu değişken YOKTUR: `wrangler.jsonc`'deki `vars` bloğunda
+    // bilerek tanımlı değil ve yalnızca git dışı `.dev.vars`'tan gelir.
+    // Bu test, kodun yanlışlıkla üretim yanıtına sızmadığını doğrular.
     const onceki = ORTAM.GELISTIRME;
     ORTAM.GELISTIRME = undefined;
     try {
@@ -474,12 +477,32 @@ describe("geliştirme modu", () => {
           sifre: "Kucuk-Kedi-42",
         },
       });
-      expect(yanit.status).toBe(503);
+      expect(yanit.status).toBe(201);
       const metin = await yanit.text();
-      expect(metin).toContain("posta_yapilandirilmamis");
       expect(metin).not.toContain("gelistirmeKodu");
     } finally {
       ORTAM.GELISTIRME = onceki;
+    }
+  });
+
+  it("posta yapılandırılmamışsa kayıt 503 ile başarısız olur, sessizce geçmez", async () => {
+    const oncekiGelistirme = ORTAM.GELISTIRME;
+    const oncekiGonderen = ORTAM.POSTA_GONDEREN;
+    ORTAM.GELISTIRME = undefined;
+    ORTAM.POSTA_GONDEREN = "";
+    try {
+      const yanit = await cagir("/v1/kayit", {
+        govde: {
+          eposta: benzersizEposta(),
+          kullaniciAdi: benzersizKullaniciAdi(),
+          sifre: "Kucuk-Kedi-42",
+        },
+      });
+      expect(yanit.status).toBe(503);
+      expect(await yanit.text()).toContain("posta_yapilandirilmamis");
+    } finally {
+      ORTAM.GELISTIRME = oncekiGelistirme;
+      ORTAM.POSTA_GONDEREN = oncekiGonderen;
     }
   });
 });

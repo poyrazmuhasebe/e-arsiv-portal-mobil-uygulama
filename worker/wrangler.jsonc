@@ -10,6 +10,16 @@
   "compatibility_date": "2026-09-01",
   "compatibility_flags": ["nodejs_compat"],
 
+  // Özel alan adı. Bu kaydı Wrangler kendisi oluşturur (Zone DNS + Workers
+  // Routes izni gerekir). Adres uygulama derlemesine gömülüdür
+  // (.env.example, eas.json) — DEĞİŞTİRİLİRSE YENİ APK GEREKİR.
+  "routes": [
+    {
+      "pattern": "earsivfatura.poyrazmuhasebe.com",
+      "custom_domain": true
+    }
+  ],
+
   // Wrangler'ın Cloudflare'e kullanım verisi göndermesi kapalı.
   "send_metrics": false,
 
@@ -28,15 +38,14 @@
     {
       "binding": "DB",
       "database_name": "earsiv-hesap",
-      // YER TUTUCU. `npx wrangler d1 create earsiv-hesap --jurisdiction eu`
-      // çıktısındaki gerçek database_id buraya yazılacak. Sır değildir,
-      // commit'lenir.
+      // 2026-09-20'de `npx wrangler d1 create earsiv-hesap --jurisdiction eu`
+      // ile oluşturuldu (bölge: EEUR, AB yetki alanı). Sır değildir, commit'lenir.
       //
       // ÖNEMLİ: burası boş bırakılmaz. Wrangler 4.45 ve sonrası, ID'si
       // yazılmamış bir binding için deploy sırasında KENDİSİ yeni bir
       // veritabanı oluşturabiliyor ve bu durumda jurisdiction (eu) seçimi
       // atlanır. Jurisdiction sonradan değiştirilemez.
-      "database_id": "YER-TUTUCU-d1-create-ciktisiyla-degistir"
+      "database_id": "fbd00663-b549-4dd6-b945-4c9211794f82"
       // "remote": true KULLANILMAZ — yerel geliştirme kazara gerçek
       // veritabanına bağlanmasın diye.
     }
@@ -48,17 +57,18 @@
     // Üretimde CORS tamamen kapalı. Yerel web önizlemesi için .dev.vars'ta
     // "http://localhost:8081" verilir. Wildcard hiçbir koşulda kullanılmaz.
     "CORS_IZIN_LISTESI": "",
-    // Alan adı hazır olunca doldurulacak, ör. "dogrulama@ornek.com"
-    "POSTA_GONDEREN": "",
+    // Email Sending için onboard edilen alan adı: earsivfatura.poyrazmuhasebe.com
+    // (cf-bounce MX/SPF/DKIM ve _dmarc kayıtları BU ALT ALAN ADINDA; apex
+    // poyrazmuhasebe.com'in kendi SPF/DMARC kayıtlarına dokunulmadı).
+    "POSTA_GONDEREN": "dogrulama@earsivfatura.poyrazmuhasebe.com",
     "POSTA_GONDEREN_AD": "e-Arşiv Portal"
-  }
+  },
 
-  // E-POSTA GÖNDERİMİ — alan adı Cloudflare'e bağlandıktan sonra eklenecek:
-  //
-  //   "send_email": [{ "name": "EMAIL" }]
-  //
-  // Kod bu binding'i isteğe bağlı olarak kullanır (src/eposta.ts). Binding
-  // yokken GELISTIRME=1 ile kodlar yanıt gövdesinde döner; üretimde binding
-  // yoksa kayıt 503 ile başarısız olur. "remote": true EKLENMEZ — yerel
-  // geliştirme gerçek e-posta göndermesin diye.
+  // Cloudflare Email Sending (BETA). Alan adı 2026-09-20'de onboard edildi.
+  // "remote": true EKLENMEZ — yerel `wrangler dev` gerçek e-posta göndermesin.
+  "send_email": [
+    {
+      "name": "EMAIL"
+    }
+  ]
 }
