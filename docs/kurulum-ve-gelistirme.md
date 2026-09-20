@@ -188,7 +188,10 @@ Wrangler varsayılan olarak Cloudflare'e kullanım verisi gönderir;
 `wrangler.jsonc`'de `"send_metrics": false` yazılıdır, ayrıca komutlar
 `WRANGLER_SEND_METRICS=false` ile de çalıştırılabilir.
 
-### Yayına alma (proje sahibi)
+### Yayına alma — **2026-09-20'de YAPILDI**
+
+Aşağıdaki adımların tamamı uygulandı; burada kayıt olarak duruyor.
+Canlı adres: `https://earsivfatura.poyrazmuhasebe.com`
 
 1. Cloudflare hesabı ve **Workers Paid** planı.
 2. `npx wrangler login`

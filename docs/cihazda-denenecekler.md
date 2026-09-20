@@ -81,13 +81,28 @@ Hazırlık: `worker/.dev.vars.example` dosyasını `.dev.vars` adıyla kopyalay�
 
 ### Deploy edilmiş Worker gerekir
 
+Worker **2026-09-20'de canlıya alındı**: `https://earsivfatura.poyrazmuhasebe.com`
+Bu bölümü denemek için `.env.local` dosyasını SİLİN (ya da içindeki adresi
+üretim adresiyle değiştirin); `.env.example` zaten üretim adresini gösteriyor.
+
 - [ ] **Gerçek e-posta geliyor** — kayıt sonrası doğrulama kodu gerçekten
-  e-posta ile ulaşıyor (Cloudflare Email Sending **beta**, hiç denenmedi).
+  gelen kutusuna ulaşıyor. **En kritik doğrulanmamış madde:** Cloudflare
+  Email Sending BETA ve postayı yalnızca *teslim için kabul ediyor*; teslim
+  garantisi vermiyor. Gereksiz (spam) klasörünü de kontrol edin.
 - [ ] **Şifre sıfırlama e-postası** ulaşıyor.
-- [ ] **HTTPS ile çalışıyor** — `.env.local` kaldırılıp
-  `https://earsivfatura.poyrazmuhasebe.com` ile deneniyor.
+- [ ] **Hesabımı Sil** — Dashboard → Hesabımı Sil ile hesap siliniyor,
+  Karşılama ekranına dönülüyor, aynı e-postayla tekrar kayıt olunabiliyor.
+- [ ] **Silmeden sonra defterler duruyor** — yeni hesapla aynı GİB hesabına
+  girince alıcı defteri ve mal/hizmet adları yerinde.
+- [ ] **Herkese açık silme sayfası** — tarayıcıdan
+  `https://earsivfatura.poyrazmuhasebe.com/hesap-sil` açılıyor ve çalışıyor.
 - [ ] **EAS preview APK** ile uçtan uca çalışıyor (APK yerel `http://`
-  adrese bağlanamaz, yalnızca deploy edilmiş Worker ile denenebilir).
+  adrese bağlanamaz, yalnızca üretim adresiyle denenebilir).
+
+**Sunucu tarafında ZATEN doğrulandı** (2026-09-20, üretimde): kayıt 201
+dönüyor, şifre `scrypt$16384$8$1$…` olarak saklanıyor, yanıtta geliştirme
+kodu yok, yanlış şifreyle silme reddediliyor, doğru şifreyle siliniyor ve
+sonrasında giriş 401 veriyor, herkese açık silme sayfası 200/HTML dönüyor.
 
 ## 2026-09-19 oturumu
 

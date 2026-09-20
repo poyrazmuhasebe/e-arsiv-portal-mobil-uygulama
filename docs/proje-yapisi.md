@@ -97,7 +97,7 @@ worker/
     oranSinir.ts                # Sabit pencereli oran sınırlama (D1)
     eposta.ts                   # Cloudflare Email Sending (henüz denenmedi)
     cors.ts                     # Açık izin listesi, wildcard yok
-    uclar/                      # Uç nokta işleyicileri
+    uclar/                      # Uç nokta işleyicileri (hesapSil.ts herkese açık HTML sayfası da sunar)
   test/
     kurulum.ts                  # Migration'ları yerel D1'e uygular
     yardimci.ts                 # İstek yardımcıları, hesap açma

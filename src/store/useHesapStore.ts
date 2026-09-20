@@ -17,6 +17,7 @@
 import { create } from 'zustand';
 
 import {
+  hesabiSil as apiHesabiSil,
   cikisYap as apiCikisYap,
   epostaDogrula as apiEpostaDogrula,
   epostaKoduGonder as apiEpostaKoduGonder,
@@ -59,6 +60,8 @@ interface HesapState {
   epostaDogrula: (kod: string) => Promise<void>;
   /** Yalnızca uygulama hesabı oturumunu kapatır; GİB'e dokunmaz. */
   hesaptanCik: () => Promise<void>;
+  /** Hesabı sunucudan KALICI olarak siler ve yerel oturumu temizler. */
+  hesabiSil: (sifre: string) => Promise<void>;
   /** Gerekirse yenileyerek geçerli bir erişim token'ı döndürür. */
   gecerliErisimToken: () => Promise<string | null>;
 }
@@ -217,6 +220,17 @@ export const useHesapStore = create<HesapState>((set, get) => ({
         // yoksay
       }
     }
+    await saklananiSil();
+    set({ kullanici: null, oturum: null });
+  },
+
+  hesabiSil: async (sifre) => {
+    const token = await get().gecerliErisimToken();
+    if (token === null) {
+      throw new HesapApiHatasi('oturum_yok', 'Oturumunuz sona erdi, lütfen tekrar giriş yapın.');
+    }
+    // Hata fırlatırsa (ör. şifre yanlış) yerel oturum KORUNUR.
+    await apiHesabiSil(token, sifre, gelistirmeMi());
     await saklananiSil();
     set({ kullanici: null, oturum: null });
   },

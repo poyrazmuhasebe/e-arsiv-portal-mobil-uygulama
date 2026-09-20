@@ -1,13 +1,15 @@
 # Uygulama Hesabı Sistemi
 
-> **DURUM: KOD YAZILDI, HENÜZ DEPLOY EDİLMEDİ VE CİHAZDA DENENMEDİ.**
-> (a), (b) ve (c) aşamaları tamamlandı: `worker/` klasörü, D1 şeması, hesap
-> uçları, uygulama tarafındaki store, istemci ve ekranlar yazıldı; her şey
-> yerelde çalışıyor ve testlerden geçiyor.
-> **Kalanlar:** Worker **hiçbir yere deploy edilmedi**, D1 veritabanı
-> **oluşturulmadı**, e-posta gönderimi **hiç denenmedi** ve hiçbir ekran
-> **telefonda görülmedi**. Sonraki aşamalar: (d) hesap silme, (e) sosyal
-> girişler.
+> **DURUM: CANLI — https://earsivfatura.poyrazmuhasebe.com**
+> (a)–(d) aşamaları tamamlandı. Worker Cloudflare'e dağıtıldı, D1 veritabanı
+> AB yetki alanında oluşturuldu ve şema uygulandı, e-posta gönderimi
+> yapılandırıldı, hesap silme hem uygulama içinde hem herkese açık web
+> sayfasında çalışıyor.
+>
+> **Doğrulanmayanlar:** hiçbir ekran **telefonda görülmedi** ve **doğrulama
+> e-postasının gerçekten ULAŞTIĞI teyit edilmedi** — Cloudflare postayı
+> teslim için kabul ediyor, bu teslim garantisi değil. Sonraki aşama:
+> (e) sosyal girişler.
 > Takip: [Issue #26](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/26).
 
 ## Neden bu dosya var
@@ -271,13 +273,26 @@ POST   /v1/sifre/sifirlama-baslat   {eposta}
 POST   /v1/sifre/sifirlama-tamamla  {eposta, kod, yeniSifre}
 ```
 
-Aşama (d)'de eklenecekler:
+Aşama (d) ile eklenenler:
 
 ```
 DELETE /v1/hesap                    {sifre} (auth)
 GET    /hesap-sil                   (herkese açık HTML — Play şartı)
 POST   /hesap-sil                   (herkese açık form)
 ```
+
+`/hesap-sil` sayfası, "Worker her zaman JSON döner" kuralının **bilinçli
+istisnasıdır**: bir tarayıcı sayfasıdır. Dış kaynak yüklemez
+(`default-src 'none'`), oturum gerektirmez ve e-posta/şifre doğrulaması
+yapar. Kullanıcının var olup olmadığını sızdırmaz: yanlış şifre ile kayıtlı
+olmayan adres **aynı** sayfayı döndürür.
+
+Silme her iki yolda da `oturumlar`, `tek_kullanimlik_kodlar`,
+`kimlik_saglayicilar` ve `kullanicilar` satırlarını tek bir `batch()` içinde
+kaldırır — yabancı anahtar davranışına güvenilmez. **Cihazdaki GİB verileri
+(hatırlanan kod, defterler) SİLİNMEZ**: sunucuda kopyaları yok, yedekleri de
+yok; burada silmek geri alınamaz veri kaybı olurdu. Kullanıcıya bu açıkça
+söylenir.
 
 Her uç nokta **yalnızca izin verilen alanları** kabul eder ve **bilinmeyen
 alanı reddeder**. Kullanıcı adı biçim kuralını sunucu da uygular. Gövde en
@@ -518,6 +533,26 @@ bağlı parametre, en fazla 100 KB SQL, satır/BLOB en fazla 2 MB.
   imzalamak ve imzadan sonra **5 iş günü içinde Kurum'a bildirmek.**
   Cloudflare'in bunu imzalayıp imzalamayacağı **belirsizdir.**
 
+## Canlı dağıtım (2026-09-20)
+
+| | |
+|---|---|
+| Adres | `https://earsivfatura.poyrazmuhasebe.com` (Workers custom domain) |
+| Worker | `earsiv-hesap` |
+| D1 | `earsiv-hesap`, **jurisdiction `eu`**, bölge EEUR (Prag) |
+| Sırlar | `OTURUM_IMZA_ANAHTARI`, `PEPPER` (Worker secret'ı; bir daha okunamaz) |
+| E-posta | Cloudflare Email Sending, gönderen `dogrulama@earsivfatura.poyrazmuhasebe.com` |
+| Kayıtlar | `observability.logs.invocation_logs: false` — istek üstverisi saklanmıyor |
+| CORS | Üretimde boş (hiçbir tarayıcı kaynağına izin yok) |
+
+**E-posta DNS kayıtları alt alan adında:** `cf-bounce.earsivfatura.…` (MX,
+SPF, DKIM) ve `_dmarc.earsivfatura.…`. Apex `poyrazmuhasebe.com'in kendi SPF
+(Google) ve DMARC kayıtlarına **dokunulmadı** — o alan adını kullanan diğer
+proje etkilenmedi.
+
+⚠️ **PEPPER kaybolursa tüm şifreler doğrulanamaz hale gelir.** Worker
+secret'ları geri okunamaz; yedeği parola yöneticisinde tutulmalıdır.
+
 ## Aşamalar
 
 | Aşama | İçerik | Durum |
@@ -525,7 +560,7 @@ bağlı parametre, en fazla 100 KB SQL, satır/BLOB en fazla 2 MB.
 | **(a)** | Bu dosya + `docs/README.md` satırı + hukuki taslaklar | ✅ yapıldı |
 | **(b)** | `worker/` iskeleti + D1 migration + kayıt/giriş/oturum + e-posta doğrulama + şifre sıfırlama + oran sınırlama + testler | ✅ yapıldı |
 | **(c)** | Uygulama tarafı: store, istemci, ekranlar, navigasyon, `hesap_gib_sahibi`, iki çıkış, kilit. **İlke değişikliği dokümanları aynı commit'te** | ✅ yapıldı |
-| **(d)** | Hesap silme: uygulama içi + herkese açık web sayfası | ⬜ |
+| **(d)** | Hesap silme: uygulama içi + herkese açık web sayfası | ✅ yapıldı |
 | **(e)** | Sosyal girişler, sağlayıcı sağlayıcı — **yalnızca ayrı onayla** | ⬜ |
 
 ## İlgili dokümanlar

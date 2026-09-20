@@ -257,6 +257,21 @@ export function epostaDogrula(
   });
 }
 
+/** Hesabı kalıcı olarak siler. Şifre yeniden istenir. */
+export function hesabiSil(
+  erisimToken: string,
+  sifre: string,
+  gelistirmeMi: boolean,
+): Promise<{ tamam: boolean; silindi: boolean }> {
+  return istek({
+    yol: '/v1/hesap',
+    yontem: 'DELETE',
+    govde: { sifre },
+    erisimToken,
+    gelistirmeMi,
+  });
+}
+
 export function sifreSifirlamaBaslat(
   eposta: string,
   gelistirmeMi: boolean,

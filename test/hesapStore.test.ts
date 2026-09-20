@@ -262,3 +262,60 @@ test('GİB oturum hatası HESAP oturumunu KAPATMAZ', async () => {
   assert.equal(useHesapStore.getState().kullanici?.id, 'hesap-A');
   assert.ok(sahteDepo.veriler.has('hesap_oturum'));
 });
+
+// ---------------------------------------------------------------------------
+// HESAP SİLME
+// ---------------------------------------------------------------------------
+
+test('hesabiSil başarılı olursa yerel oturum da temizlenir', async () => {
+  sahteFetch.isleyici = () => sahteJsonYanit(hesapYaniti());
+  await useHesapStore.getState().girisYap('ali@ornek.test', 'Kucuk-Kedi-42');
+
+  sahteDepo.veriler.set('gib_hatirlanan_kullanici_kodu', '34567890');
+  sahteDepo.veriler.set('gib_alici_dizin_abc', '[]');
+
+  sahteFetch.isleyici = () => sahteJsonYanit({ tamam: true, silindi: true });
+  await useHesapStore.getState().hesabiSil('Kucuk-Kedi-42');
+
+  const istek = sahteFetch.istekler[sahteFetch.istekler.length - 1];
+  assert.ok(istek);
+  assert.equal(istek.yontem, 'DELETE');
+  assert.equal(istek.url, 'https://hesap.ornek.test/v1/hesap');
+  assert.deepEqual(Object.keys(JSON.parse(istek.govde ?? '{}')), ['sifre']);
+
+  assert.equal(useHesapStore.getState().kullanici, null);
+  assert.equal(sahteDepo.veriler.has('hesap_oturum'), false);
+  assert.equal(sahteDepo.veriler.has('hesap_yenileme'), false);
+  // CİHAZDAKİ GİB verileri silinmez: sunucuda kopyaları yok, yedekleri de yok.
+  assert.equal(sahteDepo.veriler.get('gib_hatirlanan_kullanici_kodu'), '34567890');
+  assert.equal(sahteDepo.veriler.get('gib_alici_dizin_abc'), '[]');
+});
+
+test('hesabiSil şifre yanlışsa yerel oturumu KORUR', async () => {
+  sahteFetch.isleyici = () => sahteJsonYanit(hesapYaniti());
+  await useHesapStore.getState().girisYap('ali@ornek.test', 'Kucuk-Kedi-42');
+
+  sahteFetch.isleyici = () =>
+    sahteJsonYanit({ hata: { kod: 'sifre_hatali', mesaj: 'Şifre hatalı.' } }, 401);
+
+  await assert.rejects(
+    () => useHesapStore.getState().hesabiSil('Yanlis-Sifre-11'),
+    /Şifre hatalı/,
+  );
+
+  assert.equal(useHesapStore.getState().kullanici?.id, 'hesap-A');
+  assert.ok(sahteDepo.veriler.has('hesap_oturum'));
+});
+
+test('silme isteğinde GİB verisi gönderilmez', async () => {
+  sahteFetch.isleyici = () => sahteJsonYanit(hesapYaniti());
+  await useHesapStore.getState().girisYap('ali@ornek.test', 'Kucuk-Kedi-42');
+
+  sahteFetch.isleyici = () => sahteJsonYanit({ tamam: true, silindi: true });
+  await useHesapStore.getState().hesabiSil('Kucuk-Kedi-42');
+
+  for (const istek of sahteFetch.istekler) {
+    const govde = (istek.govde ?? '').toLowerCase();
+    assert.doesNotMatch(govde, /gibtoken|gibkullanicikodu|kullanicibilgisi|"vkn"|"tckn"/);
+  }
+});

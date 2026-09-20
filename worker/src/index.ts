@@ -21,6 +21,7 @@ import { kayitUcu } from "./uclar/kayit";
 import { cikisUcu, yenileUcu } from "./uclar/oturumUclari";
 import { epostaDogrulaUcu, kodGonderUcu } from "./uclar/epostaDogrulama";
 import { sifirlamaBaslatUcu, sifirlamaTamamlaUcu } from "./uclar/sifreSifirlama";
+import { hesapSilFormu, hesapSilSayfasi, hesapSilUcu } from "./uclar/hesapSil";
 
 const YAPILANDIRMA_HATASI = new IstekHatasi(
   "yapilandirma_eksik",
@@ -55,7 +56,21 @@ async function yonlendir(
         return sifirlamaBaslatUcu(istek, env, ip, simdiSn);
       case "/v1/sifre/sifirlama-tamamla":
         return sifirlamaTamamlaUcu(istek, env, ip, simdiSn);
+      // Herkese açık hesap silme formu (Google Play şartı). JSON DEĞİL,
+      // HTML döner — "her zaman JSON" kuralının bilinçli istisnası.
+      case "/hesap-sil":
+        return hesapSilFormu(istek, env, ip, simdiSn);
     }
+  }
+
+  if (yontem === "DELETE" && yol === "/v1/hesap") {
+    return hesapSilUcu(istek, env, ip, simdiSn);
+  }
+
+  // Herkese açık hesap silme sayfası. Oturum GEREKTİRMEZ: Google Play,
+  // silme talebinin uygulama dışından da yapılabilmesini istiyor.
+  if (yontem === "GET" && yol === "/hesap-sil") {
+    return hesapSilSayfasi();
   }
 
   if (yontem === "GET" && yol === "/v1/saglik") {

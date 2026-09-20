@@ -361,3 +361,29 @@ varken çalışır; kilit ekranındaki düğme her iki oturumu birden kapatır.
   alanları reddeder — iki katmanlı koruma.
 - Cloudflare'in hata sayfaları (1101, 1102, 1027) JSON değil **HTML** döner;
   istemci content-type kontrolü yapıp anlamlı bir Türkçe mesaj gösterir.
+
+## Hesap silme
+
+Google Play, hesap oluşturan uygulamalarda **iki ayrı yol** zorunlu tutuyor;
+ikisi de var:
+
+| Yol | Nerede |
+|---|---|
+| Uygulama içi | Dashboard → **Hesabımı Sil** (şifre yeniden istenir) |
+| Herkese açık | `https://earsivfatura.poyrazmuhasebe.com/hesap-sil` (oturum gerekmez) |
+
+Silme, sunucudaki `kullanicilar`, `oturumlar`, `tek_kullanimlik_kodlar` ve
+`kimlik_saglayicilar` satırlarını tek bir işlemde kaldırır. **Dondurma değil,
+silmedir.**
+
+**Cihazdaki GİB verileri silinmez.** Hatırlanan GİB kullanıcı kodu, alıcı
+defteri ve kayıtlı mal/hizmet adları yalnızca telefonda duruyor; sunucuda
+kopyaları ve başka hiçbir yedekleri yok. Hesap silmeyle birlikte bunları da
+silmek geri alınamaz veri kaybı olurdu, bu yüzden dokunulmuyor — kullanıcıya
+hem uygulama içi ekranda hem web sayfasında bu açıkça söyleniyor. İstenirse
+uygulamayı kaldırmak Android'de bu verileri temizler.
+
+Herkese açık sayfa, kullanıcının var olup olmadığını **sızdırmaz**: yanlış
+şifre ile kayıtlı olmayan adres birebir aynı yanıtı alır. Sayfa hiçbir dış
+kaynak yüklemez (`Content-Security-Policy: default-src 'none'`) ve IP ile
+e-posta başına oran sınırlamasına tabidir.

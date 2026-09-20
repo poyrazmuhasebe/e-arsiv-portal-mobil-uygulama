@@ -43,6 +43,14 @@ hesaptan çıkabilir.
 İki adım: e-posta ile kod istenir, sonra kod + yeni şifre gönderilir. Şifre
 değişince o hesabın **tüm oturumları** kapanır.
 
+### Hesabımı Sil (`src/screens/HesapSilScreen.tsx`)
+
+Dashboard → **Hesabımı Sil**. Şifre yeniden istenir ve ayrıca bir onay
+diyaloğu gelir. Silmeden önce GİB oturumu kapatılır (hesap gidince o oturum
+sahipsiz kalırdı). Ekran, **cihazdaki GİB defterlerinin silinmediğini**
+açıkça söyler. Uygulama olmadan silmek için herkese açık sayfanın adresi de
+gösterilir.
+
 ### Hukuki Metinler (`src/screens/HukukiMetinScreen.tsx`)
 
 Aydınlatma metni, gizlilik politikası ve hizmet şartları uygulama içinde

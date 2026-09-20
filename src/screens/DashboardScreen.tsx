@@ -168,6 +168,12 @@ export default function DashboardScreen({ navigation }: Props) {
       altBaslik: 'Bu hesaba kayıtlı alıcıları düzenleyin, silin veya ekleyin',
       onPress: () => navigation.navigate('AliciDefteri'),
     },
+    {
+      icon: '🗑️',
+      baslik: 'Hesabımı Sil',
+      altBaslik: 'Uygulama hesabınızı kalıcı olarak silin (GİB hesabınız etkilenmez)',
+      onPress: () => navigation.navigate('HesapSil'),
+    },
   ];
 
   return (

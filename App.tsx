@@ -20,6 +20,7 @@ import HesapGirisScreen from './src/screens/HesapGirisScreen';
 import EpostaDogrulaScreen from './src/screens/EpostaDogrulaScreen';
 import SifremiUnuttumScreen from './src/screens/SifremiUnuttumScreen';
 import HukukiMetinScreen from './src/screens/HukukiMetinScreen';
+import HesapSilScreen from './src/screens/HesapSilScreen';
 import { useAuthStore } from './src/store/useAuthStore';
 import { useHesapStore } from './src/store/useHesapStore';
 import { eskiOrtakAliciDefteriniSil } from './src/utils/aliciDefteri';
@@ -34,6 +35,7 @@ export type RootStackParamList = {
   SifremiUnuttum: { eposta?: string } | undefined;
   HukukiMetin: { metin: HukukiMetinAnahtari };
   EpostaDogrula: undefined;
+  HesapSil: undefined;
   Login: undefined;
   Dashboard: undefined;
   FaturaKesim: undefined;
@@ -163,6 +165,7 @@ export default function App() {
                   ) : token === null ? (
                     <Stack.Group>
                       <Stack.Screen name="Login" component={LoginScreen} />
+                      <Stack.Screen name="HesapSil" component={HesapSilScreen} />
                       <Stack.Screen name="HukukiMetin" component={HukukiMetinScreen} />
                     </Stack.Group>
                   ) : (
@@ -173,6 +176,7 @@ export default function App() {
                       <Stack.Screen name="IptalItirazTalepleri" component={IptalItirazTalepleriScreen} />
                       <Stack.Screen name="KullaniciBilgileri" component={KullaniciBilgileriScreen} />
                       <Stack.Screen name="AliciDefteri" component={AliciDefteriScreen} />
+                      <Stack.Screen name="HesapSil" component={HesapSilScreen} />
                       <Stack.Screen name="HukukiMetin" component={HukukiMetinScreen} />
                     </Stack.Group>
                   )}
