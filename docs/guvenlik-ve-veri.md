@@ -270,7 +270,9 @@ Artık PDF'ten önce HTML, görünmez bir WebView'de (`src/components/HtmlOnIsle
 - 6 saniyede yanıt gelmezse ya da hata olursa özgün HTML kullanılır
   (karekodsuz PDF — eski davranış).
 
-Görüntüleyicideki "JavaScript varsayılan kapalı" kararı değişmedi.
+Aynı ön işleme **"Fatura Görüntüle"de** de uygulanır: görüntüleyici betiği çalışmış, karekodu resme çevrilmiş HTML'i gösterir; görüntüleyicinin kendi JavaScript'i yine kapalıdır ("JavaScript varsayılan kapalı" kararı değişmedi).
+
+Karekod boyutu GİB'in kendi PDF'inden ölçüldü: 220×220 px resim, A4'e 149,9 pt (~5,3 cm) basılmış; 1 CSS px = 0,6813 pt → sayfada **220 CSS px** (`KAREKOD_PX`).
 
 ## Android izinleri
 

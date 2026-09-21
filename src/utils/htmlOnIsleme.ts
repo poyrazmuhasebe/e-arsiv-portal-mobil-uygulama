@@ -30,6 +30,15 @@
  */
 
 export const ONISLEME_SURESI_MS = 6000;
+
+/**
+ * Karekodun sayfadaki boyutu (CSS pikseli). GİB'in kendi PDF'inden ölçüldü
+ * (kullanıcının paylaştığı "E-Arşiv Portal.pdf", 2026-09-21): karekod 220×220
+ * piksellik resim, A4'e 149,9 pt (~5,3 cm) basılmış; aynı PDF'te 1 CSS pikseli
+ * = 0,6813 pt → 220 px. Canvas'ın ham piksel boyutu (yüksek yoğunluklu
+ * ekranda çizildiği için) bundan büyük olabildiğinden boyut açıkça verilir.
+ */
+export const KAREKOD_PX = 220;
 /** Betikler yüklendikten sonra çizimin bitmesi için beklenen süre. */
 export const CIZIM_BEKLEME_MS = 700;
 
@@ -65,6 +74,12 @@ export function onislemeBetigi(jeton: string): string {
   function bitir() {
     try {
       var tuvaller = Array.prototype.slice.call(document.getElementsByTagName('canvas'));
+      // Karekod kapları: canvas'ın bulunduğu öğe (qrcode.js aynı kaba bir de <img> koyar).
+      var kaplar = [];
+      for (var k = 0; k < tuvaller.length; k++) {
+        var kap = tuvaller[k].parentNode;
+        if (kap && kaplar.indexOf(kap) < 0) kaplar.push(kap);
+      }
       for (var i = 0; i < tuvaller.length; i++) {
         var c = tuvaller[i];
         try {
@@ -77,6 +92,14 @@ export function onislemeBetigi(jeton: string): string {
           if (c.id) img.id = c.id;
           c.parentNode.replaceChild(img, c);
         } catch (e) {}
+      }
+      // Karekod boyutu GİB'in kendi PDF'indeki gibi (bkz. KAREKOD_PX).
+      for (var n = 0; n < kaplar.length; n++) {
+        var resimler = kaplar[n].getElementsByTagName('img');
+        for (var r = 0; r < resimler.length; r++) {
+          resimler[r].style.width = '${KAREKOD_PX}px';
+          resimler[r].style.height = '${KAREKOD_PX}px';
+        }
       }
       var betikler = Array.prototype.slice.call(document.getElementsByTagName('script'));
       for (var j = 0; j < betikler.length; j++) betikler[j].parentNode.removeChild(betikler[j]);

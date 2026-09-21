@@ -328,5 +328,7 @@ Seç"te kaç kayıt olduğunu ve ilk birkaçının sırasını not edin.
 
 - [ ] **İndir** — Taslaklar → onaylı bir fatura → İndir: PDF'in sağ üstünde GİB karekodu var ve telefon kamerasıyla okunuyor.
 - [ ] **Paylaş** — görüntüleyiciden Paylaş: aynı karekod var.
+- [ ] **Görüntüle** — "Fatura Görüntüle"de de karekod var (JavaScript'i açmadan).
+- [ ] **Boyut** — PDF'teki karekod GİB portalından indirilen PDF'tekiyle aynı boyutta (~5,3 cm, sayfa genişliğinin ~dörtte biri).
 - [ ] **Yedek** — Faturaları Şimdi Yedekle → yedeklenen PDF'lerde karekod var; yedekleme belirgin biçimde yavaşlamadı (fatura başına ~1 sn ek süre beklenir).
 - [ ] **Filigran** — iptali kabul edilmiş bir faturanın PDF'inde hem filigran hem karekod var.

@@ -47,6 +47,7 @@ import { useAuthStore } from '../store/useAuthStore';
 import { pdfIndir, pdfPaylas } from '../utils/pdf';
 import type { TaslakFatura } from '../types/gib';
 import { filigranliFaturaHtml, iptalItirazDurumMetni, iptalKabulEdildiMi } from '../utils/faturaFiligran';
+import { betikliHtmlHazirla } from '../utils/htmlOnIsleme';
 import {
   ITIRAZ_ACIKLAMA_EN_FAZLA,
   ITIRAZ_BELGE_NO_EN_FAZLA,
@@ -454,8 +455,11 @@ export default function TaslaklarScreen({ navigation }: Props) {
     try {
       const html = await faturaHTMLGetir(token, item.ettn, item.onayDurumu);
       // Filigran artık görüntülemede de var (önceden yalnızca PDF'teydi).
-      // PDF bu HTML'den üretildiği için ikisi her zaman aynı.
-      setHtmlIcerik(filigranliFaturaHtml(html, item));
+      // Karekod: GİB onu betikle çiziyor, görüntüleyicide ise JavaScript
+      // kapalı; HTML önce kısıtlı ön işlemeden geçer (karekod resme çevrilir,
+      // bkz. utils/htmlOnIsleme.ts). PDF bu HTML'den üretildiği için ikisi
+      // her zaman aynı. Ön işleme olmazsa özgün HTML gösterilir.
+      setHtmlIcerik(await betikliHtmlHazirla(filigranliFaturaHtml(html, item)));
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'Fatura görüntülenemedi.';
       Alert.alert('Hata', message);

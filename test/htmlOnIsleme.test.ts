@@ -2,6 +2,7 @@ import { afterEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  KAREKOD_PX,
   betikliHtmlHazirla,
   cspEkle,
   mesajiCoz,
@@ -30,6 +31,10 @@ test('onislemeBetigi: geçerli JavaScript, jetonu içerir', () => {
   assert.equal(typeof new Function(b), 'function');
   assert.match(b, /"abc-123"/);
   assert.match(b, /toDataURL/);
+  // Karekod, GİB'in kendi PDF'indeki boyuta (220 CSS px) sabitlenir.
+  assert.equal(KAREKOD_PX, 220);
+  assert.match(b, /style\.width = '220px'/);
+  assert.match(b, /style\.height = '220px'/);
 });
 
 test('mesajiCoz: yalnızca bu işin jetonuyla gelen HTML kabul edilir', () => {
