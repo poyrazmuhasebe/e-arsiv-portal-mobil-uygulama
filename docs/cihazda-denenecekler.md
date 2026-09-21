@@ -82,8 +82,10 @@ Hazırlık: `worker/.dev.vars.example` dosyasını `.dev.vars` adıyla kopyalay�
 ### Deploy edilmiş Worker gerekir
 
 Worker **2026-09-20'de canlıya alındı**: `https://earsivfatura.poyrazmuhasebe.com`
-Bu bölümü denemek için `.env.local` dosyasını SİLİN (ya da içindeki adresi
-üretim adresiyle değiştirin); `.env.example` zaten üretim adresini gösteriyor.
+Bu bölümü denemek için `.env.local` dosyası **üretim adresini** içermelidir:
+`EXPO_PUBLIC_HESAP_API_URL=https://earsivfatura.poyrazmuhasebe.com`.
+**Dosyayı silmeyin:** Expo `.env.example`'ı okumaz; `.env.local` yoksa değişken
+tanımsız kalır ve uygulama "Hesap sunucusu yapılandırılmamış" der.
 
 - [ ] **Gerçek e-posta geliyor** — kayıt sonrası doğrulama kodu gerçekten
   gelen kutusuna ulaşıyor. **En kritik doğrulanmamış madde:** Cloudflare
