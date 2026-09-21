@@ -15,6 +15,7 @@
  */
 
 import type { TaslakFatura } from '../types/gib';
+import { iptalItirazDurumMetni } from './faturaFiligran';
 import { EN_FAZLA_GUN } from './tarihAraligi';
 
 export type YedekSuresi = '1h' | '1a' | '3a' | '6a' | '1y';
@@ -109,9 +110,9 @@ export function belgeTarihiSiralanabilir(belgeTarihi: unknown): string | undefin
 }
 
 /**
- * Yedeklenecek mi? Varsayılan: yalnızca GİB'de onaylanmış (imzalanmış)
- * faturalar — yasal belge olanlar bunlar. `taslaklarDahil` açıksa
- * onaylanmamış taslaklar ve silinmiş belgeler de yedeklenir.
+ * Yedeklenecek mi? `taslaklarDahil` kapalıyken yalnızca GİB'de onaylanmış
+ * faturalar. Uygulama 2026-09-21'den beri HER ZAMAN true geçer (kullanıcı
+ * isteği: onaylanmamış ve silinmiş dahil tüm faturalar yedeklenir).
  */
 export function yedeklenecekMi(item: TaslakFatura, taslaklarDahil: boolean): boolean {
   if (item.onayDurumu === 'Onaylandı') return true;
@@ -190,6 +191,207 @@ export function mukellefKlasoruMu(klasorAdi: string, vkn: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Yedek bilgileri: dosya adında olmayan alıcı unvanı / VKN / durum
+// ---------------------------------------------------------------------------
+
+/**
+ * Her mükellef klasöründe PDF'lerin yanında tutulan küçük bilgi dosyası.
+ * Dosya adında yalnızca tarih ve belge no var; "Yedeklenen Faturalar"
+ * ekranında alıcı unvanı ve VKN/TCKN'yi göstermek ve bunlara göre sıralayıp
+ * aramak için gerekir. Yalnızca GİB listesinden gelen, zaten PDF'in içinde
+ * bulunan bilgiler yazılır; cihazdan çıkmaz.
+ */
+export const YEDEK_DIZIN_ADI = 'yedek-bilgileri.json';
+
+export interface YedekBilgisi {
+  belgeNo?: string;
+  /** "YYYY-AA-GG" */
+  belgeTarihi?: string;
+  aliciUnvan?: string;
+  aliciVknTckn?: string;
+  onayDurumu?: string;
+  /** İptal/itiraz talebi durumu, yedekleme anındaki (ör. "İptal Kabul Edildi"). */
+  talepDurumu?: string;
+}
+
+/** Dosya adı → bilgi. */
+export type YedekDizini = Record<string, YedekBilgisi>;
+
+function metinAlan(v: unknown): string | undefined {
+  return typeof v === 'string' && v.trim().length > 0 ? v.trim() : undefined;
+}
+
+export function yedekBilgisi(item: TaslakFatura): YedekBilgisi {
+  return {
+    belgeNo: metinAlan(item.belgeNumarasi) ?? metinAlan(item.ettn),
+    belgeTarihi: belgeTarihiSiralanabilir(item.belgeTarihi),
+    aliciUnvan: metinAlan(item.aliciUnvanAdSoyad) ?? metinAlan(item.aliciUnvan),
+    aliciVknTckn: metinAlan(item.aliciVknTckn),
+    onayDurumu: metinAlan(item.onayDurumu),
+    talepDurumu: iptalItirazDurumMetni(item),
+  };
+}
+
+/** Bilgi dosyasının içeriği; bozuk ya da tanınmayan içerik boş dizin sayılır. */
+export function yedekDiziniCoz(ham: string | null | undefined): YedekDizini {
+  if (!ham) return {};
+  try {
+    const veri = JSON.parse(ham) as { v?: unknown; dosyalar?: unknown };
+    if (veri.v !== 1 || !veri.dosyalar || typeof veri.dosyalar !== 'object') return {};
+    const sonuc: YedekDizini = {};
+    for (const [ad, b] of Object.entries(veri.dosyalar as Record<string, unknown>)) {
+      if (!b || typeof b !== 'object') continue;
+      const kayit = b as Record<string, unknown>;
+      sonuc[ad] = {
+        belgeNo: metinAlan(kayit.belgeNo),
+        belgeTarihi: metinAlan(kayit.belgeTarihi),
+        aliciUnvan: metinAlan(kayit.aliciUnvan),
+        aliciVknTckn: metinAlan(kayit.aliciVknTckn),
+        onayDurumu: metinAlan(kayit.onayDurumu),
+        talepDurumu: metinAlan(kayit.talepDurumu),
+      };
+    }
+    return sonuc;
+  } catch {
+    return {};
+  }
+}
+
+export function yedekDiziniYazilacak(dizin: YedekDizini): string {
+  return JSON.stringify({ v: 1, dosyalar: dizin });
+}
+
+/**
+ * "2026-09-15_GIB2026000000012_ONAYSIZ.pdf" → tarih ("YYYY-AA-GG"), belge no
+ * ve durum eki. Tanınmayan adlarda yalnızca belge no = dosya adı.
+ */
+export function yedekDosyaAdiniCoz(ad: string): {
+  tarih?: string;
+  belgeNo: string;
+  durum: 'ONAYSIZ' | 'SILINMIS' | null;
+} {
+  const m = /^(\d{4}-\d{2}-\d{2})_(.+?)(_ONAYSIZ|_SILINMIS)?\.pdf$/i.exec(ad);
+  if (!m) return { belgeNo: ad, durum: null };
+  const durum = m[3]?.toUpperCase() === '_ONAYSIZ' ? 'ONAYSIZ' : m[3]?.toUpperCase() === '_SILINMIS' ? 'SILINMIS' : null;
+  return { tarih: m[1], belgeNo: m[2], durum };
+}
+
+/** "YYYY-AA-GG" → "GG.AA.YYYY" */
+export function siralanabilirTarihiGoster(t: string | undefined): string | undefined {
+  const m = t ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(t) : null;
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : undefined;
+}
+
+export type YedekSiralama = 'tarihYeni' | 'tarihEski' | 'belgeNo' | 'unvan';
+
+export const YEDEK_SIRALAMALARI: { value: YedekSiralama; label: string }[] = [
+  { value: 'tarihYeni', label: 'Tarih (yeniden eskiye)' },
+  { value: 'tarihEski', label: 'Tarih (eskiden yeniye)' },
+  { value: 'belgeNo', label: 'Belge numarası' },
+  { value: 'unvan', label: 'Alıcı unvanı (A → Z)' },
+];
+
+interface Siralanabilir {
+  ad: string;
+  bilgi?: YedekBilgisi;
+}
+
+function tarihi(o: Siralanabilir): string {
+  return o.bilgi?.belgeTarihi ?? yedekDosyaAdiniCoz(o.ad).tarih ?? '';
+}
+
+function belgeNosu(o: Siralanabilir): string {
+  return o.bilgi?.belgeNo ?? yedekDosyaAdiniCoz(o.ad).belgeNo;
+}
+
+/**
+ * Yedekleri sıralar (yeni dizi döner). Unvanı bilinmeyenler unvan
+ * sıralamasında sona gider. Eşitlikte tarih yeniden eskiye, sonra belge no.
+ */
+export function yedekleriSirala<T extends Siralanabilir>(liste: T[], olcut: YedekSiralama): T[] {
+  const tarihYeniEski = (a: T, b: T) => tarihi(b).localeCompare(tarihi(a)) || belgeNosu(b).localeCompare(belgeNosu(a));
+  return [...liste].sort((a, b) => {
+    switch (olcut) {
+      case 'tarihEski':
+        return tarihi(a).localeCompare(tarihi(b)) || belgeNosu(a).localeCompare(belgeNosu(b));
+      case 'belgeNo':
+        return belgeNosu(a).localeCompare(belgeNosu(b), 'tr', { numeric: true });
+      case 'unvan': {
+        const ua = a.bilgi?.aliciUnvan;
+        const ub = b.bilgi?.aliciUnvan;
+        if (ua && !ub) return -1;
+        if (!ua && ub) return 1;
+        return (ua && ub ? ua.localeCompare(ub, 'tr', { sensitivity: 'base' }) : 0) || tarihYeniEski(a, b);
+      }
+      default:
+        return tarihYeniEski(a, b);
+    }
+  });
+}
+
+/** "Yedeklenen Faturalar" filtresi. Boş alan = o ölçüte göre süzme yok. */
+export interface YedekFiltresi {
+  aliciUnvan?: string;
+  aliciVknTckn?: string;
+  /** "YYYY-AA-GG", dahil */
+  baslangic?: string;
+  /** "YYYY-AA-GG", dahil */
+  bitis?: string;
+}
+
+export function yedekFiltresiBosMu(f: YedekFiltresi): boolean {
+  return !f.aliciUnvan && !f.aliciVknTckn && !f.baslangic && !f.bitis;
+}
+
+/**
+ * Filtre: unvan ve VKN/TCKN birebir (listeden seçilir), tarih aralığı dahil.
+ * Unvanı/VKN'si bilinmeyen (bilgi dosyası dolmamış) yedekler, o ölçüt
+ * seçiliyken gösterilmez; tarihi dosya adından okunur.
+ */
+export function yedekFiltreyeUyarMi(o: Siralanabilir, f: YedekFiltresi): boolean {
+  if (f.aliciUnvan && o.bilgi?.aliciUnvan !== f.aliciUnvan) return false;
+  if (f.aliciVknTckn && o.bilgi?.aliciVknTckn !== f.aliciVknTckn) return false;
+  if (f.baslangic || f.bitis) {
+    const t = tarihi(o);
+    if (!t) return false;
+    if (f.baslangic && t < f.baslangic) return false;
+    if (f.bitis && t > f.bitis) return false;
+  }
+  return true;
+}
+
+/** Filtre seçenekleri: yedeklerdeki farklı unvanlar ve VKN/TCKN'ler (sıralı). */
+export function yedekFiltreSecenekleri(liste: Siralanabilir[]): { unvanlar: string[]; vknler: string[] } {
+  const unvanlar = new Set<string>();
+  const vknler = new Set<string>();
+  for (const o of liste) {
+    if (o.bilgi?.aliciUnvan) unvanlar.add(o.bilgi.aliciUnvan);
+    if (o.bilgi?.aliciVknTckn) vknler.add(o.bilgi.aliciVknTckn);
+  }
+  return {
+    unvanlar: [...unvanlar].sort((a, b) => a.localeCompare(b, 'tr', { sensitivity: 'base' })),
+    vknler: [...vknler].sort(),
+  };
+}
+
+/** Arama: dosya adı (belge no, tarih), GG.AA.YYYY tarih, alıcı unvanı, VKN/TCKN. */
+export function yedekAramayaUyarMi(o: Siralanabilir, aranan: string): boolean {
+  // Türkçe küçük harf "GIB"i "gıb" yapar; kullanıcı "gib" yazınca da bulunsun
+  // diye ı/i farkı yok sayılır.
+  const katla = (x: string) => x.toLocaleLowerCase('tr').replace(/ı/g, 'i');
+  const a = katla(aranan.trim());
+  if (!a) return true;
+  const alanlar = [
+    o.ad,
+    siralanabilirTarihiGoster(tarihi(o)),
+    o.bilgi?.aliciUnvan,
+    o.bilgi?.aliciVknTckn,
+    o.bilgi?.belgeNo,
+  ];
+  return alanlar.some((x) => !!x && katla(x).includes(a));
+}
+
+// ---------------------------------------------------------------------------
 // Yedekleme döngüsü
 // ---------------------------------------------------------------------------
 
@@ -202,6 +404,12 @@ export interface YedekOrtami {
   varMi(dosyaAdi: string): boolean;
   /** PDF'i yedek klasörüne yaz. */
   yaz(dosyaAdi: string, base64: string): void;
+  /**
+   * Faturanın bilgilerini (alıcı unvanı, VKN/TCKN…) yedek bilgi dosyasına
+   * işle. Hem yeni yazılan hem ZATEN YEDEKLİ olan faturalar için çağrılır;
+   * böylece bilgi dosyası olmayan eski yedekler de yeniden yedeklemede dolar.
+   */
+  bilgiKaydet?(dosyaAdi: string, item: TaslakFatura): void;
   /** Kullanıcı "Durdur"a bastı mı? */
   durduruldu(): boolean;
   /** İki GİB isteği arasında bekleme (portalı yormamak için). */
@@ -293,6 +501,8 @@ export async function yedekle(
 
       if (ortam.varMi(ad)) {
         sonuc.atlanan += 1;
+        // Eski yedeklerin eksik bilgisi (unvan, VKN) de dolsun.
+        ortam.bilgiKaydet?.(ad, item);
         bildir();
         continue;
       }
@@ -301,6 +511,7 @@ export async function yedekle(
         await ortam.bekle(ISTEK_ARASI_BEKLEME_MS);
         const base64 = await ortam.pdfUret(item);
         ortam.yaz(ad, base64);
+        ortam.bilgiKaydet?.(ad, item);
         sonuc.kaydedilen += 1;
         ardisikHata = 0;
       } catch (err) {

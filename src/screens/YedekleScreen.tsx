@@ -20,7 +20,6 @@ import {
   SecondaryButton,
   SectionCard,
   TextButton,
-  ToggleRow,
 } from '../components/ui';
 import { tarihFormatla } from '../components/TarihAraligiFiltresi';
 import { GibApiError, faturaHTMLGetir, gibHatasiniIsle, taslakGetir } from '../services/gibApi';
@@ -77,7 +76,6 @@ export default function YedekleScreen({ navigation }: Props) {
   const [klasor, setKlasor] = useState<Directory | null>(null);
   const [klasorYukleniyor, setKlasorYukleniyor] = useState(true);
   const [sure, setSure] = useState<YedekSuresi>('1a');
-  const [taslaklarDahil, setTaslaklarDahil] = useState(false);
   const [durum, setDurum] = useState<Durum>({ tur: 'bosta' });
   const durdurIstendi = useRef(false);
   const yonlendirme = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -118,6 +116,8 @@ export default function YedekleScreen({ navigation }: Props) {
     await activateKeepAwakeAsync(KEEP_AWAKE_ETIKETI).catch(() => undefined);
 
     let sonIlerleme: YedekSonucu | null = null;
+    // Yedek bilgi dosyası (alıcı unvanı, VKN/TCKN) bitince/durunca/hatada yazılır.
+    let bilgileriKaydet: (() => void) | null = null;
     try {
       // Klasör, açık GİB oturumunun mükellefine (VKN/TCKN) göre seçilir.
       const mukellef = await aktifMukellef(token, kullaniciBilgisi);
@@ -127,6 +127,7 @@ export default function YedekleScreen({ navigation }: Props) {
       const hedef = mukellefKlasoru(klasor, mukellef.vkn, mukellef.unvan, true);
       if (!hedef) throw new Error('Yedek klasörü oluşturulamadı.');
       const dosya = dosyaOrtami(hedef);
+      bilgileriKaydet = dosya.bilgileriKaydet;
 
       const sonuc = await yedekle(
         parcalar,
@@ -139,11 +140,14 @@ export default function YedekleScreen({ navigation }: Props) {
           },
           varMi: dosya.varMi,
           yaz: dosya.yaz,
+          bilgiKaydet: dosya.bilgiKaydet,
           durduruldu: () => durdurIstendi.current,
           bekle: (ms) => new Promise((r) => setTimeout(r, ms)),
         },
         {
-          taslaklarDahil,
+          // Kullanıcı isteği (2026-09-21): onaylanmamış ve silinmiş dahil
+          // TÜM faturalar yedeklenir; seçenek kaldırıldı.
+          taslaklarDahil: true,
           durduranHataMi: (err) => err instanceof GibApiError && err.oturumHatasi,
         },
         (ilerleme) => {
@@ -174,9 +178,10 @@ export default function YedekleScreen({ navigation }: Props) {
       const { mesaj } = await gibHatasiniIsle(err);
       setDurum({ tur: 'hata', mesaj, sonuc: sonIlerleme });
     } finally {
+      (bilgileriKaydet as (() => void) | null)?.();
       deactivateKeepAwake(KEEP_AWAKE_ETIKETI).catch(() => undefined);
     }
-  }, [token, klasor, kullaniciBilgisi, sure, taslaklarDahil, navigation]);
+  }, [token, klasor, kullaniciBilgisi, sure, navigation]);
 
   const baslangicOnizleme = yedekBaslangici(sure);
   const parcaSayisi = haftalikParcalar(baslangicOnizleme, new Date()).length;
@@ -279,19 +284,10 @@ export default function YedekleScreen({ navigation }: Props) {
           </InfoBox>
         </SectionCard>
 
-        <AppCard>
-          <ToggleRow
-            title="Onaylanmamış ve silinmiş faturalar da"
-            description="Kapalıyken yalnızca GİB'de onaylanmış faturalar yedeklenir."
-            value={taslaklarDahil}
-            onValueChange={setTaslaklarDahil}
-            disabled={suruyor}
-          />
-        </AppCard>
-
         <InfoBox tone="neutral">
-          Daha önce yedeklenmiş faturalar yeniden indirilmez; yarıda kalan bir yedeklemeyi tekrar başlatırsanız kaldığı
-          yerden devam eder. Yedekleme sürerken uygulamayı açık tutun.
+          Onaylı, onaylanmamış ve silinmiş tüm faturalar yedeklenir; onaylı olmayanların dosya adında ve listede durumu
+          belirtilir. Daha önce yedeklenmiş faturalar yeniden indirilmez; yarıda kalan bir yedeklemeyi tekrar
+          başlatırsanız kaldığı yerden devam eder. Yedekleme sürerken uygulamayı açık tutun.
         </InfoBox>
 
         <PrimaryButton icon="content-save" onPress={baslat} disabled={suruyor || !klasor} fullWidth>

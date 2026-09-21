@@ -14,8 +14,18 @@ import {
   oturumdakiMukellef,
   yedekBaslangici,
   yedekDosyaAdi,
+  siralanabilirTarihiGoster,
+  yedekAramayaUyarMi,
+  yedekBilgisi,
+  yedekDiziniCoz,
+  yedekDiziniYazilacak,
+  yedekDosyaAdiniCoz,
+  yedekFiltreSecenekleri,
+  yedekFiltresiBosMu,
+  yedekFiltreyeUyarMi,
   yedekle,
   yedeklenecekMi,
+  yedekleriSirala,
   type TarihParcasi,
   type YedekIlerleme,
   type YedekOrtami,
@@ -302,4 +312,129 @@ test('iki farklı mükellefin klasörleri karışmaz', () => {
   assert.equal(mukellefKlasoruMu(a, '1234567890'), true);
   assert.equal(mukellefKlasoruMu(b, '1234567890'), false);
   assert.equal(mukellefKlasoruMu(a, '9876543210'), false);
+});
+
+// ---------------------------------------------------------------------------
+// Yedek bilgileri, sıralama, filtre, arama
+// ---------------------------------------------------------------------------
+
+test('yedekBilgisi: alıcı, tarih ve iptal/itiraz durumu', () => {
+  const b = yedekBilgisi({
+    ettn: 'e1',
+    belgeNumarasi: 'GIB1',
+    belgeTarihi: '15-09-2026',
+    aliciUnvanAdSoyad: ' ABC Ltd. ',
+    aliciVknTckn: '1234567890',
+    onayDurumu: 'Onaylandı',
+    iptalItiraz: '0',
+    talepDurum: '1',
+  });
+  assert.deepEqual(b, {
+    belgeNo: 'GIB1',
+    belgeTarihi: '2026-09-15',
+    aliciUnvan: 'ABC Ltd.',
+    aliciVknTckn: '1234567890',
+    onayDurumu: 'Onaylandı',
+    talepDurumu: 'İptal Kabul Edildi',
+  });
+  assert.equal(yedekBilgisi({ ettn: 'e2', talepDurum: '2' }).talepDurumu, 'İptal Reddedildi');
+  assert.equal(yedekBilgisi({ ettn: 'e3', talepDurum: '-99' }).talepDurumu, undefined);
+});
+
+test('yedek bilgi dosyası: yaz → oku aynı; bozuk içerik boş', () => {
+  const dizin = { 'a.pdf': { belgeNo: 'A', aliciUnvan: 'X', talepDurumu: 'İptal Aşamasında' } };
+  assert.deepEqual(yedekDiziniCoz(yedekDiziniYazilacak(dizin)), {
+    'a.pdf': {
+      belgeNo: 'A',
+      belgeTarihi: undefined,
+      aliciUnvan: 'X',
+      aliciVknTckn: undefined,
+      onayDurumu: undefined,
+      talepDurumu: 'İptal Aşamasında',
+    },
+  });
+  assert.deepEqual(yedekDiziniCoz('{bozuk'), {});
+  assert.deepEqual(yedekDiziniCoz(JSON.stringify({ v: 2, dosyalar: {} })), {});
+  assert.deepEqual(yedekDiziniCoz(null), {});
+});
+
+test('yedekDosyaAdiniCoz ve tarih gösterimi', () => {
+  assert.deepEqual(yedekDosyaAdiniCoz('2026-09-15_GIB1_SILINMIS.pdf'), {
+    tarih: '2026-09-15',
+    belgeNo: 'GIB1',
+    durum: 'SILINMIS',
+  });
+  assert.deepEqual(yedekDosyaAdiniCoz('2026-09-15_GIB2.pdf'), { tarih: '2026-09-15', belgeNo: 'GIB2', durum: null });
+  assert.deepEqual(yedekDosyaAdiniCoz('baska.pdf'), { belgeNo: 'baska.pdf', durum: null });
+  assert.equal(siralanabilirTarihiGoster('2026-09-15'), '15.09.2026');
+  assert.equal(siralanabilirTarihiGoster(undefined), undefined);
+});
+
+const YEDEKLER = [
+  { ad: '2026-09-10_GIB10.pdf', bilgi: { aliciUnvan: 'Zeytin A.Ş.', aliciVknTckn: '2222222222' } },
+  { ad: '2026-09-15_GIB2.pdf', bilgi: { aliciUnvan: 'Çiçek Ltd.', aliciVknTckn: '1111111111' } },
+  { ad: '2026-09-12_GIB3.pdf' },
+  { ad: '2026-09-15_GIB1.pdf', bilgi: { aliciUnvan: 'ahmet yılmaz', aliciVknTckn: '12345678901' } },
+];
+const adlar = (l: { ad: string }[]) => l.map((x) => x.ad);
+
+test('yedekleriSirala: tarih, belge no (sayısal), unvan (Türkçe, bilinmeyen sonda)', () => {
+  assert.deepEqual(adlar(yedekleriSirala(YEDEKLER, 'tarihYeni')), [
+    '2026-09-15_GIB2.pdf',
+    '2026-09-15_GIB1.pdf',
+    '2026-09-12_GIB3.pdf',
+    '2026-09-10_GIB10.pdf',
+  ]);
+  assert.deepEqual(adlar(yedekleriSirala(YEDEKLER, 'tarihEski'))[0], '2026-09-10_GIB10.pdf');
+  assert.deepEqual(adlar(yedekleriSirala(YEDEKLER, 'belgeNo')), [
+    '2026-09-15_GIB1.pdf',
+    '2026-09-15_GIB2.pdf',
+    '2026-09-12_GIB3.pdf',
+    '2026-09-10_GIB10.pdf',
+  ]);
+  assert.deepEqual(adlar(yedekleriSirala(YEDEKLER, 'unvan')), [
+    '2026-09-15_GIB1.pdf', // ahmet
+    '2026-09-15_GIB2.pdf', // Çiçek
+    '2026-09-10_GIB10.pdf', // Zeytin
+    '2026-09-12_GIB3.pdf', // bilinmiyor → sonda
+  ]);
+  assert.equal(YEDEKLER[0].ad, '2026-09-10_GIB10.pdf'); // özgün dizi değişmez
+});
+
+test('yedek filtresi: unvan, VKN/TCKN, tarih aralığı (dahil)', () => {
+  const s = (f: Parameters<typeof yedekFiltreyeUyarMi>[1]) => adlar(YEDEKLER.filter((y) => yedekFiltreyeUyarMi(y, f)));
+  assert.equal(yedekFiltresiBosMu({}), true);
+  assert.deepEqual(s({}), adlar(YEDEKLER));
+  assert.deepEqual(s({ aliciUnvan: 'Çiçek Ltd.' }), ['2026-09-15_GIB2.pdf']);
+  assert.deepEqual(s({ aliciVknTckn: '2222222222' }), ['2026-09-10_GIB10.pdf']);
+  assert.deepEqual(s({ baslangic: '2026-09-12', bitis: '2026-09-15' }), [
+    '2026-09-15_GIB2.pdf',
+    '2026-09-12_GIB3.pdf',
+    '2026-09-15_GIB1.pdf',
+  ]);
+  assert.deepEqual(s({ bitis: '2026-09-11' }), ['2026-09-10_GIB10.pdf']);
+  assert.deepEqual(yedekFiltreSecenekleri(YEDEKLER), {
+    unvanlar: ['ahmet yılmaz', 'Çiçek Ltd.', 'Zeytin A.Ş.'],
+    vknler: ['1111111111', '12345678901', '2222222222'],
+  });
+});
+
+test('yedek araması: belge no, GG.AA.YYYY tarih, unvan, VKN/TCKN', () => {
+  const a = (q: string) => adlar(YEDEKLER.filter((y) => yedekAramayaUyarMi(y, q)));
+  assert.deepEqual(a('gib10'), ['2026-09-10_GIB10.pdf']); // "GIB" Türkçe küçük harfte "gıb" olur
+  assert.deepEqual(a('GIB10'), ['2026-09-10_GIB10.pdf']);
+  assert.deepEqual(a('12.09.2026'), ['2026-09-12_GIB3.pdf']);
+  assert.deepEqual(a('ÇİÇEK'), ['2026-09-15_GIB2.pdf']);
+  assert.deepEqual(a('1111'), ['2026-09-15_GIB2.pdf']);
+  assert.deepEqual(a('  '), adlar(YEDEKLER));
+});
+
+test('yedekle: bilgiKaydet hem yeni yazılan hem zaten yedekli fatura için çağrılır', async () => {
+  const kayitlar: string[] = [];
+  const { ortam, yazilanlar } = sahteOrtam([[fatura('A1', '20-09-2026'), fatura('A2', '19-09-2026')]], {
+    bilgiKaydet: (ad) => void kayitlar.push(ad),
+  });
+  yazilanlar.set('2026-09-19_A2.pdf', 'eski');
+  await yedekle(haftalikParcalar(gun(14, 9), gun(21, 9)), ortam, SECENEK, () => {});
+  assert.deepEqual(kayitlar, ['2026-09-20_A1.pdf', '2026-09-19_A2.pdf']);
 });

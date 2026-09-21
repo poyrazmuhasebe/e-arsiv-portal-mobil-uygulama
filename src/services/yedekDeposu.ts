@@ -31,7 +31,13 @@ import {
   mukellefKlasorAdi,
   mukellefKlasoruMu,
   oturumdakiMukellef,
+  YEDEK_DIZIN_ADI,
+  yedekBilgisi,
+  yedekDiziniCoz,
+  yedekDiziniYazilacak,
   type Mukellef,
+  type YedekBilgisi,
+  type YedekDizini,
   type YedekOrtami,
 } from '../utils/yedekleme';
 
@@ -133,11 +139,20 @@ export function mukellefKlasoru(kok: Directory, vkn: string, unvan: string | und
 }
 
 /** Yedekleme döngüsünün dosya tarafı (bkz. utils/yedekleme.ts → YedekOrtami). */
-export function dosyaOrtami(klasor: Directory): Pick<YedekOrtami, 'varMi' | 'yaz'> {
+export function dosyaOrtami(
+  klasor: Directory,
+): Pick<YedekOrtami, 'varMi' | 'yaz' | 'bilgiKaydet'> & { bilgileriKaydet: () => void } {
   const mevcut = new Set<string>();
   for (const oge of klasor.list()) {
     if (oge instanceof File) mevcut.add(oge.name);
   }
+  const dizin = bilgiDosyasiniOku(klasor);
+  let bekleyen = 0;
+  const bilgileriKaydet = () => {
+    if (bekleyen === 0) return;
+    bilgiDosyasiniYaz(klasor, dizin);
+    bekleyen = 0;
+  };
   return {
     varMi: (ad) => mevcut.has(ad),
     yaz: (ad, base64) => {
@@ -145,7 +160,51 @@ export function dosyaOrtami(klasor: Directory): Pick<YedekOrtami, 'varMi' | 'yaz
       dosya.write(base64, { encoding: 'base64' });
       mevcut.add(ad);
     },
+    bilgiKaydet: (ad, item) => {
+      const yeni = yedekBilgisi(item);
+      if (JSON.stringify(dizin[ad]) === JSON.stringify(yeni)) return;
+      dizin[ad] = yeni;
+      bekleyen++;
+      // Yedekleme yarıda kesilirse bilgi kaybolmasın diye arada bir yazılır.
+      if (bekleyen >= BILGI_YAZMA_ARALIGI) bilgileriKaydet();
+    },
+    /** Yedekleme bitince/durunca/hata verince çağrılır. */
+    bilgileriKaydet,
   };
+}
+
+const BILGI_YAZMA_ARALIGI = 10;
+
+function klasordekiDosya(klasor: Directory, ad: string): File | null {
+  for (const oge of klasor.list()) {
+    if (oge instanceof File && oge.name === ad) return oge;
+  }
+  return null;
+}
+
+/** Mükellef klasöründeki yedek bilgi dosyası (yoksa/bozuksa boş). */
+export function bilgiDosyasiniOku(klasor: Directory): YedekDizini {
+  try {
+    return yedekDiziniCoz(klasordekiDosya(klasor, YEDEK_DIZIN_ADI)?.textSync());
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Bilgi dosyasını yazar. SAF'ta üzerine yazma ("w" kipi) bazı Android
+ * sürümlerinde eski içeriği KESMİYOR; küçülen bir JSON bozulurdu. Bu yüzden
+ * dosya silinip yeniden oluşturulur. Bilgi dosyası yalnızca görüntüleme
+ * kolaylığıdır; yazılamazsa PDF yedekleri etkilenmez.
+ */
+export function bilgiDosyasiniYaz(klasor: Directory, dizin: YedekDizini): void {
+  try {
+    klasordekiDosya(klasor, YEDEK_DIZIN_ADI)?.delete();
+    if (Object.keys(dizin).length === 0) return;
+    klasor.createFile(YEDEK_DIZIN_ADI, 'application/json').write(yedekDiziniYazilacak(dizin));
+  } catch {
+    // yoksay
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -156,6 +215,8 @@ export interface YedekDosyasi {
   dosya: File;
   ad: string;
   boyut: number | null;
+  /** Bilgi dosyasındaki kayıt (alıcı unvanı, VKN/TCKN…); eski yedeklerde olmayabilir. */
+  bilgi?: YedekBilgisi;
 }
 
 export interface MukellefYedegi {
@@ -170,6 +231,7 @@ export function yedekleriListele(kok: Directory): MukellefYedegi[] {
   for (const oge of kok.list()) {
     if (!(oge instanceof Directory)) continue;
     const dosyalar: YedekDosyasi[] = [];
+    const dizin = bilgiDosyasiniOku(oge);
     for (const alt of oge.list()) {
       if (!(alt instanceof File) || !alt.name.toLowerCase().endsWith('.pdf')) continue;
       let boyut: number | null = null;
@@ -178,7 +240,7 @@ export function yedekleriListele(kok: Directory): MukellefYedegi[] {
       } catch {
         boyut = null;
       }
-      dosyalar.push({ dosya: alt, ad: alt.name, boyut });
+      dosyalar.push({ dosya: alt, ad: alt.name, boyut, bilgi: dizin[alt.name] });
     }
     if (dosyalar.length === 0) continue;
     dosyalar.sort((a, b) => b.ad.localeCompare(a.ad));
@@ -186,6 +248,39 @@ export function yedekleriListele(kok: Directory): MukellefYedegi[] {
   }
   sonuc.sort((a, b) => a.ad.localeCompare(b.ad, 'tr'));
   return sonuc;
+}
+
+/**
+ * Yedekleri siler (telefondan kalıcı olarak). Her dosya ayrı denenir;
+ * silinemeyenlerin adları döner. Silinenler bilgi dosyasından da çıkarılır.
+ * GİB'deki faturaya dokunulmaz — yalnızca telefondaki PDF kopyası silinir.
+ */
+export function yedekleriSil(silinecekler: { klasor: Directory; dosya: YedekDosyasi }[]): string[] {
+  const basarisiz: string[] = [];
+  const klasorler = new Map<string, { klasor: Directory; silinen: string[] }>();
+  for (const { klasor, dosya } of silinecekler) {
+    try {
+      dosya.dosya.delete();
+      if (dosya.dosya.exists) throw new Error('silinemedi');
+      const k = klasorler.get(klasor.uri) ?? { klasor, silinen: [] };
+      k.silinen.push(dosya.ad);
+      klasorler.set(klasor.uri, k);
+    } catch {
+      basarisiz.push(dosya.ad);
+    }
+  }
+  for (const { klasor, silinen } of klasorler.values()) {
+    const dizin = bilgiDosyasiniOku(klasor);
+    let degisti = false;
+    for (const ad of silinen) {
+      if (ad in dizin) {
+        delete dizin[ad];
+        degisti = true;
+      }
+    }
+    if (degisti) bilgiDosyasiniYaz(klasor, dizin);
+  }
+  return basarisiz;
 }
 
 // Android Intent.FLAG_GRANT_READ_URI_PERMISSION

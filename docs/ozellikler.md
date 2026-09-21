@@ -475,8 +475,15 @@ henüz yok (isteği yakalanmadı).
 - Her parçanın listesi `taslakGetir` ile çekilir; her fatura
   `faturaHTMLGetir` + filigran + `expo-print` ile tek tek PDF yapılıp
   `<klasör>/<VKN - Unvan>/<YYYY-AA-GG>_<BelgeNo>.pdf` olarak yazılır.
-  Varsayılan yalnızca onaylı faturalar; anahtarla onaylanmamış
-  (`_ONAYSIZ`) ve silinmiş (`_SILINMIS`) belgeler de eklenir.
+  Onaylı, onaylanmamış (`_ONAYSIZ`) ve silinmiş (`_SILINMIS`) TÜM faturalar
+  yedeklenir (kullanıcı isteği, 2026-09-21; önceki "onaylanmamış ve silinmiş
+  de" seçeneği kaldırıldı).
+- Her mükellef klasöründe `yedek-bilgileri.json`: dosya adı → belge no,
+  tarih, alıcı unvanı, alıcı VKN/TCKN, onay durumu, iptal/itiraz durumu
+  (yedekleme anındaki). Zaten yedekli faturalar için de güncellenir; eski
+  yedeklerin bilgileri aynı dönem yeniden yedeklenince dolar. SAF'ta üzerine
+  yazma içeriği kesmeyebildiği için dosya her yazımda silinip yeniden
+  oluşturulur.
 - Aynı adda dosya varsa yeniden indirilmez (yarıda kalan yedekleme kaldığı
   yerden devam eder). Tek faturanın hatası yedeklemeyi durdurmaz; art arda
   3 hata ya da oturum hatası durdurur. İki GİB isteği arası 300 ms beklenir.
@@ -488,7 +495,20 @@ henüz yok (isteği yakalanmadı).
   `src/services/yedekDeposu.ts`.
 
 **Yedeklenen Faturaları Görüntüle** (`YedekleriGoruntuleScreen`): yedek
-klasöründeki PDF'ler mükellef klasörlerine göre listelenir, aranabilir.
+klasöründeki PDF'ler mükellef klasörlerine göre listelenir.
+
+- Satır: belge no, alıcı unvanı, alıcı VKN/TCKN, tarih, durum rozetleri
+  (Silinmiş / Onaylanmamış / İptal Kabul Edildi / İptal Reddedildi /
+  Aşamasında), boyut.
+- **Sırala:** tarih (yeni→eski, eski→yeni), belge numarası, alıcı unvanı.
+- **Filtrele:** alıcı unvanı, alıcı VKN/TCKN (yedeklerden çıkan listeden),
+  tarih aralığı (7 gün sınırı yok — yedekler telefonda). Etkin filtre özet
+  kartında gösterilir, tek dokunuşla temizlenir.
+- **Ara:** belge no, tarih (GG.AA.YYYY), unvan, VKN/TCKN (ı/i farkı yok sayılır).
+- **Sil:** satırdaki çöp kutusu ya da başlıktaki seçim modu (uzun basma da
+  açar) ile çoklu silme; onay istenir. Yalnızca telefondaki PDF silinir,
+  GİB'deki faturaya dokunulmaz; bilgi dosyasından da çıkarılır.
+
 Dokununca telefonun PDF görüntüleyicisinde açılır (Android:
 `expo-intent-launcher` ile ACTION_VIEW; iOS: sistem önizleme/paylaşım
 sayfası); paylaş düğmesi e-posta/WhatsApp/Drive/"Dosyalara Kaydet" için
