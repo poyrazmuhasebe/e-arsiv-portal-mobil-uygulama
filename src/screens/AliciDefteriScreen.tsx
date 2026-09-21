@@ -262,7 +262,7 @@ export default function AliciDefteriScreen({ navigation }: Props) {
                   <Card.Actions>
                     {duzenleniyor
                       ? [
-                          <Button key="vazgec" onPress={() => setDuzenlenen(null)}>
+                          <Button key="vazgec" mode="text" onPress={() => setDuzenlenen(null)}>
                             Vazgeç
                           </Button>,
                           <Button key="kaydet" mode="contained" onPress={duzenlemeyiKaydet}>
@@ -272,13 +272,14 @@ export default function AliciDefteriScreen({ navigation }: Props) {
                       : [
                           <Button
                             key="sil"
+                            mode="text"
                             icon="delete-outline"
                             textColor={theme.colors.error}
                             onPress={() => silmeyiOnayla(kayit)}
                           >
                             Sil
                           </Button>,
-                          <Button key="duzenle" icon="pencil-outline" onPress={() => duzenlemeyiBaslat(kayit)}>
+                          <Button key="duzenle" mode="text" icon="pencil-outline" onPress={() => duzenlemeyiBaslat(kayit)}>
                             Adresi Düzenle
                           </Button>,
                         ]}
