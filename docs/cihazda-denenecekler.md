@@ -321,3 +321,12 @@ Seç"te kaç kayıt olduğunu ve ilk birkaçının sırasını not edin.
 - [ ] **Sil** — onaydan sonra kayıt gidiyor, uygulama yeniden açılınca geri
   gelmiyor.
 - [ ] **Hesaba özel** — başka bir GİB koduyla girince bu kayıtlar görünmüyor.
+
+## PDF'te karekod (2026-09-21)
+
+### GİB gerekir
+
+- [ ] **İndir** — Taslaklar → onaylı bir fatura → İndir: PDF'in sağ üstünde GİB karekodu var ve telefon kamerasıyla okunuyor.
+- [ ] **Paylaş** — görüntüleyiciden Paylaş: aynı karekod var.
+- [ ] **Yedek** — Faturaları Şimdi Yedekle → yedeklenen PDF'lerde karekod var; yedekleme belirgin biçimde yavaşlamadı (fatura başına ~1 sn ek süre beklenir).
+- [ ] **Filigran** — iptali kabul edilmiş bir faturanın PDF'inde hem filigran hem karekod var.

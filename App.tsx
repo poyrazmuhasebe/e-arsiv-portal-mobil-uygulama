@@ -32,6 +32,7 @@ import { eskiFaturaPdfleriniSil } from './src/utils/dosyaTemizlik';
 import { kilitGerekliMi, zamanAsimiDolduMu } from './src/utils/uygulamaKilidi';
 import type { HukukiMetinAnahtari } from './src/constants/hukukiMetinler';
 import { AlertHost } from './src/components/ui/AppAlert';
+import HtmlOnIsleyici from './src/components/HtmlOnIsleyici';
 import { colors, navigationTheme, paperTheme } from './src/theme';
 
 export type RootStackParamList = {
@@ -207,6 +208,8 @@ export default function App() {
             </View>
             {kilitGosterilsin && <KilitScreen onAc={() => setKilitli(false)} />}
             <AlertHost />
+            {/* PDF'ten önce GİB karekodunu çizdiren görünmez WebView. */}
+            <HtmlOnIsleyici />
           </View>
         )}
       </PaperProvider>

@@ -250,6 +250,28 @@ adı, not) üçüncü tarafça belirlenebildiği için HTML güvenilmez sayılı
 
 PDF üretimi (`expo-print`) ayrı bir yoldur ve bu ayarlardan etkilenmez.
 
+### PDF'te karekod: betiklerin kısıtlı ön işlemesi (2026-09-21)
+
+GİB faturadaki **karekodu** HTML'e gömülü qrcode.js ile çalışma anında
+`<canvas>`'a çiziyor. `expo-print` PDF'i JavaScript'i kapalı bir WebView ile
+ürettiği için indirilen/paylaşılan/yedeklenen PDF'lerde karekod çıkmıyordu.
+
+Artık PDF'ten önce HTML, görünmez bir WebView'de (`src/components/HtmlOnIsleyici.tsx`,
+`src/utils/htmlOnIsleme.ts`) **JavaScript açık** olarak bir kez çalıştırılır;
+çizilen `<canvas>`'lar resme çevrilir, `<script>`'ler silinir ve PDF bu HTML'den
+üretilir. Bu WebView'in kısıtları:
+
+- Sayfanın en başına bir **Content-Security-Policy** eklenir: `default-src 'none'`,
+  `connect-src 'none'`, yalnızca satır içi betik/stil ve `data:` resimler.
+  Betik **hiçbir ağ isteği yapamaz**; fatura içeriği dışarı gönderilemez.
+- Gezinme, yeni pencere, dosya erişimi, DOM depolama, çerez ve önbellek
+  FaturaWebView'deki gibi kapalı.
+- Yalnızca bu işe ait rastgele jetonla gelen yanıt kabul edilir.
+- 6 saniyede yanıt gelmezse ya da hata olursa özgün HTML kullanılır
+  (karekodsuz PDF — eski davranış).
+
+Görüntüleyicideki "JavaScript varsayılan kapalı" kararı değişmedi.
+
 ## Android izinleri
 
 Uygulama yalnızca `INTERNET` (GİB'e bağlanmak) ve `VIBRATE` izinlerini

@@ -12,6 +12,7 @@ import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 
 import { eskiFaturaPdfleriniSil } from './dosyaTemizlik';
+import { betikliHtmlHazirla } from './htmlOnIsleme';
 
 // GİB'in döndürdüğü HTML bazen <meta charset> içermiyor; bu durumda
 // Türkçe karakterler (ş, ı, ğ vb.) PDF'e yanlış kodlanabiliyor.
@@ -37,7 +38,10 @@ function utf8MetaEkle(html: string): string {
  */
 async function pdfBase64Uret(html: string, filigranMetni?: string): Promise<string> {
   const isaretliHtml = filigranEkle(utf8MetaEkle(html), filigranMetni);
-  const { base64 } = await Print.printToFileAsync({ html: isaretliHtml, base64: true });
+  // GİB karekodu betikle çiziliyor; expo-print betik çalıştırmadığı için önce
+  // çizdirilip resme çevrilir (bkz. htmlOnIsleme.ts). Olmazsa özgün HTML.
+  const hazirHtml = await betikliHtmlHazirla(isaretliHtml);
+  const { base64 } = await Print.printToFileAsync({ html: hazirHtml, base64: true });
   if (!base64) {
     throw new Error('PDF oluşturulamadı (Base64 verisi alınamadı).');
   }
@@ -51,7 +55,9 @@ async function pdfBase64Uret(html: string, filigranMetni?: string): Promise<stri
  * birikmesin diye silinmesi denenir (silinemezse sistem önbelleği temizler).
  */
 export async function yedekPdfBase64(html: string): Promise<string> {
-  const { uri, base64 } = await Print.printToFileAsync({ html: utf8MetaEkle(html), base64: true });
+  // Karekod için bkz. pdfBase64Uret.
+  const hazirHtml = await betikliHtmlHazirla(utf8MetaEkle(html));
+  const { uri, base64 } = await Print.printToFileAsync({ html: hazirHtml, base64: true });
   FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => undefined);
   if (!base64) {
     throw new Error('PDF oluşturulamadı (Base64 verisi alınamadı).');
