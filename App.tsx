@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer, DarkTheme as NavigationDarkTheme } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { ActivityIndicator, MD3DarkTheme, PaperProvider } from 'react-native-paper';
+import { ActivityIndicator, PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import LoginScreen from './src/screens/LoginScreen';
@@ -31,6 +31,8 @@ import { eskiOrtakAliciDefteriniSil } from './src/utils/aliciDefteri';
 import { eskiFaturaPdfleriniSil } from './src/utils/dosyaTemizlik';
 import { kilitGerekliMi, zamanAsimiDolduMu } from './src/utils/uygulamaKilidi';
 import type { HukukiMetinAnahtari } from './src/constants/hukukiMetinler';
+import { AlertHost } from './src/components/ui/AppAlert';
+import { colors, navigationTheme, paperTheme } from './src/theme';
 
 export type RootStackParamList = {
   Karsilama: undefined;
@@ -126,17 +128,18 @@ export default function App() {
   const hesapAdimiGecildi = hesapKullanicisi !== null ? epostaDogrulandi : hesapAtlandi;
   const kilitGosterilsin = (token !== null || hesapKullanicisi !== null) && kilitli;
 
-  // Uygulamanın varsayılan teması: tamamen koyu (Dark Mode). Tek bir
-  // PaperProvider burada, en üst katmanda kuruluyor — Login, Dashboard,
-  // FaturaKesim, Taslaklar dahil her ekran bu temayı otomatik miras alır.
-  // Ekranların kendi içinde ayrıca PaperProvider açmasına gerek yok.
+  // Uygulamanın teması src/theme'deki token'lardan üretilir (koyu grafit +
+  // lacivert, lavanta vurgu; bkz. docs/tasarim-sistemi.md). Tek bir
+  // PaperProvider burada, en üst katmanda — her ekran bu temayı miras alır.
+  // AlertHost: temalı Alert.alert dialog'larını (components/ui/AppAlert)
+  // çizer; Android'in varsayılan beyaz dialog'u kullanılmaz.
   return (
     <SafeAreaProvider>
-      <PaperProvider theme={MD3DarkTheme}>
+      <PaperProvider theme={paperTheme}>
         <StatusBar style="light" />
         {isRestoring ? (
-          <View style={[styles.loadingContainer, { backgroundColor: MD3DarkTheme.colors.background }]}>
-            <ActivityIndicator size="large" />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
           </View>
         ) : (
           <View style={styles.kok}>
@@ -148,7 +151,7 @@ export default function App() {
               importantForAccessibility={kilitli ? 'no-hide-descendants' : 'auto'}
               accessibilityElementsHidden={kilitli}
             >
-              <NavigationContainer theme={NavigationDarkTheme}>
+              <NavigationContainer theme={navigationTheme}>
                 {/* Oturum durumuna göre DÖRT ayrı ekran grubu render ediliyor
                     (React Navigation'ın önerdiği auth-flow deseni). Durum
                     değiştiğinde yığın otomatik takas edilir, ekranların kendi
@@ -161,7 +164,9 @@ export default function App() {
                     4. İkisi de var               → Dashboard grubu
 
                     Bkz. docs/hesap-sistemi.md → "Ekran durumları". */}
-                <Stack.Navigator screenOptions={{ headerShown: false }}>
+                <Stack.Navigator
+                  screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}
+                >
                   {hesapKullanicisi === null && !hesapAtlandi ? (
                     <Stack.Group>
                       <Stack.Screen name="Karsilama" component={KarsilamaScreen} />
@@ -201,6 +206,7 @@ export default function App() {
               </NavigationContainer>
             </View>
             {kilitGosterilsin && <KilitScreen onAc={() => setKilitli(false)} />}
+            <AlertHost />
           </View>
         )}
       </PaperProvider>
@@ -209,10 +215,11 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  kok: { flex: 1 },
+  kok: { flex: 1, backgroundColor: colors.background },
   kilitliIcerik: { pointerEvents: 'none' },
   loadingContainer: {
     flex: 1,
+    backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
   },

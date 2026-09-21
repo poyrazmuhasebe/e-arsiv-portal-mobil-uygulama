@@ -1,11 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityIndicator, Appbar, Card, Switch, Text, useTheme } from 'react-native-paper';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Switch } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import {
+  Alert,
+  AppDialog,
+  AppHeader,
+  AppIconButton,
+  AppScreen,
+  DangerSoftButton,
+  DialogText,
+  MenuCard,
+  SecondaryButton,
+  SectionHeader,
+  TextButton,
+  type IconName,
+} from '../components/ui';
 import { useAuthStore } from '../store/useAuthStore';
 import { useHesapStore } from '../store/useHesapStore';
+import { colors, spacing } from '../theme';
 import {
   cihazKilidiVarMi,
   kilidiAcmayiDene,
@@ -18,14 +32,14 @@ import type { RootStackParamList } from '../../App';
 type Props = NativeStackScreenProps<RootStackParamList, 'Dashboard'>;
 
 interface MenuOgesi {
-  icon: string;
+  icon: IconName;
   baslik: string;
   altBaslik: string;
   onPress: () => void;
+  accent?: 'primary' | 'danger';
 }
 
 export default function DashboardScreen({ navigation }: Props) {
-  const theme = useTheme();
   const kullaniciBilgisi = useAuthStore((s) => s.kullaniciBilgisi);
   const kullaniciKodu = useAuthStore((s) => s.kullaniciKodu);
   const logout = useAuthStore((s) => s.logout);
@@ -34,6 +48,8 @@ export default function DashboardScreen({ navigation }: Props) {
   // DEMO "Şimdilik atla" modunda uygulama hesabı yoktur.
   const hesapVar = useHesapStore((s) => s.kullanici !== null);
 
+  // Çıkış seçenekleri dialog'u (Android'in beyaz sistem dialog'u yerine).
+  const [cikisAcik, setCikisAcik] = useState(false);
   const [localBusy, setLocalBusy] = useState(false);
 
   // Uygulama kilidi ayarı (bkz. src/utils/uygulamaKilidi.ts).
@@ -82,44 +98,31 @@ export default function DashboardScreen({ navigation }: Props) {
    * mal-hizmet defterlerini SİLMEZ: defterlerin hiçbir yedeği yok (D1'e
    * gitmiyorlar), yanlışlıkla çıkan kullanıcı veri kaybetmesin.
    */
-  const handleCikis = () => {
-    Alert.alert(
-      'Çıkış',
-      'Hangi oturumu kapatmak istiyorsunuz? Kayıtlı alıcı ve mal/hizmet defterleriniz iki durumda da telefonunuzda kalır.',
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'GİB oturumunu kapat',
-          onPress: async () => {
-            setLocalBusy(true);
-            try {
-              // logout() önce GİB'e EARSIV_PORTAL_LOGOUT isteği atar, o istek
-              // hata verse bile yerel token'ı (SecureStore + state) temizler.
-              // Uygulama hesabı oturumuna DOKUNMAZ.
-              // Bkz. src/store/useAuthStore.ts
-              await logout();
-            } finally {
-              setLocalBusy(false);
-            }
-          },
-        },
-        {
-          // Hesap atlandıysa (DEMO) kapatılacak hesap yok; bu seçenek her iki
-          // oturumu kapatıp Karşılama ekranına döner.
-          text: hesapVar ? 'Hesaptan çık' : 'Tamamen çık',
-          style: 'destructive',
-          onPress: async () => {
-            setLocalBusy(true);
-            try {
-              await logout();
-              await hesaptanCik();
-            } finally {
-              setLocalBusy(false);
-            }
-          },
-        },
-      ],
-    );
+  const gibOturumunuKapat = async () => {
+    setCikisAcik(false);
+    setLocalBusy(true);
+    try {
+      // logout() önce GİB'e EARSIV_PORTAL_LOGOUT isteği atar, o istek
+      // hata verse bile yerel token'ı (SecureStore + state) temizler.
+      // Uygulama hesabı oturumuna DOKUNMAZ.
+      // Bkz. src/store/useAuthStore.ts
+      await logout();
+    } finally {
+      setLocalBusy(false);
+    }
+  };
+
+  // Hesap atlandıysa (DEMO) kapatılacak hesap yok; bu seçenek her iki
+  // oturumu kapatıp Karşılama ekranına döner.
+  const hesaptanCikis = async () => {
+    setCikisAcik(false);
+    setLocalBusy(true);
+    try {
+      await logout();
+      await hesaptanCik();
+    } finally {
+      setLocalBusy(false);
+    }
   };
 
   const cikisYapiliyor = isLoggingOut || localBusy;
@@ -129,25 +132,25 @@ export default function DashboardScreen({ navigation }: Props) {
   // Taslak Faturalar, İptal/İtiraz Talepleri, Adıma Düzenlenen Belgeler.
   const belgeIslemleri: MenuOgesi[] = [
     {
-      icon: '🧾',
+      icon: 'file-document-plus-outline',
       baslik: 'e-Arşiv Fatura (İnteraktif) Oluştur',
       altBaslik: 'Alıcı bilgilerini girip e-Arşiv faturası oluşturun',
       onPress: () => navigation.navigate('FaturaKesim'),
     },
     {
-      icon: '📄',
+      icon: 'file-document-multiple-outline',
       baslik: 'Taslak / Kesilen Faturalar',
       altBaslik: 'Daha önce oluşturduğunuz faturaları görüntüleyin',
       onPress: () => navigation.navigate('Taslaklar'),
     },
     {
-      icon: '↩️',
+      icon: 'file-undo-outline',
       baslik: 'İptal / İtiraz Talepleri',
       altBaslik: 'Gelen iptal/itiraz taleplerini kabul edin veya reddedin',
       onPress: () => navigation.navigate('IptalItirazTalepleri'),
     },
     {
-      icon: '📥',
+      icon: 'inbox-arrow-down-outline',
       baslik: 'Adıma Düzenlenen Belgeler',
       altBaslik: 'Başkalarının adınıza düzenlediği faturaları görüntüleyin',
       onPress: () => navigation.navigate('AdimaDuzenlenen'),
@@ -158,13 +161,13 @@ export default function DashboardScreen({ navigation }: Props) {
   // GİB verisi yalnızca GİB ile telefon arasında kalır.
   const yedeklemeIslemleri: MenuOgesi[] = [
     {
-      icon: '💾',
+      icon: 'folder-download-outline',
       baslik: 'Faturaları Şimdi Yedekle',
       altBaslik: 'Son 1 hafta – 1 yıl arasındaki faturaları PDF olarak telefona indirin',
       onPress: () => navigation.navigate('Yedekle'),
     },
     {
-      icon: '🗂️',
+      icon: 'folder-open-outline',
       baslik: 'Yedeklenen Faturaları Görüntüle',
       altBaslik: 'Telefondaki yedekleri açın veya paylaşın',
       onPress: () => navigation.navigate('YedekleriGoruntule'),
@@ -176,19 +179,19 @@ export default function DashboardScreen({ navigation }: Props) {
   // GİB'de yok; uygulamanın cihazda tuttuğu, bu hesaba özel kayıtları yönetir.
   const kullaniciIslemleri: MenuOgesi[] = [
     {
-      icon: '👤',
+      icon: 'account-outline',
       baslik: 'Kullanıcı Bilgileri',
       altBaslik: 'Firma/mükellef bilgilerinizi görüntüleyin ve güncelleyin',
       onPress: () => navigation.navigate('KullaniciBilgileri'),
     },
     {
-      icon: '📇',
+      icon: 'card-account-details-outline',
       baslik: 'Alıcı Defteri',
       altBaslik: 'Bu hesaba kayıtlı alıcıları düzenleyin, silin veya ekleyin',
       onPress: () => navigation.navigate('AliciDefteri'),
     },
     {
-      icon: '📦',
+      icon: 'package-variant-closed',
       baslik: 'Mal/Hizmet Defteri',
       altBaslik: 'Bu hesaba kayıtlı mal/hizmet adlarını düzenleyin, silin veya ekleyin',
       onPress: () => navigation.navigate('MalHizmetDefteri'),
@@ -197,7 +200,8 @@ export default function DashboardScreen({ navigation }: Props) {
     ...(hesapVar
       ? [
           {
-            icon: '🗑️',
+            icon: 'account-remove-outline' as IconName,
+            accent: 'danger' as const,
             baslik: 'Hesabımı Sil',
             altBaslik: 'Uygulama hesabınızı kalıcı olarak silin (GİB hesabınız etkilenmez)',
             onPress: () => navigation.navigate('HesapSil'),
@@ -206,119 +210,109 @@ export default function DashboardScreen({ navigation }: Props) {
       : []),
   ];
 
+  const kilitAciklamasi = !cihazKilidiVar
+    ? 'Cihazınızda ekran kilidi (PIN/desen/parmak izi) tanımlı değil; kilit kullanılamıyor.'
+    : kilitAcik
+      ? 'Açılışta ve uzun süre arka planda kaldıktan sonra cihaz kilidiyle doğrulama istenir.'
+      : 'Kapalı: uygulama doğrulama istemeden açılır.';
+
+  const menuyuCiz = (ogeler: MenuOgesi[]) =>
+    ogeler.map((oge) => (
+      <MenuCard
+        key={oge.baslik}
+        icon={oge.icon}
+        title={oge.baslik}
+        description={oge.altBaslik}
+        onPress={oge.onPress}
+        accent={oge.accent}
+      />
+    ));
+
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom', 'left', 'right']}>
-      <Appbar.Header elevated>
-        {/* Appbar.Content'in "subtitle" prop'u MD3 temasında (Paper v5
-            varsayılanı) render edilmiyor, bu yüzden tek satır title kullanıyoruz.
-            Şirket unvanları çok uzun olabildiğinden (ör. "...LİMİTED ŞİRKETİ")
-            title'ı numberOfLines/ellipsizeMode kontrollü kendi Text'imizle
-            veriyoruz — Appbar.Content'in "title" string'i bunu garanti etmez. */}
-        <Appbar.Content
-          title={
-            <Text variant="titleLarge" numberOfLines={1} ellipsizeMode="tail">
-              {unvan}
-            </Text>
-          }
-        />
-        {cikisYapiliyor ? (
-          <View style={styles.logoutSpinner}>
-            <ActivityIndicator size="small" />
-          </View>
-        ) : (
-          <Appbar.Action icon="logout" accessibilityLabel="Çıkış" onPress={handleCikis} />
-        )}
-      </Appbar.Header>
+    <AppScreen>
+      {/* Şirket unvanları çok uzun olabilir (ör. "...LİMİTED ŞİRKETİ");
+          büyük başlık en fazla iki satır gösterip kısaltır. */}
+      <AppHeader
+        large
+        eyebrow="Hoş geldiniz"
+        title={unvan}
+        right={
+          <AppIconButton
+            icon="logout"
+            variant="filled"
+            onPress={() => setCikisAcik(true)}
+            loading={cikisYapiliyor}
+            accessibilityLabel="Oturum ve çıkış"
+          />
+        }
+      />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text variant="labelLarge" style={styles.bolumBasligi}>
-          BELGE İŞLEMLERİ
-        </Text>
-        {belgeIslemleri.map((oge) => (
-          <Card key={oge.baslik} mode="elevated" style={styles.card} onPress={oge.onPress}>
-            <Card.Content style={styles.cardContent}>
-              <Text variant="displaySmall">{oge.icon}</Text>
-              <View style={styles.cardTextGroup}>
-                <Text variant="titleMedium">{oge.baslik}</Text>
-                <Text variant="bodySmall" style={styles.cardSubtitle}>
-                  {oge.altBaslik}
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
-        ))}
+      <ScrollView contentContainerStyle={styles.icerik}>
+        <View style={styles.bolum}>
+          <SectionHeader variant="overline" title="Belge İşlemleri" />
+          {menuyuCiz(belgeIslemleri)}
+        </View>
 
-        <Text variant="labelLarge" style={[styles.bolumBasligi, styles.ikinciBolumBasligi]}>
-          FATURALARI CİHAZIMDA YEDEKLEME
-        </Text>
-        {yedeklemeIslemleri.map((oge) => (
-          <Card key={oge.baslik} mode="elevated" style={styles.card} onPress={oge.onPress}>
-            <Card.Content style={styles.cardContent}>
-              <Text variant="displaySmall">{oge.icon}</Text>
-              <View style={styles.cardTextGroup}>
-                <Text variant="titleMedium">{oge.baslik}</Text>
-                <Text variant="bodySmall" style={styles.cardSubtitle}>
-                  {oge.altBaslik}
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
-        ))}
+        <View style={styles.bolum}>
+          <SectionHeader variant="overline" title="Faturaları Cihazımda Yedekleme" />
+          {menuyuCiz(yedeklemeIslemleri)}
+        </View>
 
-        <Text variant="labelLarge" style={[styles.bolumBasligi, styles.ikinciBolumBasligi]}>
-          KULLANICI İŞLEMLERİ
-        </Text>
-        {kullaniciIslemleri.map((oge) => (
-          <Card key={oge.baslik} mode="elevated" style={styles.card} onPress={oge.onPress}>
-            <Card.Content style={styles.cardContent}>
-              <Text variant="displaySmall">{oge.icon}</Text>
-              <View style={styles.cardTextGroup}>
-                <Text variant="titleMedium">{oge.baslik}</Text>
-                <Text variant="bodySmall" style={styles.cardSubtitle}>
-                  {oge.altBaslik}
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
-        ))}
-
-        <Card mode="elevated" style={styles.card}>
-          <Card.Content style={styles.cardContent}>
-            <Text variant="displaySmall">🔒</Text>
-            <View style={styles.cardTextGroup}>
-              <Text variant="titleMedium">Uygulama Kilidi</Text>
-              <Text variant="bodySmall" style={styles.cardSubtitle}>
-                {!cihazKilidiVar
-                  ? 'Cihazınızda ekran kilidi (PIN/desen/parmak izi) tanımlı değil; kilit kullanılamıyor.'
-                  : kilitAcik
-                    ? 'Açılışta ve uzun süre arka planda kaldıktan sonra cihaz kilidiyle doğrulama istenir.'
-                    : 'Kapalı: uygulama doğrulama istemeden açılır.'}
-              </Text>
-            </View>
-            <Switch
-              value={kilitAcik && cihazKilidiVar}
-              onValueChange={handleKilitDegistir}
-              disabled={!cihazKilidiVar}
-              accessibilityLabel="Uygulama kilidi"
-            />
-          </Card.Content>
-        </Card>
+        <View style={styles.bolum}>
+          <SectionHeader variant="overline" title="Kullanıcı İşlemleri" />
+          {menuyuCiz(kullaniciIslemleri)}
+          <MenuCard
+            icon="lock-outline"
+            title="Uygulama Kilidi"
+            description={kilitAciklamasi}
+            accent={cihazKilidiVar ? 'primary' : 'warning'}
+            rightElement={
+              <Switch
+                value={kilitAcik && cihazKilidiVar}
+                onValueChange={handleKilitDegistir}
+                disabled={!cihazKilidiVar}
+                color={colors.primary}
+                accessibilityLabel="Uygulama kilidi"
+              />
+            }
+          />
+        </View>
       </ScrollView>
-    </SafeAreaView>
+
+      {/* İKİ AYRI ÇIKIŞ — davranışlar yukarıdaki açıklamadaki gibi. */}
+      <AppDialog
+        visible={cikisAcik}
+        onDismiss={() => setCikisAcik(false)}
+        title="Çıkış"
+        icon="logout"
+        stackedActions
+        actions={
+          <>
+            <SecondaryButton icon="logout-variant" onPress={gibOturumunuKapat} fullWidth compact>
+              GİB Oturumunu Kapat
+            </SecondaryButton>
+            <DangerSoftButton icon="account-arrow-right-outline" onPress={hesaptanCikis} fullWidth compact>
+              {hesapVar ? 'Hesaptan Çık' : 'Tamamen Çık'}
+            </DangerSoftButton>
+            <TextButton onPress={() => setCikisAcik(false)} fullWidth compact>
+              İptal
+            </TextButton>
+          </>
+        }
+      >
+        <DialogText>
+          Hangi oturumu kapatmak istiyorsunuz? Kayıtlı alıcı ve mal/hizmet defterleriniz iki durumda da telefonunuzda
+          kalır.
+        </DialogText>
+        <DialogText>
+          GİB oturumunu kapatınca uygulama hesabınız açık kalır; başka bir GİB kullanıcı koduyla giriş yapabilirsiniz.
+        </DialogText>
+      </AppDialog>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  logoutSpinner: { paddingHorizontal: 16 },
-  content: {
-    padding: 20,
-    gap: 12,
-  },
-  bolumBasligi: { opacity: 0.6, marginBottom: 4, letterSpacing: 0.5 },
-  ikinciBolumBasligi: { marginTop: 8 },
-  card: { borderRadius: 16 },
-  cardContent: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 8 },
-  cardTextGroup: { flex: 1, gap: 4 },
-  cardSubtitle: { opacity: 0.6 },
+  icerik: { paddingHorizontal: spacing.screen, paddingBottom: spacing.xxl, gap: spacing.section },
+  bolum: { gap: spacing.card },
 });

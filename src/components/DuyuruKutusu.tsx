@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Linking, StyleSheet, View } from 'react-native';
-import { Card, IconButton, Text, useTheme } from 'react-native-paper';
+import { Linking, StyleSheet, Text, View } from 'react-native';
+
+import { colors, radius, spacing, typography } from '../theme';
+import { Alert } from './ui/AppAlert';
+import AppIconButton from './ui/AppIconButton';
+import Icon from './ui/Icon';
 
 import { GIB_DUYURULARI, type Duyuru } from '../constants/duyurular';
 import { duyuruyuKapat, gosterilecekDuyuru, kapatilanDuyurulariGetir } from '../utils/duyuru';
@@ -12,7 +16,6 @@ import { duyuruyuKapat, gosterilecekDuyuru, kapatilanDuyurulariGetir } from '../
  * şey çizmez.
  */
 export default function DuyuruKutusu() {
-  const theme = useTheme();
   const [duyuru, setDuyuru] = useState<Duyuru | null>(null);
 
   useEffect(() => {
@@ -36,53 +39,50 @@ export default function DuyuruKutusu() {
     Linking.openURL(url).catch(() => Alert.alert('Açılamadı', `Bağlantı açılamadı:\n${url}`));
   };
 
-  const renk = theme.colors.onErrorContainer;
+  const renk = colors.warning;
 
   return (
-    <Card mode="contained" style={[styles.kart, { backgroundColor: theme.colors.errorContainer }]}>
-      <Card.Content style={styles.icerik}>
-        <View style={styles.ustSatir}>
-          <Text variant="titleSmall" style={[styles.baslik, { color: renk }]}>
-            {duyuru.baslik}
-          </Text>
-          <IconButton
-            icon="close"
-            size={20}
-            iconColor={renk}
-            onPress={kapat}
-            accessibilityLabel="Duyuruyu kapat"
-            style={styles.kapat}
-          />
-        </View>
-        <Text variant="labelMedium" style={{ color: renk }}>
-          {duyuru.tarih}
+    <View style={styles.kart} accessibilityRole="alert">
+      <View style={styles.ustSatir}>
+        <Icon name="bullhorn-outline" size={20} color={renk} />
+        <Text style={[typography.cardTitle, styles.baslik, { color: renk }]}>{duyuru.baslik}</Text>
+        <AppIconButton icon="close" size={20} onPress={kapat} accessibilityLabel="Duyuruyu kapat" style={styles.kapat} />
+      </View>
+      <Text style={styles.tarih}>{duyuru.tarih}</Text>
+      {duyuru.paragraflar.map((p, i) => (
+        <Text key={i} style={[styles.metin, p.startsWith('- ') && styles.madde]}>
+          {p.startsWith('- ') ? `• ${p.slice(2)}` : p}
         </Text>
-        {duyuru.paragraflar.map((p, i) => (
-          <Text key={i} variant="bodySmall" style={[{ color: renk }, p.startsWith('- ') && styles.madde]}>
-            {p.startsWith('- ') ? `• ${p.slice(2)}` : p}
-          </Text>
-        ))}
-        {duyuru.baglanti ? (
-          <Text
-            variant="bodySmall"
-            style={[styles.baglanti, { color: renk }]}
-            onPress={() => baglantiyiAc(duyuru.baglanti!)}
-            accessibilityRole="link"
-          >
-            {duyuru.baglanti}
-          </Text>
-        ) : null}
-      </Card.Content>
-    </Card>
+      ))}
+      {duyuru.baglanti ? (
+        <Text
+          style={[styles.metin, styles.baglanti]}
+          onPress={() => baglantiyiAc(duyuru.baglanti!)}
+          accessibilityRole="link"
+        >
+          {duyuru.baglanti}
+        </Text>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  kart: { marginBottom: 24, borderRadius: 12 },
-  icerik: { gap: 6 },
-  ustSatir: { flexDirection: 'row', alignItems: 'flex-start' },
-  baslik: { flex: 1, fontWeight: '700', paddingTop: 8 },
-  kapat: { margin: 0, marginRight: -8 },
-  madde: { paddingLeft: 8 },
-  baglanti: { textDecorationLine: 'underline' },
+  kart: {
+    marginBottom: spacing.xl,
+    borderRadius: radius.large,
+    borderWidth: 1,
+    borderColor: colors.warningBorder,
+    backgroundColor: colors.warningBackground,
+    padding: spacing.md,
+    paddingTop: spacing.xs,
+    gap: spacing.xs,
+  },
+  ustSatir: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  baslik: { flex: 1 },
+  kapat: { marginRight: -spacing.xs },
+  tarih: { ...typography.caption, color: colors.warning },
+  metin: { ...typography.bodySecondary, color: colors.textPrimary },
+  madde: { paddingLeft: spacing.xs },
+  baglanti: { textDecorationLine: 'underline', color: colors.primary },
 });

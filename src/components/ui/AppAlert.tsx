@@ -1,0 +1,117 @@
+import React from 'react';
+import { create } from 'zustand';
+
+import AppDialog, { DialogText } from './AppDialog';
+import { DangerSoftButton, PrimaryButton, SecondaryButton, TextButton } from './Buttons';
+
+/**
+ * React Native `Alert.alert` ile AYNI imzaya sahip, temalı sürüm.
+ *
+ * Android'in varsayılan (beyaz) sistem dialog'u yerine uygulamanın koyu
+ * dialog'unu gösterir. Çağrı yerleri değişmez; yalnızca import değişir:
+ *
+ *   import { Alert } from '../components/ui/AppAlert';
+ *   Alert.alert('Başlık', 'Mesaj', [{ text: 'Vazgeç', style: 'cancel' }, { text: 'Sil', style: 'destructive', onPress }]);
+ *
+ * Davranış (react-native Alert ile aynı tutuldu):
+ *  - Düğme verilmezse tek "Tamam".
+ *  - Düğmeye basınca dialog kapanır, sonra düğmenin onPress'i çağrılır
+ *    (onPress içinden yeni bir Alert açılabilir; sıraya alınır).
+ *  - Dışarı dokunma / geri tuşu: yalnızca 'cancel' stilli bir düğme varsa
+ *    kapatır ve O düğmenin onPress'ini çağırır; yoksa kullanıcı bir düğmeye
+ *    basmak zorundadır (sistem Alert'inde de Android'de dışarı dokunmak
+ *    varsayılan olarak kapatmaz).
+ *
+ * Görünüm: 'destructive' → kırmızı, 'cancel' → metin düğmesi, diğerleri →
+ * lavanta. Üç ve daha çok seçenekte düğmeler alt alta dizilir.
+ */
+
+export interface AlertButton {
+  text?: string;
+  onPress?: () => void;
+  style?: 'default' | 'cancel' | 'destructive';
+}
+
+interface Kayit {
+  id: number;
+  baslik: string;
+  mesaj?: string;
+  dugmeler: AlertButton[];
+}
+
+interface Depo {
+  sira: Kayit[];
+  ekle: (k: Omit<Kayit, 'id'>) => void;
+  cikar: (id: number) => void;
+}
+
+let sayac = 0;
+
+const useAlertDeposu = create<Depo>((set) => ({
+  sira: [],
+  ekle: (k) => set((d) => ({ sira: [...d.sira, { ...k, id: ++sayac }] })),
+  cikar: (id) => set((d) => ({ sira: d.sira.filter((k) => k.id !== id) })),
+}));
+
+export const Alert = {
+  alert(title: string, message?: string, buttons?: AlertButton[]): void {
+    const dugmeler = buttons && buttons.length > 0 ? buttons : [{ text: 'Tamam' }];
+    useAlertDeposu.getState().ekle({ baslik: title, mesaj: message, dugmeler });
+  },
+};
+
+/** App.tsx'te PaperProvider içinde BİR KEZ yerleştirilir. */
+export function AlertHost() {
+  const aktif = useAlertDeposu((d) => d.sira[0]);
+  const cikar = useAlertDeposu((d) => d.cikar);
+  if (!aktif) return null;
+
+  const bas = (d: AlertButton) => {
+    cikar(aktif.id);
+    d.onPress?.();
+  };
+  const iptal = aktif.dugmeler.find((d) => d.style === 'cancel');
+  const alt = aktif.dugmeler.length > 2;
+  const tehlikeli = aktif.dugmeler.some((d) => d.style === 'destructive');
+
+  return (
+    <AppDialog
+      visible
+      title={aktif.baslik}
+      tone={tehlikeli ? 'danger' : 'default'}
+      icon={tehlikeli ? 'alert-outline' : undefined}
+      onDismiss={iptal ? () => bas(iptal) : undefined}
+      stackedActions={alt}
+      actions={aktif.dugmeler.map((d, i) => {
+        const etiket = d.text ?? 'Tamam';
+        const anahtar = `${aktif.id}-${i}`;
+        const ortak = { onPress: () => bas(d), compact: true, fullWidth: alt };
+        if (d.style === 'destructive') {
+          return (
+            <DangerSoftButton key={anahtar} {...ortak}>
+              {etiket}
+            </DangerSoftButton>
+          );
+        }
+        if (d.style === 'cancel') {
+          return alt ? (
+            <SecondaryButton key={anahtar} {...ortak}>
+              {etiket}
+            </SecondaryButton>
+          ) : (
+            <TextButton key={anahtar} {...ortak}>
+              {etiket}
+            </TextButton>
+          );
+        }
+        return (
+          <PrimaryButton key={anahtar} {...ortak}>
+            {etiket}
+          </PrimaryButton>
+        );
+      })}
+    >
+      {aktif.mesaj ? <DialogText>{aktif.mesaj}</DialogText> : null}
+    </AppDialog>
+  );
+}

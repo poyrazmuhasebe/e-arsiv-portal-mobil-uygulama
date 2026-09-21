@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Button, Text, useTheme } from 'react-native-paper';
+import { Platform, StyleSheet, View } from 'react-native';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 
 import { EN_FAZLA_GUN, aralikGecerliMi, araligiSinirla } from '../utils/tarihAraligi';
+import { spacing } from '../theme';
+import { Alert } from './ui/AppAlert';
+import { PrimaryButton } from './ui/Buttons';
+import DateField from './ui/DateField';
+import FormRow from './ui/FormRow';
+import InfoBox from './ui/InfoBox';
 
 export function tarihFormatla(d: Date): string {
   const gg = String(d.getDate()).padStart(2, '0');
@@ -20,13 +25,13 @@ interface Props {
 }
 
 /**
- * Başlangıç/Bitiş + Sorgula çubuğu. GİB 1 haftadan uzun aralıkta sorgulamaya
- * izin vermiyor (kullanıcı bildirimi, 2026-09-21): seçilen uca dokunulmaz,
- * DİĞER uç gerekirse kaydırılır (bkz. utils/tarihAraligi.ts). Sorgula da
- * geçersiz aralıkta istek atmaz.
+ * Ortak tarih filtresi (DateFilter): Başlangıç / Bitiş + GİB sınırı notu +
+ * Sorgula. GİB 1 haftadan uzun aralıkta sorgulamaya izin vermiyor
+ * (kullanıcı bildirimi, 2026-09-21): seçilen uca dokunulmaz, DİĞER uç
+ * gerekirse kaydırılır (bkz. utils/tarihAraligi.ts). Sorgula da geçersiz
+ * aralıkta istek atmaz.
  */
 export default function TarihAraligiFiltresi({ baslangic, bitis, onDegisti, onSorgula, yukleniyor }: Props) {
-  const theme = useTheme();
   const [acikPicker, setAcikPicker] = useState<'baslangic' | 'bitis' | null>(null);
 
   const handleTarihSecildi = (_event: DateTimePickerChangeEvent, secilen: Date) => {
@@ -59,33 +64,17 @@ export default function TarihAraligiFiltresi({ baslangic, bitis, onDegisti, onSo
 
   return (
     <>
-      <View style={styles.filtreBar}>
-        <View style={styles.tarihRow}>
-          <Pressable
-            onPress={() => setAcikPicker('baslangic')}
-            style={[styles.tarihButon, { borderColor: theme.colors.outline }]}
-          >
-            <Text variant="labelSmall" style={styles.mutedText}>
-              Başlangıç
-            </Text>
-            <Text variant="bodyMedium">{tarihFormatla(baslangic)}</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setAcikPicker('bitis')}
-            style={[styles.tarihButon, { borderColor: theme.colors.outline }]}
-          >
-            <Text variant="labelSmall" style={styles.mutedText}>
-              Bitiş
-            </Text>
-            <Text variant="bodyMedium">{tarihFormatla(bitis)}</Text>
-          </Pressable>
-        </View>
-        <Text variant="labelSmall" style={styles.mutedText}>
-          En fazla {EN_FAZLA_GUN} günlük aralık sorgulanabilir (GİB sınırı).
-        </Text>
-        <Button mode="contained" onPress={handleSorgula} loading={yukleniyor} disabled={yukleniyor}>
+      <View style={styles.filtre}>
+        <FormRow minColumnWidth={130}>
+          <DateField label="Başlangıç" value={tarihFormatla(baslangic)} onPress={() => setAcikPicker('baslangic')} />
+          <DateField label="Bitiş" value={tarihFormatla(bitis)} onPress={() => setAcikPicker('bitis')} />
+        </FormRow>
+        <InfoBox tone="neutral" icon="calendar-range">
+          {`En fazla ${EN_FAZLA_GUN} günlük aralık sorgulanabilir (GİB sınırı).`}
+        </InfoBox>
+        <PrimaryButton icon="magnify" onPress={handleSorgula} loading={yukleniyor} disabled={yukleniyor} fullWidth>
           Sorgula
-        </Button>
+        </PrimaryButton>
       </View>
 
       {acikPicker && (
@@ -103,8 +92,5 @@ export default function TarihAraligiFiltresi({ baslangic, bitis, onDegisti, onSo
 }
 
 const styles = StyleSheet.create({
-  filtreBar: { padding: 16, gap: 12 },
-  tarihRow: { flexDirection: 'row', gap: 12 },
-  tarihButon: { flex: 1, borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  mutedText: { opacity: 0.7 },
+  filtre: { paddingHorizontal: spacing.screen, paddingTop: spacing.xs, paddingBottom: spacing.md, gap: spacing.sm },
 });
