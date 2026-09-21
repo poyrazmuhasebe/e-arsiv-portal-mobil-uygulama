@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Appbar, Button, Text, useTheme } from 'react-native-paper';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
+import { Alert, AppHeader, AppScreen, InfoBox, PrimaryButton } from '../components/ui';
 import { faturaKaydet, gibHatasiniIsle } from '../services/gibApi';
 import { useAuthStore } from '../store/useAuthStore';
 import { aliciKaydet } from '../utils/aliciDefteri';
@@ -12,6 +11,7 @@ import { malHizmetKaydet } from '../utils/malHizmetDefteri';
 import { faturaOzetiHesapla, kalemHesapla, kalemlerAralikHatasi, parseNumara } from '../utils/faturaHesap';
 import { vknTcknGecerliMi } from '../utils/kimlikDogrula';
 import { vergiUyumsuzlukHatasi } from '../utils/vergiDestegi';
+import { spacing } from '../theme';
 import {
   VARSAYILAN_BIRIM,
   VARSAYILAN_FATURA_TIPI,
@@ -58,7 +58,6 @@ function saatFormatla(d: Date): string {
 }
 
 export default function FaturaKesimScreen({ navigation }: Props) {
-  const theme = useTheme();
   const token = useAuthStore((s) => s.token);
 
   const [form, setForm] = useState<FaturaFormState>(() => ({
@@ -188,14 +187,8 @@ export default function FaturaKesimScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: theme.colors.background }]}
-      edges={['top', 'bottom', 'left', 'right']}
-    >
-      <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Yeni Fatura Kes" />
-      </Appbar.Header>
+    <AppScreen>
+      <AppHeader title="Yeni Fatura Kes" onBack={() => navigation.goBack()} />
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -238,34 +231,32 @@ export default function FaturaKesimScreen({ navigation }: Props) {
             onKalemSil={kalemSil}
           />
 
+          {/* Toplamlar + Not (iki ayrı bölüm kartı). */}
           <ToplamlarKarti ozet={ozet} paraBirimi={form.paraBirimi} not={form.not} onNotChange={(v) => setForm((p) => ({ ...p, not: v }))} />
 
-          {formHatasi && (
-            <Text variant="bodySmall" style={{ color: theme.colors.error, marginTop: 12, textAlign: 'center' }}>
-              {formHatasi}
-            </Text>
-          )}
+          {formHatasi && <InfoBox tone="danger">{formHatasi}</InfoBox>}
 
-          <Button
-            mode="contained"
+          <PrimaryButton
+            icon="file-document-check-outline"
             onPress={handleOlustur}
             disabled={!formGecerli || kaydediliyor}
             loading={kaydediliyor}
-            style={styles.olusturButonu}
-            contentStyle={styles.olusturButonuIcerik}
+            fullWidth
           >
             Oluştur
-          </Button>
+          </PrimaryButton>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
   flex: { flex: 1 },
-  scrollContent: { padding: 16, gap: 16 },
-  olusturButonu: { borderRadius: 8, marginTop: 4 },
-  olusturButonuIcerik: { paddingVertical: 6 },
+  scrollContent: {
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xxl,
+    gap: spacing.card,
+  },
 });

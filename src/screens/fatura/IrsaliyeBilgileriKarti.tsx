@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Platform, Pressable, StyleSheet } from 'react-native';
-import { Card, Text, TextInput, useTheme } from 'react-native-paper';
+import { Platform } from 'react-native';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
+
+import { AppInput, DateField, SectionCard } from '../../components/ui';
 
 function tarihFormatla(d: Date): string {
   const gg = String(d.getDate()).padStart(2, '0');
@@ -22,7 +23,6 @@ export default function IrsaliyeBilgileriKarti({
   onIrsaliyeNoChange,
   onIrsaliyeTarihiChange,
 }: Props) {
-  const theme = useTheme();
   const [pickerAcik, setPickerAcik] = useState(false);
 
   const handleTarihSecildi = (_event: DateTimePickerChangeEvent, secilen: Date) => {
@@ -31,40 +31,26 @@ export default function IrsaliyeBilgileriKarti({
   };
 
   return (
-    <Card mode="elevated" style={styles.card}>
-      <Card.Title title="İrsaliye Bilgisi" />
-      <Card.Content style={styles.icerik}>
-        <TextInput
-          mode="outlined"
-          label="İrsaliye Numarası"
-          value={irsaliyeNo}
-          onChangeText={onIrsaliyeNoChange}
+    <SectionCard title="İrsaliye Bilgisi" icon="truck-outline" optional>
+      <AppInput label="İrsaliye Numarası" value={irsaliyeNo} onChangeText={onIrsaliyeNoChange} />
+
+      {/* Tarih seçilmemişse alan boş görünür (placeholder). */}
+      <DateField
+        label="İrsaliye Tarihi"
+        value={irsaliyeTarihi ? tarihFormatla(irsaliyeTarihi) : undefined}
+        placeholder="__ / __ / ____"
+        onPress={() => setPickerAcik(true)}
+      />
+
+      {pickerAcik && (
+        <DateTimePicker
+          value={irsaliyeTarihi ?? new Date()}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'inline' : 'default'}
+          onValueChange={handleTarihSecildi}
+          onDismiss={() => setPickerAcik(false)}
         />
-
-        <Pressable onPress={() => setPickerAcik(true)} style={[styles.alan, { borderColor: theme.colors.outline }]}>
-          <Text variant="labelSmall" style={styles.mutedText}>
-            İrsaliye Tarihi
-          </Text>
-          <Text variant="bodyMedium">{irsaliyeTarihi ? tarihFormatla(irsaliyeTarihi) : '__ / __ / ____'}</Text>
-        </Pressable>
-
-        {pickerAcik && (
-          <DateTimePicker
-            value={irsaliyeTarihi ?? new Date()}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            onValueChange={handleTarihSecildi}
-            onDismiss={() => setPickerAcik(false)}
-          />
-        )}
-      </Card.Content>
-    </Card>
+      )}
+    </SectionCard>
   );
 }
-
-const styles = StyleSheet.create({
-  card: { borderRadius: 16 },
-  icerik: { gap: 12 },
-  alan: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  mutedText: { opacity: 0.7 },
-});

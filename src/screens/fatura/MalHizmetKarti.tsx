@@ -1,9 +1,25 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Card, Dialog, Divider, IconButton, List, Portal, SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SegmentedButtons } from 'react-native-paper';
 
 import SecimAlani from '../../components/SecimAlani';
+import {
+  Alert,
+  AppCard,
+  AppDialog,
+  AppIconButton,
+  AppInput,
+  DetailRow,
+  DialogText,
+  FormRow,
+  Icon,
+  InfoBox,
+  SecondaryButton,
+  SectionCard,
+  TextButton,
+} from '../../components/ui';
 import { BIRIMLER, KDV_ORANLARI, TEVKIFAT_KODLARI, VERGI_TURLERI } from '../../constants/faturaConstants';
+import { TOUCH_MIN, colors, radius, spacing, typography } from '../../theme';
 import { kalemHesapla } from '../../utils/faturaHesap';
 import { tutarEtiketi } from '../../utils/paraBirimi';
 import { VERGI_SECENEKLERI, kalemVergiHatasi, tevkifatFaturaTipiyleUyumluMu } from '../../utils/vergiDestegi';
@@ -61,229 +77,224 @@ export default function MalHizmetKarti({
   };
 
   return (
-    <Card mode="elevated" style={styles.card}>
-      <Card.Title title="Mal/Hizmet Bilgileri" />
-      <Card.Content style={styles.icerik}>
-        {kalemler.map((kalem, index) => {
-          const hesap = kalemHesapla(kalem);
-          const vergiEklendi = Boolean(kalem.ekVergi);
-          const vergiHatasi = kalemVergiHatasi(kalem, faturaTipi);
+    <SectionCard title="Mal/Hizmet Bilgileri" icon="package-variant-closed">
+      {kalemler.map((kalem, index) => {
+        const hesap = kalemHesapla(kalem);
+        const vergiEklendi = Boolean(kalem.ekVergi);
+        const vergiHatasi = kalemVergiHatasi(kalem, faturaTipi);
 
-          return (
-            <Card key={kalem.id} mode="outlined" style={styles.kalemKart}>
-              <Card.Content style={styles.icerik}>
-                <View style={styles.kalemBaslik}>
-                  <Text variant="labelLarge">Kalem {index + 1}</Text>
-                  {kalemler.length > 1 && (
-                    <IconButton
-                      icon="delete-outline"
-                      size={20}
-                      onPress={() => onKalemSil(kalem.id)}
-                      accessibilityLabel={`Kalem ${index + 1} sil`}
-                    />
-                  )}
-                </View>
-
-                <TextInput
-                  mode="outlined"
-                  label="Mal/Hizmet Adı *"
-                  value={kalem.malHizmet}
-                  onChangeText={(v) => onKalemGuncelle(kalem.id, { malHizmet: v })}
+        return (
+          // Her satır kendi iç kartında: başlık + (birden çok satır varsa) sil düğmesi.
+          <AppCard key={kalem.id} elevated style={styles.kalemKart}>
+            <View style={styles.kalemBaslik}>
+              <Text style={typography.cardTitle}>Satır {index + 1}</Text>
+              {kalemler.length > 1 && (
+                <AppIconButton
+                  icon="delete-outline"
+                  variant="danger"
+                  onPress={() => onKalemSil(kalem.id)}
+                  accessibilityLabel={`Satır ${index + 1} sil`}
                 />
-                <Button
-                  mode="text"
-                  compact
-                  icon="format-list-bulleted"
-                  onPress={() => kayitliSecimiAc(kalem.id)}
-                  style={styles.kayitliSecButonu}
-                >
-                  Kayıtlı Mal/Hizmet Seç
-                </Button>
+              )}
+            </View>
 
-                <View style={styles.satir}>
-                  <TextInput
-                    mode="outlined"
-                    label="Miktar"
-                    value={kalem.miktar}
-                    onChangeText={(v) => onKalemGuncelle(kalem.id, { miktar: v })}
-                    keyboardType="decimal-pad"
-                    style={styles.flexEsit}
-                  />
-                  <TextInput
-                    mode="outlined"
-                    label="Birim Fiyat"
-                    value={kalem.birimFiyat}
-                    onChangeText={(v) => onKalemGuncelle(kalem.id, { birimFiyat: v })}
-                    keyboardType="decimal-pad"
-                    style={styles.flexEsit}
-                  />
-                </View>
+            <View>
+              <AppInput
+                label="Mal/Hizmet Adı *"
+                value={kalem.malHizmet}
+                onChangeText={(v) => onKalemGuncelle(kalem.id, { malHizmet: v })}
+              />
+              <TextButton
+                icon="format-list-bulleted"
+                onPress={() => kayitliSecimiAc(kalem.id)}
+                compact
+                style={styles.kayitliSecButonu}
+              >
+                Kayıtlı Mal/Hizmet Seç
+              </TextButton>
+            </View>
 
+            <FormRow>
+              <AppInput
+                label="Miktar"
+                value={kalem.miktar}
+                onChangeText={(v) => onKalemGuncelle(kalem.id, { miktar: v })}
+                keyboardType="decimal-pad"
+              />
+              <SecimAlani
+                label="Birim *"
+                value={kalem.birim}
+                secenekler={BIRIMLER}
+                onSelect={(v) => onKalemGuncelle(kalem.id, { birim: v })}
+              />
+            </FormRow>
+
+            <FormRow>
+              <AppInput
+                label="Birim Fiyat"
+                value={kalem.birimFiyat}
+                onChangeText={(v) => onKalemGuncelle(kalem.id, { birimFiyat: v })}
+                keyboardType="decimal-pad"
+              />
+              <AppInput
+                label="İskonto Oranı %"
+                value={kalem.iskontoOrani}
+                onChangeText={(v) => onKalemGuncelle(kalem.id, { iskontoOrani: v })}
+                keyboardType="decimal-pad"
+              />
+            </FormRow>
+
+            <View style={styles.kdvAlani}>
+              <Text style={typography.label}>KDV Oranı</Text>
+              <SegmentedButtons
+                value={String(kalem.kdvOrani)}
+                onValueChange={(v) => onKalemGuncelle(kalem.id, { kdvOrani: Number(v) as KdvOrani })}
+                buttons={KDV_ORANLARI.map((oran) => ({ value: String(oran), label: `%${oran}` }))}
+              />
+            </View>
+
+            {/* Satırın hesaplanan tutarları (yalnızca gösterim). */}
+            <View style={styles.tutarlar}>
+              <DetailRow label="Mal/Hizmet Tutarı" value={tutarEtiketi(hesap.netTutar, paraBirimi)} numeric />
+              <DetailRow label="KDV Tutarı" value={tutarEtiketi(hesap.kdvTutari, paraBirimi)} numeric />
+            </View>
+
+            {!vergiEklendi ? (
+              <View style={[styles.bolum, styles.ayrac]}>
                 <SecimAlani
-                  label="Birim *"
-                  value={kalem.birim}
-                  secenekler={BIRIMLER}
-                  onSelect={(v) => onKalemGuncelle(kalem.id, { birim: v })}
+                  label="Vergi Seçiniz"
+                  value={kalem.ekVergi?.tur ?? ''}
+                  secenekler={VERGI_SECENEKLERI}
+                  onSelect={(v) => onKalemGuncelle(kalem.id, { ekVergi: { tur: v } })}
                 />
-
-                <TextInput
-                  mode="outlined"
-                  label="İskonto Oranı %"
-                  value={kalem.iskontoOrani}
-                  onChangeText={(v) => onKalemGuncelle(kalem.id, { iskontoOrani: v })}
-                  keyboardType="decimal-pad"
-                />
-
-                <Text variant="bodySmall" style={styles.mutedText}>
-                  KDV Oranı
+                <Text style={styles.vergiNotu}>
+                  Şimdilik yalnızca KDV Tevkifat hesaplanıp GİB'e gönderilebiliyor.
                 </Text>
-                <SegmentedButtons
-                  value={String(kalem.kdvOrani)}
-                  onValueChange={(v) => onKalemGuncelle(kalem.id, { kdvOrani: Number(v) as KdvOrani })}
-                  buttons={KDV_ORANLARI.map((oran) => ({ value: String(oran), label: `%${oran}` }))}
-                />
-
-                <Divider />
-
-                <View style={styles.ozetSatir}>
-                  <Text variant="bodySmall" style={styles.mutedText}>
-                    Mal/Hizmet Tutarı
+              </View>
+            ) : (
+              <View style={[styles.bolum, styles.ayrac]}>
+                <View style={styles.kalemBaslik}>
+                  <Text style={[typography.label, styles.ekVergiBaslik]}>
+                    Ek Vergi: {VERGI_TURLERI.find((v) => v.value === kalem.ekVergi?.tur)?.label}
                   </Text>
-                  <Text variant="bodyMedium">{tutarEtiketi(hesap.netTutar, paraBirimi)}</Text>
-                </View>
-                <View style={styles.ozetSatir}>
-                  <Text variant="bodySmall" style={styles.mutedText}>
-                    KDV Tutarı
-                  </Text>
-                  <Text variant="bodyMedium">{tutarEtiketi(hesap.kdvTutari, paraBirimi)}</Text>
+                  <AppIconButton
+                    icon="close"
+                    size={20}
+                    accessibilityLabel="Vergiyi kaldır"
+                    onPress={() => onKalemGuncelle(kalem.id, { ekVergi: undefined })}
+                  />
                 </View>
 
-                <Divider />
-
-                {!vergiEklendi ? (
-                  <View style={styles.satir}>
-                    <View style={styles.flexEsit}>
-                      <SecimAlani
-                        label="Vergi Seçiniz"
-                        value={kalem.ekVergi?.tur ?? ''}
-                        secenekler={VERGI_SECENEKLERI}
-                        onSelect={(v) => onKalemGuncelle(kalem.id, { ekVergi: { tur: v } })}
-                      />
-                      <Text variant="bodySmall" style={[styles.mutedText, styles.vergiNotu]}>
-                        Şimdilik yalnızca KDV Tevkifat hesaplanıp GİB'e gönderilebiliyor.
-                      </Text>
-                    </View>
-                  </View>
-                ) : (
-                  <View style={styles.icerik}>
-                    <View style={styles.kalemBaslik}>
-                      <Text variant="labelMedium">
-                        Ek Vergi: {VERGI_TURLERI.find((v) => v.value === kalem.ekVergi?.tur)?.label}
-                      </Text>
-                      <IconButton
-                        icon="close"
-                        size={18}
-                        accessibilityLabel="Vergiyi kaldır"
-                        onPress={() => onKalemGuncelle(kalem.id, { ekVergi: undefined })}
-                      />
-                    </View>
-
-                    {kalem.ekVergi?.tur === 'V9015' && tevkifatDesteklenir && (
-                      <>
-                        <SecimAlani
-                          label="Tevkifat Kodu"
-                          value={kalem.ekVergi?.tevkifatKodu ?? ''}
-                          secenekler={TEVKIFAT_KODLARI}
-                          onSelect={(v) =>
-                            onKalemGuncelle(kalem.id, {
-                              ekVergi: { ...kalem.ekVergi, tur: 'V9015', tevkifatKodu: v },
-                            })
-                          }
+                {kalem.ekVergi?.tur === 'V9015' && tevkifatDesteklenir && (
+                  <View style={styles.bolum}>
+                    <SecimAlani
+                      label="Tevkifat Kodu"
+                      value={kalem.ekVergi?.tevkifatKodu ?? ''}
+                      secenekler={TEVKIFAT_KODLARI}
+                      onSelect={(v) =>
+                        onKalemGuncelle(kalem.id, {
+                          ekVergi: { ...kalem.ekVergi, tur: 'V9015', tevkifatKodu: v },
+                        })
+                      }
+                    />
+                    {hesap.tevkifatOrani !== undefined && (
+                      <View style={styles.bolum}>
+                        <DetailRow label="KDV Tevkifat Oranı" value={`${hesap.tevkifatOrani}/10`} numeric />
+                        <DetailRow
+                          label="Hesaplanan KDV Tevkifat Tutarı"
+                          value={tutarEtiketi(hesap.tevkifatTutari, paraBirimi)}
+                          numeric
                         />
-                        {hesap.tevkifatOrani !== undefined && (
-                          <>
-                            <View style={styles.ozetSatir}>
-                              <Text variant="bodySmall" style={styles.mutedText}>
-                                KDV Tevkifat Oranı
-                              </Text>
-                              <Text variant="bodyMedium">{hesap.tevkifatOrani}/10</Text>
-                            </View>
-                            <View style={styles.ozetSatir}>
-                              <Text variant="bodySmall" style={styles.mutedText}>
-                                Hesaplanan KDV Tevkifat Tutarı
-                              </Text>
-                              <Text variant="bodyMedium">{tutarEtiketi(hesap.tevkifatTutari, paraBirimi)}</Text>
-                            </View>
-                          </>
-                        )}
-                      </>
-                    )}
-
-                    {vergiHatasi && (
-                      <Text variant="bodySmall" style={styles.uyariMetni}>
-                        {vergiHatasi}
-                      </Text>
+                      </View>
                     )}
                   </View>
                 )}
-              </Card.Content>
-            </Card>
-          );
-        })}
 
-        <Button mode="outlined" icon="plus" onPress={onKalemEkle} style={styles.satirEkleButonu}>
-          Satır Ekle
-        </Button>
-      </Card.Content>
-
-      <Portal>
-        <Dialog visible={secimKalemId !== null} onDismiss={() => setSecimKalemId(null)} style={styles.dialog}>
-          <Dialog.Title>Kayıtlı Mal/Hizmetler</Dialog.Title>
-          <Dialog.ScrollArea style={styles.dialogScroll}>
-            {kayitliAdlar.length === 0 ? (
-              <Text variant="bodyMedium" style={[styles.mutedText, styles.bosListe]}>
-                Henüz kayıtlı mal/hizmet yok. Bir fatura başarıyla oluşturulunca kalemlerdeki adlar
-                otomatik kaydedilir.
-              </Text>
-            ) : (
-              <ScrollView>
-                {kayitliAdlar.map((ad) => (
-                  <List.Item
-                    key={ad}
-                    title={ad}
-                    titleNumberOfLines={2}
-                    onPress={() => kayitliAdSec(ad)}
-                    right={() => (
-                      <IconButton icon="delete-outline" accessibilityLabel={`${ad} sil`} onPress={() => kayitliAdSil(ad)} />
-                    )}
-                  />
-                ))}
-              </ScrollView>
+                {vergiHatasi && <InfoBox tone="danger">{vergiHatasi}</InfoBox>}
+              </View>
             )}
-          </Dialog.ScrollArea>
-          <Dialog.Actions>
-            <Button onPress={() => setSecimKalemId(null)}>Kapat</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-    </Card>
+          </AppCard>
+        );
+      })}
+
+      <SecondaryButton icon="plus" onPress={onKalemEkle} fullWidth>
+        Satır Ekle
+      </SecondaryButton>
+
+      <AppDialog
+        visible={secimKalemId !== null}
+        onDismiss={() => setSecimKalemId(null)}
+        title="Kayıtlı Mal/Hizmetler"
+        icon="format-list-bulleted"
+        actions={
+          <TextButton onPress={() => setSecimKalemId(null)} compact>
+            Kapat
+          </TextButton>
+        }
+      >
+        {kayitliAdlar.length === 0 ? (
+          <DialogText>
+            Henüz kayıtlı mal/hizmet yok. Bir fatura başarıyla oluşturulunca kalemlerdeki adlar otomatik kaydedilir.
+          </DialogText>
+        ) : (
+          <View style={styles.liste}>
+            {kayitliAdlar.map((ad) => (
+              <View key={ad} style={styles.listeOgesi}>
+                <Pressable
+                  onPress={() => kayitliAdSec(ad)}
+                  accessibilityRole="button"
+                  accessibilityLabel={ad}
+                  android_ripple={{ color: colors.primarySoft }}
+                  style={({ pressed }) => [styles.listeSecim, pressed && styles.basili]}
+                >
+                  <Icon name="package-variant-closed" size={20} color={colors.primary} />
+                  <Text style={[typography.body, styles.listeMetni]} numberOfLines={2}>
+                    {ad}
+                  </Text>
+                </Pressable>
+                <AppIconButton
+                  icon="delete-outline"
+                  variant="danger"
+                  accessibilityLabel={`${ad} sil`}
+                  onPress={() => kayitliAdSil(ad)}
+                />
+              </View>
+            ))}
+          </View>
+        )}
+      </AppDialog>
+    </SectionCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 16 },
-  icerik: { gap: 12 },
-  kalemKart: { borderRadius: 12 },
-  kalemBaslik: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  satir: { flexDirection: 'row', gap: 12 },
-  flexEsit: { flex: 1 },
-  mutedText: { opacity: 0.7 },
-  uyariMetni: { color: '#f2b8b5' },
-  vergiNotu: { marginTop: 4 },
-  ozetSatir: { flexDirection: 'row', justifyContent: 'space-between' },
-  satirEkleButonu: { alignSelf: 'flex-start' },
-  kayitliSecButonu: { alignSelf: 'flex-start', marginTop: -8 },
-  dialog: { maxHeight: '80%' },
-  dialogScroll: { paddingHorizontal: 0 },
-  bosListe: { padding: 16 },
+  kalemKart: { gap: spacing.sm },
+  kalemBaslik: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.xs },
+  kayitliSecButonu: { alignSelf: 'flex-start', marginTop: spacing.xxs },
+  kdvAlani: { gap: spacing.xs },
+  tutarlar: {
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  bolum: { gap: spacing.sm },
+  ayrac: { paddingTop: spacing.xs, borderTopWidth: 1, borderTopColor: colors.border },
+  vergiNotu: { ...typography.caption, paddingHorizontal: spacing.xxs },
+  ekVergiBaslik: { flex: 1, color: colors.textPrimary },
+  liste: { gap: 2, marginHorizontal: -spacing.xs },
+  listeOgesi: { flexDirection: 'row', alignItems: 'center', gap: spacing.xxs },
+  listeSecim: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: TOUCH_MIN,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xxs,
+    borderRadius: radius.small,
+    overflow: 'hidden',
+  },
+  basili: { backgroundColor: colors.primarySoft },
+  listeMetni: { flex: 1, minWidth: 0 },
 });

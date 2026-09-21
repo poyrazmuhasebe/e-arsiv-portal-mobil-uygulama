@@ -1,10 +1,23 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, SectionList, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityIndicator, Appbar, Button, IconButton, List, Searchbar, Switch, Text, useTheme } from 'react-native-paper';
+import { SectionList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
+import {
+  Alert,
+  AppCard,
+  AppHeader,
+  AppIconButton,
+  AppScreen,
+  EmptyState,
+  Icon,
+  InfoBox,
+  PrimaryButton,
+  SearchBar,
+  StatusBadge,
+  ToggleRow,
+} from '../components/ui';
 import {
   KLASOR_SECILEBILIR,
   aktifMukellef,
@@ -17,6 +30,7 @@ import {
   type YedekDosyasi,
 } from '../services/yedekDeposu';
 import { useAuthStore } from '../store/useAuthStore';
+import { TOUCH_MIN, colors, radius, spacing, typography } from '../theme';
 import { mukellefKlasoruMu, type Mukellef } from '../utils/yedekleme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'YedekleriGoruntule'>;
@@ -28,12 +42,15 @@ function boyutMetni(bayt: number | null): string {
   return `${(bayt / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/** "2026-09-15_GIB2026000000012_ONAYSIZ.pdf" → tarih ve belge no. */
-function dosyaAdiniCoz(ad: string): { baslik: string; alt: string } {
+/**
+ * "2026-09-15_GIB2026000000012_ONAYSIZ.pdf" → tarih, belge no ve (varsa)
+ * durum. Durum ayrı döner ki satırda rozet olarak gösterilebilsin.
+ */
+function dosyaAdiniCoz(ad: string): { baslik: string; tarih: string; durum: 'ONAYSIZ' | 'SILINMIS' | null } {
   const m = /^(\d{4})-(\d{2})-(\d{2})_(.+?)(_ONAYSIZ|_SILINMIS)?\.pdf$/i.exec(ad);
-  if (!m) return { baslik: ad, alt: '' };
-  const durum = m[5] === '_ONAYSIZ' ? ' · Onaylanmamış' : m[5] === '_SILINMIS' ? ' · Silinmiş' : '';
-  return { baslik: m[4], alt: `${m[3]}.${m[2]}.${m[1]}${durum}` };
+  if (!m) return { baslik: ad, tarih: '', durum: null };
+  const durum = m[5] === '_ONAYSIZ' ? 'ONAYSIZ' : m[5] === '_SILINMIS' ? 'SILINMIS' : null;
+  return { baslik: m[4], tarih: `${m[3]}.${m[2]}.${m[1]}`, durum };
 }
 
 /**
@@ -43,7 +60,6 @@ function dosyaAdiniCoz(ad: string): { baslik: string; alt: string } {
  * (e-posta, WhatsApp, Drive, "Dosyalara Kaydet" vb.). GİB'e istek atılmaz.
  */
 export default function YedekleriGoruntuleScreen({ navigation }: Props) {
-  const theme = useTheme();
   const [yukleniyor, setYukleniyor] = useState(true);
   const [klasorAdi, setKlasorAdi] = useState<string | null>(null);
   const [gruplar, setGruplar] = useState<MukellefYedegi[]>([]);
@@ -113,118 +129,165 @@ export default function YedekleriGoruntuleScreen({ navigation }: Props) {
     .filter((b) => b.data.length > 0);
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: theme.colors.background }]}
-      edges={['top', 'bottom', 'left', 'right']}
-    >
-      <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Yedeklenen Faturalar" />
-        <Appbar.Action icon="refresh" accessibilityLabel="Yenile" onPress={yukle} />
-      </Appbar.Header>
+    <AppScreen>
+      <AppHeader
+        title="Yedeklenen Faturalar"
+        onBack={() => navigation.goBack()}
+        right={<AppIconButton icon="refresh" accessibilityLabel="Yenile" onPress={yukle} />}
+      />
 
       {yukleniyor ? (
         <View style={styles.merkezi}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : klasorAdi === null ? (
         <View style={styles.merkezi}>
-          <Text variant="bodyMedium" style={styles.ortaMetin}>
-            Henüz bir yedek klasörü seçilmedi.
-          </Text>
-          <Button mode="contained" onPress={() => navigation.replace('Yedekle')}>
-            Faturaları Şimdi Yedekle
-          </Button>
+          <EmptyState
+            icon="folder-alert-outline"
+            title="Henüz bir yedek klasörü seçilmedi."
+            action={
+              <PrimaryButton icon="folder-download-outline" onPress={() => navigation.replace('Yedekle')} fullWidth>
+                Faturaları Şimdi Yedekle
+              </PrimaryButton>
+            }
+          />
         </View>
       ) : (
         <SectionList
           sections={bolumler}
           keyExtractor={(item) => item.dosya.uri}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={styles.liste}
           stickySectionHeadersEnabled={false}
           ListHeaderComponent={
-            <View style={styles.baslik}>
-              <Text variant="bodySmall" style={styles.mutedText}>
-                Klasör: {klasorAdi}
-                {KLASOR_SECILEBILIR ? '' : ' (yalnızca bu uygulamadan erişilir)'}
-              </Text>
-              {mukellef === null ? (
-                <Text variant="bodySmall" style={styles.mutedText}>
-                  Açık hesabın mükellefi belirlenemedi; cihazdaki tüm mükelleflerin yedekleri gösteriliyor.
+            <View style={styles.ustKisim}>
+              <View style={styles.klasorSatiri}>
+                <Icon name="folder-outline" size={18} color={colors.textMuted} />
+                <Text style={[typography.caption, styles.klasorMetni]}>
+                  Klasör: {klasorAdi}
+                  {KLASOR_SECILEBILIR ? '' : ' (yalnızca bu uygulamadan erişilir)'}
                 </Text>
+              </View>
+              {mukellef === null ? (
+                <InfoBox tone="neutral">
+                  Açık hesabın mükellefi belirlenemedi; cihazdaki tüm mükelleflerin yedekleri gösteriliyor.
+                </InfoBox>
               ) : (
                 digerSayisi > 0 && (
-                  <View style={styles.anahtarSatiri}>
-                    <Text variant="bodySmall" style={styles.anahtarMetni}>
-                      Diğer mükelleflerin yedeklerini de göster ({digerSayisi})
-                    </Text>
-                    <Switch value={digerleriniGoster} onValueChange={setDigerleriniGoster} />
-                  </View>
+                  <AppCard>
+                    <ToggleRow
+                      title={`Diğer mükelleflerin yedeklerini de göster (${digerSayisi})`}
+                      value={digerleriniGoster}
+                      onValueChange={setDigerleriniGoster}
+                    />
+                  </AppCard>
                 )
               )}
-              <Searchbar placeholder="Belge numarası ya da tarih ara" value={arama} onChangeText={setArama} />
+              <SearchBar placeholder="Belge numarası ya da tarih ara" value={arama} onChangeText={setArama} />
             </View>
           }
           renderSectionHeader={({ section }) => (
-            <List.Subheader>
-              {section.title} ({section.toplam} fatura)
-            </List.Subheader>
+            <View style={styles.bolumBasligi} accessibilityRole="header">
+              <Text style={[typography.cardTitle, styles.bolumAdi]}>{section.title}</Text>
+              <Text style={typography.caption}>{section.toplam} fatura</Text>
+            </View>
           )}
           renderItem={({ item }) => {
-            const { baslik, alt } = dosyaAdiniCoz(item.ad);
+            const { baslik, tarih, durum } = dosyaAdiniCoz(item.ad);
             const buMesgul = mesgul === item.dosya.uri;
+            const boyut = boyutMetni(item.boyut);
             return (
-              <List.Item
-                title={baslik}
-                description={[alt, boyutMetni(item.boyut)].filter(Boolean).join(' · ')}
-                left={(p) => <List.Icon {...p} icon="file-pdf-box" />}
+              <AppCard
                 onPress={() => islem(item, 'ac')}
                 disabled={mesgul !== null}
-                right={() =>
-                  buMesgul ? (
-                    <ActivityIndicator style={styles.satirSpinner} />
-                  ) : (
-                    <IconButton
-                      icon="share-variant"
-                      accessibilityLabel="Paylaş / Kaydet"
-                      onPress={() => islem(item, 'paylas')}
-                      disabled={mesgul !== null}
-                    />
-                  )
-                }
-              />
+                accessibilityLabel={`${baslik} faturasını aç`}
+                style={styles.satir}
+              >
+                <View style={styles.pdfKarosu}>
+                  <Icon name="file-pdf-box" size={26} color={colors.danger} />
+                </View>
+                <View style={styles.satirMetinleri}>
+                  <Text style={typography.cardTitle} numberOfLines={1}>
+                    {baslik}
+                  </Text>
+                  <View style={styles.satirAlt}>
+                    {tarih ? <Text style={typography.bodySecondary}>{tarih}</Text> : null}
+                    {durum === 'SILINMIS' ? (
+                      <StatusBadge status="deleted" label="Silinmiş" />
+                    ) : durum === 'ONAYSIZ' ? (
+                      <StatusBadge status="draft" label="Onaylanmamış" />
+                    ) : null}
+                    {boyut ? <Text style={typography.caption}>{boyut}</Text> : null}
+                  </View>
+                </View>
+                {buMesgul ? (
+                  <View style={styles.satirSpinner}>
+                    <ActivityIndicator color={colors.primary} />
+                  </View>
+                ) : (
+                  <AppIconButton
+                    icon="share-variant"
+                    accessibilityLabel="Paylaş / Kaydet"
+                    onPress={() => islem(item, 'paylas')}
+                    disabled={mesgul !== null}
+                  />
+                )}
+              </AppCard>
             );
           }}
           ListEmptyComponent={
-            <View style={styles.merkezi}>
-              <Text variant="bodyMedium" style={[styles.mutedText, styles.ortaMetin]}>
-                {aranan
+            <EmptyState
+              icon={aranan ? 'file-search-outline' : 'folder-open-outline'}
+              title={
+                aranan
                   ? 'Aramaya uyan yedek yok.'
                   : mukellef !== null && !digerleriniGoster
                     ? 'Bu mükellefin henüz yedeklenmiş faturası yok.'
-                    : 'Bu klasörde henüz yedeklenmiş fatura yok.'}
-              </Text>
-              {!aranan && (
-                <Button mode="contained" onPress={() => navigation.replace('Yedekle')}>
-                  Faturaları Şimdi Yedekle
-                </Button>
-              )}
-            </View>
+                    : 'Bu klasörde henüz yedeklenmiş fatura yok.'
+              }
+              action={
+                !aranan ? (
+                  <PrimaryButton
+                    icon="folder-download-outline"
+                    onPress={() => navigation.replace('Yedekle')}
+                    fullWidth
+                  >
+                    Faturaları Şimdi Yedekle
+                  </PrimaryButton>
+                ) : undefined
+              }
+            />
           }
         />
       )}
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  merkezi: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
-  ortaMetin: { textAlign: 'center' },
-  listContent: { paddingBottom: 24 },
-  baslik: { padding: 16, gap: 12 },
-  mutedText: { opacity: 0.7 },
-  satirSpinner: { marginHorizontal: 16 },
-  anahtarSatiri: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  anahtarMetni: { flex: 1 },
+  merkezi: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.md },
+  liste: { paddingHorizontal: spacing.screen, paddingBottom: spacing.xxl, gap: spacing.xs, flexGrow: 1 },
+  ustKisim: { paddingTop: spacing.xs, paddingBottom: spacing.xs, gap: spacing.sm },
+  klasorSatiri: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  klasorMetni: { flex: 1, minWidth: 0 },
+  bolumBasligi: { paddingTop: spacing.md, paddingBottom: spacing.xxs, gap: 2 },
+  bolumAdi: { flexShrink: 1 },
+  satir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+    paddingRight: spacing.xxs,
+    minHeight: 64,
+  },
+  pdfKarosu: {
+    width: TOUCH_MIN,
+    height: TOUCH_MIN,
+    borderRadius: radius.medium,
+    backgroundColor: colors.dangerBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  satirMetinleri: { flex: 1, minWidth: 0, gap: 2 },
+  satirAlt: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: spacing.xs, rowGap: 2 },
+  satirSpinner: { width: TOUCH_MIN, height: TOUCH_MIN, alignItems: 'center', justifyContent: 'center' },
 });

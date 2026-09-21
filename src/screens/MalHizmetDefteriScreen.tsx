@@ -1,10 +1,25 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityIndicator, Appbar, Button, Card, Searchbar, Text, TextInput, useTheme } from 'react-native-paper';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
+import {
+  Alert,
+  AppCard,
+  AppHeader,
+  AppIconButton,
+  AppInput,
+  AppScreen,
+  DangerSoftButton,
+  EmptyState,
+  InfoBox,
+  PrimaryButton,
+  SearchBar,
+  SecondaryButton,
+  SectionCard,
+  TextButton,
+} from '../components/ui';
+import { colors, spacing, typography } from '../theme';
 import {
   MAL_HIZMET_AD_EN_UZUN,
   MAX_MAL_HIZMET_KAYDI,
@@ -46,8 +61,6 @@ function sonucMesaji(sonuc: DefterIslemSonucu): { baslik: string; mesaj: string 
  * kullanır. Yalnızca adlar saklanır (tutar/miktar değil), cihazda kalır.
  */
 export default function MalHizmetDefteriScreen({ navigation }: Props) {
-  const theme = useTheme();
-
   const [liste, setListe] = useState<string[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [arama, setArama] = useState('');
@@ -141,147 +154,163 @@ export default function MalHizmetDefteriScreen({ navigation }: Props) {
   const aramaKucuk = arama.trim().toLocaleLowerCase('tr-TR');
   const gorunenler = aramaKucuk ? liste.filter((ad) => ad.toLocaleLowerCase('tr-TR').includes(aramaKucuk)) : liste;
 
-  return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: theme.colors.background }]}
-      edges={['top', 'bottom', 'left', 'right']}
-    >
-      <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Mal/Hizmet Defteri" />
-        <Appbar.Action
-          icon="plus"
-          accessibilityLabel="Mal/hizmet ekle"
-          onPress={() => {
-            setDuzenlenen(null);
-            setYeniAd('');
-          }}
-        />
-      </Appbar.Header>
-
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
-          <Text variant="bodySmall" style={styles.aciklama}>
-            Bu defter yalnızca bu hesaba özeldir ve cihazda şifreli saklanır. Fatura başarıyla oluşturulunca kalem
-            adları otomatik eklenir; fatura formunda "Kayıtlı Mal/Hizmet Seç" ile kullanılır. Yalnızca adlar
-            saklanır. {liste.length}/{MAX_MAL_HIZMET_KAYDI} kayıt.
-          </Text>
-
-          {yeniAd !== null && (
-            <Card mode="elevated" style={styles.kart}>
-              <Card.Title title="Yeni mal/hizmet" />
-              <Card.Content style={styles.kartIcerik}>
-                <TextInput
-                  mode="outlined"
-                  label="Mal/Hizmet adı *"
-                  value={yeniAd}
-                  onChangeText={setYeniAd}
-                  maxLength={MAL_HIZMET_AD_EN_UZUN}
-                  autoFocus
-                  returnKeyType="done"
-                  onSubmitEditing={ekle}
-                />
-              </Card.Content>
-              <Card.Actions>
-                {[
-                  <Button key="vazgec" mode="text" onPress={() => setYeniAd(null)} disabled={mesgul}>
-                    Vazgeç
-                  </Button>,
-                  <Button
-                    key="kaydet"
-                    mode="contained"
-                    onPress={ekle}
-                    disabled={mesgul || yeniAd.trim().length === 0}
-                    loading={mesgul}
-                  >
-                    Deftere Kaydet
-                  </Button>,
-                ]}
-              </Card.Actions>
-            </Card>
-          )}
-
-          {liste.length > 0 && <Searchbar placeholder="Mal/hizmet adı ara" value={arama} onChangeText={setArama} />}
-
-          {yukleniyor ? (
-            <ActivityIndicator style={styles.yukleniyor} />
-          ) : liste.length === 0 ? (
-            <Text variant="bodyMedium" style={styles.aciklama}>
-              Henüz kayıtlı mal/hizmet yok. Sağ üstteki + düğmesiyle ekleyebilirsiniz.
-            </Text>
-          ) : gorunenler.length === 0 ? (
-            <Text variant="bodyMedium" style={styles.aciklama}>
-              Aramayla eşleşen kayıt yok.
-            </Text>
+  const kalemKartiCiz = ({ item: ad }: { item: string }) => {
+    const duzenleniyor = duzenlenen === ad;
+    return (
+      <AppCard style={styles.kart}>
+        {duzenleniyor ? (
+          <AppInput
+            label="Mal/Hizmet adı *"
+            value={taslakAd}
+            onChangeText={setTaslakAd}
+            maxLength={MAL_HIZMET_AD_EN_UZUN}
+            autoFocus
+            returnKeyType="done"
+            onSubmitEditing={duzenlemeyiKaydet}
+          />
+        ) : (
+          <Text style={typography.cardTitle}>{ad}</Text>
+        )}
+        <View style={styles.eylemler}>
+          {duzenleniyor ? (
+            <>
+              <TextButton compact onPress={() => setDuzenlenen(null)} disabled={mesgul}>
+                Vazgeç
+              </TextButton>
+              <PrimaryButton
+                compact
+                icon="content-save-outline"
+                onPress={duzenlemeyiKaydet}
+                disabled={mesgul || taslakAd.trim().length === 0}
+                loading={mesgul}
+              >
+                Kaydet
+              </PrimaryButton>
+            </>
           ) : (
-            gorunenler.map((ad) => {
-              const duzenleniyor = duzenlenen === ad;
-              return (
-                <Card key={ad} mode="elevated" style={styles.kart}>
-                  <Card.Content style={styles.kartIcerik}>
-                    {duzenleniyor ? (
-                      <TextInput
-                        mode="outlined"
-                        label="Mal/Hizmet adı *"
-                        value={taslakAd}
-                        onChangeText={setTaslakAd}
-                        maxLength={MAL_HIZMET_AD_EN_UZUN}
-                        autoFocus
-                        returnKeyType="done"
-                        onSubmitEditing={duzenlemeyiKaydet}
-                      />
-                    ) : (
-                      <Text variant="titleMedium">{ad}</Text>
-                    )}
-                  </Card.Content>
-                  {/* Card.Actions çocuklarına style ekliyor: Fragment değil, anahtarlı dizi. */}
-                  <Card.Actions>
-                    {duzenleniyor
-                      ? [
-                          <Button key="vazgec" mode="text" onPress={() => setDuzenlenen(null)} disabled={mesgul}>
-                            Vazgeç
-                          </Button>,
-                          <Button
-                            key="kaydet"
-                            mode="contained"
-                            onPress={duzenlemeyiKaydet}
-                            disabled={mesgul || taslakAd.trim().length === 0}
-                            loading={mesgul}
-                          >
-                            Kaydet
-                          </Button>,
-                        ]
-                      : [
-                          <Button
-                            key="sil"
-                            mode="text"
-                            icon="delete-outline"
-                            textColor={theme.colors.error}
-                            onPress={() => silmeyiOnayla(ad)}
-                          >
-                            Sil
-                          </Button>,
-                          <Button key="duzenle" mode="text" icon="pencil-outline" onPress={() => duzenlemeyiBaslat(ad)}>
-                            Düzenle
-                          </Button>,
-                        ]}
-                  </Card.Actions>
-                </Card>
-              );
-            })
+            <>
+              <DangerSoftButton compact icon="delete-outline" onPress={() => silmeyiOnayla(ad)}>
+                Sil
+              </DangerSoftButton>
+              <SecondaryButton compact icon="pencil-outline" onPress={() => duzenlemeyiBaslat(ad)}>
+                Düzenle
+              </SecondaryButton>
+            </>
           )}
-        </ScrollView>
+        </View>
+      </AppCard>
+    );
+  };
+
+  return (
+    <AppScreen>
+      <AppHeader
+        title="Mal/Hizmet Defteri"
+        onBack={() => navigation.goBack()}
+        right={
+          <AppIconButton
+            icon="plus"
+            accessibilityLabel="Mal/hizmet ekle"
+            onPress={() => {
+              setDuzenlenen(null);
+              setYeniAd('');
+            }}
+          />
+        }
+      />
+
+      {/* Kart içinde ad düzenlenebildiği için liste KeyboardAvoidingView
+          içinde; removeClippedSubviews={false} odaklı alanın sökülüp odağın
+          kaybolmasını önler. */}
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <FlatList
+          data={yukleniyor ? [] : gorunenler}
+          keyExtractor={(ad) => ad}
+          renderItem={kalemKartiCiz}
+          extraData={[duzenlenen, taslakAd, mesgul]}
+          keyboardShouldPersistTaps="handled"
+          removeClippedSubviews={false}
+          contentContainerStyle={styles.icerik}
+          ListHeaderComponent={
+            <View style={styles.ust}>
+              <InfoBox tone="primary" icon="shield-lock-outline">
+                Bu defter yalnızca bu hesaba özeldir ve cihazda şifreli saklanır. Fatura başarıyla oluşturulunca
+                kalem adları otomatik eklenir; fatura formunda "Kayıtlı Mal/Hizmet Seç" ile kullanılır. Yalnızca
+                adlar saklanır.
+              </InfoBox>
+              <Text style={[typography.caption, styles.sayac]}>
+                {liste.length}/{MAX_MAL_HIZMET_KAYDI} kayıt
+              </Text>
+
+              {yeniAd !== null && (
+                <SectionCard title="Yeni mal/hizmet" icon="plus-circle-outline">
+                  <AppInput
+                    label="Mal/Hizmet adı *"
+                    value={yeniAd}
+                    onChangeText={setYeniAd}
+                    maxLength={MAL_HIZMET_AD_EN_UZUN}
+                    autoFocus
+                    returnKeyType="done"
+                    onSubmitEditing={ekle}
+                  />
+                  <View style={styles.eylemler}>
+                    <TextButton compact onPress={() => setYeniAd(null)} disabled={mesgul}>
+                      Vazgeç
+                    </TextButton>
+                    <PrimaryButton
+                      compact
+                      icon="content-save-outline"
+                      onPress={ekle}
+                      disabled={mesgul || yeniAd.trim().length === 0}
+                      loading={mesgul}
+                    >
+                      Deftere Kaydet
+                    </PrimaryButton>
+                  </View>
+                </SectionCard>
+              )}
+
+              {liste.length > 0 && (
+                <SearchBar placeholder="Mal/hizmet adı ara" value={arama} onChangeText={setArama} />
+              )}
+            </View>
+          }
+          ListEmptyComponent={
+            yukleniyor ? (
+              <ActivityIndicator style={styles.yukleniyor} color={colors.primary} />
+            ) : liste.length === 0 ? (
+              <EmptyState
+                icon="package-variant-closed"
+                title="Henüz kayıtlı mal/hizmet yok"
+                description="Sağ üstteki + düğmesiyle ekleyebilirsiniz."
+              />
+            ) : (
+              <EmptyState icon="magnify" title="Aramayla eşleşen kayıt yok." />
+            )
+          }
+        />
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
   flex: { flex: 1 },
-  icerik: { padding: 16, gap: 12 },
-  aciklama: { opacity: 0.7 },
-  yukleniyor: { marginTop: 24 },
-  kart: { borderRadius: 16 },
-  kartIcerik: { gap: 8 },
+  icerik: {
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xxl,
+    gap: spacing.card,
+  },
+  ust: { gap: spacing.sm },
+  sayac: { alignSelf: 'flex-end' },
+  yukleniyor: { marginTop: spacing.xl },
+  kart: { gap: spacing.sm },
+  eylemler: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
 });

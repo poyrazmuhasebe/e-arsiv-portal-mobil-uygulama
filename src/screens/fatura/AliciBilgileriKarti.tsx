@@ -1,10 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Button, Card, Dialog, List, Portal, Text, TextInput } from 'react-native-paper';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { TextInput } from 'react-native-paper';
 
 import SecimAlani from '../../components/SecimAlani';
+import {
+  AppDialog,
+  AppInput,
+  DialogText,
+  FormRow,
+  Icon,
+  SecondaryButton,
+  SectionCard,
+  TextButton,
+} from '../../components/ui';
 import { ULKELER } from '../../constants/faturaConstants';
 import { mukellefBilgisiGetir } from '../../services/gibApi';
+import { TOUCH_MIN, colors, radius, spacing, typography } from '../../theme';
 import { aliciListesiGetir } from '../../utils/aliciDefteri';
 import { vknTcknGecerliMi, vknTcknHatasi } from '../../utils/kimlikDogrula';
 import type { AliciFormu, KayitliAlici } from '../../types/faturaForm';
@@ -110,96 +121,109 @@ export default function AliciBilgileriKarti({ token, alici, onAliciChange, kayit
   };
 
   return (
-    <Card mode="elevated" style={styles.card}>
-      <Card.Title title="Alıcı Bilgileri" />
-      <Card.Content style={styles.icerik}>
-        {kayitliSecimGoster && (
-          <Button mode="outlined" icon="account-search-outline" onPress={kayitliAcAction}>
-            Kayıtlı Alıcılardan Seç
-          </Button>
-        )}
+    <SectionCard title="Alıcı Bilgileri" icon="account-outline">
+      {kayitliSecimGoster && (
+        <SecondaryButton icon="account-search-outline" onPress={kayitliAcAction} fullWidth>
+          Kayıtlı Alıcılardan Seç
+        </SecondaryButton>
+      )}
 
-        <TextInput
-          mode="outlined"
+      <View>
+        <AppInput
           label="VKN / TCKN *"
           value={alici.vknTckn}
           onChangeText={(v) => onAliciChange({ vknTckn: v })}
           keyboardType="number-pad"
           maxLength={11}
+          error={!!kimlikHatasi || sorguHatali}
           right={sorgulaniyor ? <TextInput.Icon icon="loading" /> : undefined}
         />
 
-        {kimlikHatasi && (
-          <Text variant="bodySmall" style={styles.hataMetni}>
-            {kimlikHatasi}
-          </Text>
+        {kimlikHatasi && <Text style={styles.hataMetni}>{kimlikHatasi}</Text>}
+
+        {sorguHatali && <Text style={styles.hataMetni}>GİB sisteminden çekilemedi. Lütfen tekrar deneyin.</Text>}
+      </View>
+
+      {/* Unvan/Ad/Soyad/Vergi Dairesi salt okunur: yalnızca GİB sorgusuyla dolar. */}
+      <AppInput label="Unvan" value={alici.unvan} editable={false} />
+      <FormRow>
+        <AppInput label="Adı" value={alici.ad} editable={false} />
+        <AppInput label="Soyadı" value={alici.soyad} editable={false} />
+      </FormRow>
+      <AppInput label="Vergi Dairesi" value={alici.vergiDairesi} editable={false} />
+
+      <SecimAlani
+        label="Ülke"
+        value={alici.ulke}
+        secenekler={ULKELER}
+        onSelect={(v) => onAliciChange({ ulke: v })}
+        zorunlu
+      />
+
+      <AppInput
+        label="Adres"
+        value={alici.adres}
+        onChangeText={(v) => onAliciChange({ adres: v })}
+        multiline
+        numberOfLines={2}
+      />
+
+      <AppDialog
+        visible={kayitliModalAcik}
+        onDismiss={() => setKayitliModalAcik(false)}
+        title="Kayıtlı Alıcılar"
+        icon="account-search-outline"
+        actions={
+          <TextButton onPress={() => setKayitliModalAcik(false)} compact>
+            Kapat
+          </TextButton>
+        }
+      >
+        {kayitliListe.length === 0 ? (
+          <DialogText>Henüz kayıtlı alıcı yok. Bir fatura oluşturduğunuzda alıcı otomatik kaydedilir.</DialogText>
+        ) : (
+          <View style={styles.liste}>
+            {kayitliListe.map((kayit) => {
+              const ad = kayit.unvan || `${kayit.ad} ${kayit.soyad}`.trim();
+              return (
+                <Pressable
+                  key={kayit.vknTckn}
+                  onPress={() => kayitliSec(kayit)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${ad}, ${kayit.vknTckn}`}
+                  android_ripple={{ color: colors.primarySoft }}
+                  style={({ pressed }) => [styles.listeOgesi, pressed && styles.basili]}
+                >
+                  <Icon name="account-outline" size={22} color={colors.primary} />
+                  <View style={styles.listeMetinleri}>
+                    <Text style={typography.body} numberOfLines={2}>
+                      {ad}
+                    </Text>
+                    <Text style={typography.caption}>{kayit.vknTckn}</Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
         )}
-
-        {sorguHatali && (
-          <Text variant="bodySmall" style={styles.hataMetni}>
-            GİB sisteminden çekilemedi. Lütfen tekrar deneyin.
-          </Text>
-        )}
-
-        <TextInput mode="outlined" label="Unvan" value={alici.unvan} editable={false} />
-        <TextInput mode="outlined" label="Adı" value={alici.ad} editable={false} />
-        <TextInput mode="outlined" label="Soyadı" value={alici.soyad} editable={false} />
-        <TextInput mode="outlined" label="Vergi Dairesi" value={alici.vergiDairesi} editable={false} />
-
-        <SecimAlani
-          label="Ülke"
-          value={alici.ulke}
-          secenekler={ULKELER}
-          onSelect={(v) => onAliciChange({ ulke: v })}
-          zorunlu
-        />
-
-        <TextInput
-          mode="outlined"
-          label="Adres"
-          value={alici.adres}
-          onChangeText={(v) => onAliciChange({ adres: v })}
-          multiline
-          numberOfLines={2}
-        />
-      </Card.Content>
-
-      <Portal>
-        <Dialog visible={kayitliModalAcik} onDismiss={() => setKayitliModalAcik(false)} style={styles.dialog}>
-          <Dialog.Title>Kayıtlı Alıcılar</Dialog.Title>
-          <Dialog.ScrollArea>
-            {kayitliListe.length === 0 ? (
-              <View style={styles.bosListe}>
-                <Text variant="bodyMedium" style={styles.hataMetni}>
-                  Henüz kayıtlı alıcı yok. Bir fatura oluşturduğunuzda alıcı otomatik kaydedilir.
-                </Text>
-              </View>
-            ) : (
-              <List.Section>
-                {kayitliListe.map((kayit) => (
-                  <List.Item
-                    key={kayit.vknTckn}
-                    title={kayit.unvan || `${kayit.ad} ${kayit.soyad}`.trim()}
-                    description={kayit.vknTckn}
-                    onPress={() => kayitliSec(kayit)}
-                  />
-                ))}
-              </List.Section>
-            )}
-          </Dialog.ScrollArea>
-          <Dialog.Actions>
-            <Button onPress={() => setKayitliModalAcik(false)}>Kapat</Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-    </Card>
+      </AppDialog>
+    </SectionCard>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 16 },
-  icerik: { gap: 12 },
-  hataMetni: { opacity: 0.8, color: '#f2b8b5' },
-  dialog: { maxHeight: '80%' },
-  bosListe: { padding: 16 },
+  hataMetni: { ...typography.caption, color: colors.danger, paddingHorizontal: spacing.xxs, paddingTop: spacing.xxs },
+  liste: { gap: 2, marginHorizontal: -spacing.xs },
+  listeOgesi: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: TOUCH_MIN + spacing.sm,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xxs,
+    borderRadius: radius.small,
+    overflow: 'hidden',
+  },
+  basili: { backgroundColor: colors.primarySoft },
+  listeMetinleri: { flex: 1, minWidth: 0 },
 });

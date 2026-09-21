@@ -1,10 +1,10 @@
 import React from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Appbar, Text, useTheme } from 'react-native-paper';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import { AppCard, AppHeader, AppScreen } from '../components/ui';
 import { HUKUKI_METINLER } from '../constants/hukukiMetinler';
+import { colors, spacing, typography } from '../theme';
 import type { RootStackParamList } from '../../App';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'HukukiMetin'>;
@@ -16,40 +16,47 @@ type Props = NativeStackScreenProps<RootStackParamList, 'HukukiMetin'>;
  * gizlilik politikasının uygulama içinde de bulunmasını istiyor.
  */
 export default function HukukiMetinScreen({ route, navigation }: Props) {
-  const theme = useTheme();
   const metin = HUKUKI_METINLER[route.params.metin];
 
   return (
-    <SafeAreaView style={styles.kapsayici} edges={['top', 'left', 'right']}>
-      <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title={metin.baslik} />
-      </Appbar.Header>
+    <AppScreen edges={['top', 'left', 'right']}>
+      <AppHeader title={metin.baslik} onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.icerik}>
-        {metin.bolumler.map((bolum) => (
-          <View key={bolum.baslik} style={styles.bolum}>
-            <Text variant="titleMedium" style={styles.bolumBasligi}>
-              {bolum.baslik}
-            </Text>
-            <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-              {bolum.govde}
-            </Text>
-          </View>
-        ))}
-        <Text variant="bodySmall" style={styles.dipnot}>
-          Bu metinlerin tam sürümleri projenin dokümantasyonunda (docs/hukuk/)
-          bulunur ve hukuki inceleme beklemektedir.
+        <AppCard style={styles.kart}>
+          {metin.bolumler.map((bolum) => (
+            <View key={bolum.baslik} style={styles.bolum}>
+              <Text style={typography.cardTitle} accessibilityRole="header">
+                {bolum.baslik}
+              </Text>
+              <Text style={styles.govde} selectable>
+                {bolum.govde}
+              </Text>
+            </View>
+          ))}
+        </AppCard>
+        <Text style={styles.dipnot}>
+          Bu metinlerin tam sürümleri projenin dokümantasyonunda (docs/hukuk/) bulunur ve hukuki inceleme
+          beklemektedir.
         </Text>
       </ScrollView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  kapsayici: { flex: 1 },
-  icerik: { padding: 20, paddingBottom: 48, gap: 20 },
-  bolum: { gap: 6 },
-  bolumBasligi: { fontWeight: '700' },
-  dipnot: { opacity: 0.6, marginTop: 8 },
+  icerik: {
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.md,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+  },
+  kart: { gap: spacing.lg, padding: spacing.lg },
+  bolum: { gap: spacing.xs },
+  // Uzun hukuki metin: satır aralığı biraz daha geniş, okunaklı.
+  govde: { ...typography.body, color: colors.textSecondary, lineHeight: 24 },
+  dipnot: { ...typography.caption, paddingHorizontal: spacing.xxs },
 });

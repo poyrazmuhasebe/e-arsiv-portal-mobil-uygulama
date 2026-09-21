@@ -23,6 +23,16 @@ interface Props {
   children: React.ReactNode;
 }
 
+/**
+ * Çocuklar yalnızca metin/sayıdan oluşuyorsa (ör. `Kalan {n} deneme` — JSX
+ * bunu diziye çevirir) tek bir <Text> içine alınır; aksi hâlde React Native
+ * "Text strings must be rendered within <Text>" hatasıyla çöker. Öğe
+ * (element) içeren çocuklar olduğu gibi çizilir.
+ */
+function metinMi(children: React.ReactNode): boolean {
+  return React.Children.toArray(children).every((c) => typeof c === 'string' || typeof c === 'number');
+}
+
 /** GİB sınırları, güvenlik notları, uyarılar için açıklama kutusu. */
 export default function InfoBox({ tone = 'info', title, icon, children }: Props) {
   const t = TON[tone];
@@ -31,7 +41,14 @@ export default function InfoBox({ tone = 'info', title, icon, children }: Props)
       <Icon name={icon ?? t.ikon} size={20} color={t.renk} />
       <View style={styles.metinler}>
         {title ? <Text style={[typography.cardTitle, styles.baslik, { color: t.renk }]}>{title}</Text> : null}
-        {typeof children === 'string' ? <Text style={styles.metin}>{children}</Text> : children}
+        {metinMi(children) ? (
+          <Text style={styles.metin}>{children}</Text>
+        ) : (
+          // Karışık içerikte başıboş metin parçaları da ayrı ayrı sarılır.
+          React.Children.map(children, (c) =>
+            typeof c === 'string' || typeof c === 'number' ? <Text style={styles.metin}>{c}</Text> : c,
+          )
+        )}
       </View>
     </View>
   );

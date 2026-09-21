@@ -1,9 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Text, TextInput, useTheme } from 'react-native-paper';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import {
+  Alert,
+  AppInput,
+  AppScreen,
+  DangerSoftButton,
+  Icon,
+  InfoBox,
+  PrimaryButton,
+  TextButton,
+} from '../components/ui';
 import { useHesapStore } from '../store/useHesapStore';
+import { colors, radius, spacing, typography } from '../theme';
 
 const KOD_HANE = 6;
 /** Sunucudaki sınırla aynı: kod-gönder ucu hesap başına 60 saniyede bir. */
@@ -18,7 +27,6 @@ const YENIDEN_GONDER_SN = 60;
  * gönder" ve "hesaptan çık" her zaman erişilebilir durumda.
  */
 export default function EpostaDogrulaScreen() {
-  const theme = useTheme();
   const kullanici = useHesapStore((s) => s.kullanici);
   const kodGonder = useHesapStore((s) => s.kodGonder);
   const epostaDogrula = useHesapStore((s) => s.epostaDogrula);
@@ -84,74 +92,97 @@ export default function EpostaDogrulaScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.kapsayici} edges={['top', 'bottom', 'left', 'right']}>
-      <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
-        <Text variant="displaySmall">✉️</Text>
-        <Text variant="headlineSmall" style={styles.baslik}>
-          E-postanızı doğrulayın
-        </Text>
-        <Text variant="bodyMedium" style={styles.aciklama}>
-          {kullanici?.eposta ?? 'E-posta adresinize'} adresine 6 haneli bir kod
-          gönderdik. Kod 15 dakika geçerlidir.
-        </Text>
+    <AppScreen>
+      <KeyboardAvoidingView style={styles.kapsayici} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
+          <View style={styles.govde}>
+            <View style={styles.baslikGrubu}>
+              <View style={styles.karo}>
+                <Icon name="email-check-outline" size={36} color={colors.primary} />
+              </View>
+              <Text style={styles.baslik} accessibilityRole="header">
+                E-postanızı doğrulayın
+              </Text>
+              <Text style={styles.aciklama}>
+                {kullanici?.eposta ?? 'E-posta adresinize'} adresine 6 haneli bir kod
+                gönderdik. Kod 15 dakika geçerlidir.
+              </Text>
+            </View>
 
-        <TextInput
-          label="Doğrulama kodu"
-          value={kod}
-          onChangeText={(deger) => setKod(deger.replace(/[^0-9]/g, '').slice(0, KOD_HANE))}
-          mode="outlined"
-          keyboardType="number-pad"
-          maxLength={KOD_HANE}
-          autoComplete="one-time-code"
-          textAlign="center"
-          style={styles.alan}
-          onSubmitEditing={handleDogrula}
-        />
+            <AppInput
+              label="Doğrulama kodu"
+              value={kod}
+              onChangeText={(deger) => setKod(deger.replace(/[^0-9]/g, '').slice(0, KOD_HANE))}
+              keyboardType="number-pad"
+              maxLength={KOD_HANE}
+              autoComplete="one-time-code"
+              textAlign="center"
+              style={styles.alan}
+              onSubmitEditing={handleDogrula}
+            />
 
-        <Button
-          mode="contained"
-          onPress={handleDogrula}
-          loading={mesgul}
-          disabled={mesgul || kod.length !== KOD_HANE}
-          style={styles.buton}
-          contentStyle={styles.butonIc}
-        >
-          Doğrula
-        </Button>
+            <View style={styles.butonlar}>
+              <PrimaryButton
+                onPress={handleDogrula}
+                loading={mesgul}
+                disabled={mesgul || kod.length !== KOD_HANE}
+                fullWidth
+              >
+                Doğrula
+              </PrimaryButton>
 
-        <Button mode="text" onPress={handleYenidenGonder} disabled={mesgul || bekleme > 0}>
-          {bekleme > 0 ? `Kodu yeniden gönder (${bekleme})` : 'Kodu yeniden gönder'}
-        </Button>
+              <TextButton onPress={handleYenidenGonder} disabled={mesgul || bekleme > 0} fullWidth>
+                {bekleme > 0 ? `Kodu yeniden gönder (${bekleme})` : 'Kodu yeniden gönder'}
+              </TextButton>
+            </View>
 
-        {gelistirmeKodu !== undefined && (
-          <View style={[styles.gelistirme, { borderColor: theme.colors.tertiary }]}>
-            <Text variant="bodySmall" style={{ color: theme.colors.tertiary }}>
-              Yerel geliştirme: kod {gelistirmeKodu}
-            </Text>
+            {gelistirmeKodu !== undefined && (
+              <InfoBox tone="info" icon="code-tags">
+                {`Yerel geliştirme: kod ${gelistirmeKodu}`}
+              </InfoBox>
+            )}
+
+            <InfoBox tone="neutral" icon="email-search-outline">
+              E-posta gelmediyse gereksiz (spam) klasörünü kontrol edin. Sorun
+              sürerse hesaptan çıkıp farklı bir adresle kayıt olabilirsiniz.
+            </InfoBox>
+
+            <DangerSoftButton icon="logout" onPress={handleCik} disabled={mesgul} compact style={styles.cikis}>
+              Hesaptan çık
+            </DangerSoftButton>
           </View>
-        )}
-
-        <Text variant="bodySmall" style={styles.dipnot}>
-          E-posta gelmediyse gereksiz (spam) klasörünü kontrol edin. Sorun
-          sürerse hesaptan çıkıp farklı bir adresle kayıt olabilirsiniz.
-        </Text>
-
-        <Button mode="text" onPress={handleCik} disabled={mesgul} textColor={theme.colors.error}>
-          Hesaptan çık
-        </Button>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
   kapsayici: { flex: 1 },
-  icerik: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', padding: 24, gap: 8 },
-  baslik: { fontWeight: '700', marginTop: 4 },
-  aciklama: { textAlign: 'center', opacity: 0.75, marginBottom: 12 },
-  alan: { alignSelf: 'stretch', letterSpacing: 6 },
-  buton: { alignSelf: 'stretch', marginTop: 8 },
-  butonIc: { paddingVertical: 6 },
-  gelistirme: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
-  dipnot: { textAlign: 'center', opacity: 0.6, marginTop: 12 },
+  icerik: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.screen,
+    paddingVertical: spacing.xxl,
+  },
+  // Geniş ekranda (tablet) içerik ortada, okunabilir genişlikte kalır.
+  govde: { width: '100%', maxWidth: 480, alignSelf: 'center', gap: spacing.lg },
+  baslikGrubu: { alignItems: 'center', gap: spacing.sm },
+  karo: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.xlarge,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  baslik: { ...typography.screenTitle, fontSize: 24, lineHeight: 30, textAlign: 'center' },
+  aciklama: { ...typography.bodySecondary, textAlign: 'center' },
+  // Kod haneleri ayrık görünsün.
+  alan: { letterSpacing: 6 },
+  butonlar: { gap: spacing.xxs },
+  cikis: { alignSelf: 'center' },
 });

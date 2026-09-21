@@ -1,24 +1,31 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  ActivityIndicator,
-  Appbar,
-  Button,
-  Card,
-  Checkbox,
-  Dialog,
-  Portal,
-  Text,
-  TextInput,
-  useTheme,
-} from 'react-native-paper';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
 import TarihAraligiFiltresi, { tarihFormatla } from '../components/TarihAraligiFiltresi';
+import {
+  Alert,
+  AppCard,
+  AppDialog,
+  AppHeader,
+  AppInput,
+  AppScreen,
+  CheckRow,
+  DangerButton,
+  DangerSoftButton,
+  DetailRow,
+  EmptyState,
+  InfoBox,
+  PrimaryButton,
+  StatusBadge,
+  SuccessSoftButton,
+  TextButton,
+} from '../components/ui';
 import { iptalItirazTalepDurumGuncelle, iptalItirazTalepleriGetir } from '../services/gibApi';
 import { useAuthStore } from '../store/useAuthStore';
+import { colors, spacing, typography } from '../theme';
 import type { IptalItirazTalebi } from '../types/gib';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'IptalItirazTalepleri'>;
@@ -35,7 +42,6 @@ function asString(v: unknown): string | undefined {
  * Kabul/Reddet butonlarının eklendiği bir kart listesine uyarlandı.
  */
 export default function IptalItirazTalepleriScreen({ navigation }: Props) {
-  const theme = useTheme();
   const token = useAuthStore((s) => s.token);
 
   const [talepler, setTalepler] = useState<IptalItirazTalebi[]>([]);
@@ -160,65 +166,49 @@ export default function IptalItirazTalepleriScreen({ navigation }: Props) {
     const durum = asString(item.iptalItirazDurumuColumn);
 
     return (
-      <Card mode="elevated" style={styles.card}>
-        <Card.Content style={styles.cardContent}>
-          <Text variant="titleMedium">{belgeNo}</Text>
-          {(belgeTuru || talepTarihi) && (
-            <Text variant="bodySmall" style={styles.mutedText}>
-              {belgeTuru}
-              {talepTarihi ? ` · ${talepTarihi}` : ''}
+      <AppCard style={styles.kart}>
+        {/* Talep tipi (iptal/itiraz) yanıtta ayrı bir alan olarak gelmiyor;
+            rozet uydurma bir tip yerine GİB'in döndürdüğü durum metnini gösterir. */}
+        <View style={styles.kartBasi}>
+          <View style={styles.kartBasiMetin}>
+            <Text style={typography.cardTitle} selectable>
+              {belgeNo}
             </Text>
-          )}
-          {satici && (
-            <Text variant="bodySmall" style={styles.mutedText}>
-              Satıcı: {satici}
-              {saticiVkn ? ` (${saticiVkn})` : ''}
-            </Text>
-          )}
-          {alici && (
-            <Text variant="bodySmall" style={styles.mutedText}>
-              Alıcı: {alici}
-              {aliciVkn ? ` (${aliciVkn})` : ''}
-            </Text>
-          )}
-          {itirazYontemi && (
-            <Text variant="bodySmall" style={styles.mutedText}>
-              İtiraz Yöntemi: {itirazYontemi}
-            </Text>
-          )}
-          {(referansNo || referansTarihi) && (
-            <Text variant="bodySmall" style={styles.mutedText}>
-              İtiraz Belgesi: {referansNo ?? '-'}
-              {referansTarihi ? ` · ${referansTarihi}` : ''}
-            </Text>
-          )}
-          {durum && (
-            <Text variant="bodySmall" style={styles.durumMetni}>
-              Durum: {durum}
-            </Text>
-          )}
-        </Card.Content>
-        <Card.Actions>
-          <Button compact mode="text" icon="check" onPress={() => handleKabulBaslat(item)}>
+            {belgeTuru ? <Text style={typography.caption}>{belgeTuru}</Text> : null}
+          </View>
+          {durum ? <StatusBadge status="info" label={durum} /> : null}
+        </View>
+
+        <View style={styles.detaylar}>
+          <DetailRow label="Talep Tarihi" value={talepTarihi} />
+          <DetailRow label="Satıcı" value={satici ? `${satici}${saticiVkn ? ` (${saticiVkn})` : ''}` : undefined} />
+          <DetailRow label="Alıcı" value={alici ? `${alici}${aliciVkn ? ` (${aliciVkn})` : ''}` : undefined} />
+          <DetailRow label="İtiraz Yöntemi" value={itirazYontemi} />
+          <DetailRow
+            label="İtiraz Belgesi"
+            value={
+              referansNo || referansTarihi
+                ? `${referansNo ?? '-'}${referansTarihi ? ` · ${referansTarihi}` : ''}`
+                : undefined
+            }
+          />
+        </View>
+
+        <View style={styles.eylemler}>
+          <SuccessSoftButton icon="check" compact onPress={() => handleKabulBaslat(item)} style={styles.eylemDugmesi}>
             Talep Kabul Et
-          </Button>
-          <Button compact mode="text" icon="close" onPress={() => handleReddetBaslat(item)}>
+          </SuccessSoftButton>
+          <DangerSoftButton icon="close" compact onPress={() => handleReddetBaslat(item)} style={styles.eylemDugmesi}>
             Talep Reddet
-          </Button>
-        </Card.Actions>
-      </Card>
+          </DangerSoftButton>
+        </View>
+      </AppCard>
     );
   };
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: theme.colors.background }]}
-      edges={['top', 'bottom', 'left', 'right']}
-    >
-      <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="İptal / İtiraz Talepleri" />
-      </Appbar.Header>
+    <AppScreen>
+      <AppHeader title="İptal / İtiraz Talepleri" onBack={() => navigation.goBack()} />
 
       <TarihAraligiFiltresi
         baslangic={baslangicTarih}
@@ -233,123 +223,100 @@ export default function IptalItirazTalepleriScreen({ navigation }: Props) {
 
       {yukleniyor ? (
         <View style={styles.merkezi}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <FlatList
           data={talepler}
           keyExtractor={(item, index) => item.iptalItirazOid || String(index)}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={styles.liste}
           refreshing={yenileniyor}
           onRefresh={handlePullYenile}
-          ListEmptyComponent={
-            <View style={styles.merkezi}>
-              <Text variant="bodyMedium" style={styles.mutedText}>
-                Seçili tarih aralığında talep bulunmuyor.
-              </Text>
-            </View>
-          }
+          ListEmptyComponent={<EmptyState icon="file-undo-outline" title="Seçili tarih aralığında talep bulunmuyor." />}
         />
       )}
 
-      <Portal>
-        <Dialog visible={kabulHedefi !== null} onDismiss={handleKabulVazgec}>
-          <Dialog.Title>İptal Talebi Kabul</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="labelSmall" style={styles.mutedText}>
-              UYARI
-            </Text>
-            <Text variant="bodyMedium" style={styles.dialogText}>
-              {asString(kabulHedefi?.belgeNumarasi) ?? 'Seçili'} numaralı belge için iptal
-              talebini onaylamak istiyorsunuz. Onayladığınız takdirde onayınız geri
-              çekilemeyecektir.
-            </Text>
-            <Checkbox.Item
-              label="Uyarıyı Okudum"
-              status={kabulUyariOkundu ? 'checked' : 'unchecked'}
-              onPress={() => setKabulUyariOkundu((v) => !v)}
-              style={styles.checkboxStili}
-              labelStyle={styles.checkboxEtiket}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handleKabulVazgec} disabled={kabulSurecinde}>
+      <AppDialog
+        visible={kabulHedefi !== null}
+        onDismiss={handleKabulVazgec}
+        title="İptal Talebi Kabul"
+        icon="check-circle-outline"
+        tone="success"
+        actions={
+          <>
+            <TextButton onPress={handleKabulVazgec} disabled={kabulSurecinde} compact>
               Vazgeç
-            </Button>
-            <Button
+            </TextButton>
+            <PrimaryButton
               onPress={handleKabulOnayla}
               loading={kabulSurecinde}
               disabled={kabulSurecinde || !kabulUyariOkundu}
+              compact
             >
               Talebi Kabul Et
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
+            </PrimaryButton>
+          </>
+        }
+      >
+        <InfoBox tone="warning" title="UYARI">
+          {`${asString(kabulHedefi?.belgeNumarasi) ?? 'Seçili'} numaralı belge için iptal talebini onaylamak istiyorsunuz. Onayladığınız takdirde onayınız geri çekilemeyecektir.`}
+        </InfoBox>
+        <CheckRow label="Uyarıyı Okudum" checked={kabulUyariOkundu} onChange={() => setKabulUyariOkundu((v) => !v)} />
+      </AppDialog>
 
-        <Dialog visible={reddetHedefi !== null} onDismiss={handleReddetVazgec}>
-          <Dialog.Title>İptal Talebi Ret</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="labelSmall" style={styles.mutedText}>
-              Gerekçenizi Giriniz
-            </Text>
-            <TextInput
-              mode="outlined"
-              value={reddetGerekce}
-              onChangeText={(v) => setReddetGerekce(v.slice(0, 255))}
-              maxLength={255}
-              multiline
-              numberOfLines={3}
-              autoFocus
-            />
-            <Text variant="labelSmall" style={styles.karakterSayaci}>
-              {reddetGerekce.length}/255
-            </Text>
-            <Text variant="labelSmall" style={[styles.mutedText, styles.dialogUyariBaslik]}>
-              UYARI
-            </Text>
-            <Text variant="bodyMedium" style={styles.dialogText}>
-              {asString(reddetHedefi?.belgeNumarasi) ?? 'Seçili'} numaralı belge için iptal
-              talebini reddetmek istiyorsunuz. Reddettiğiniz takdirde ret işleminiz geri
-              çekilemeyecektir.
-            </Text>
-            <Checkbox.Item
-              label="Uyarıyı Okudum"
-              status={reddetUyariOkundu ? 'checked' : 'unchecked'}
-              onPress={() => setReddetUyariOkundu((v) => !v)}
-              style={styles.checkboxStili}
-              labelStyle={styles.checkboxEtiket}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handleReddetVazgec} disabled={reddetSurecinde}>
+      <AppDialog
+        visible={reddetHedefi !== null}
+        onDismiss={handleReddetVazgec}
+        title="İptal Talebi Ret"
+        icon="close-circle-outline"
+        tone="danger"
+        actions={
+          <>
+            <TextButton onPress={handleReddetVazgec} disabled={reddetSurecinde} compact>
               Vazgeç
-            </Button>
-            <Button
+            </TextButton>
+            <DangerButton
               onPress={handleReddetOnayla}
               loading={reddetSurecinde}
               disabled={reddetSurecinde || !reddetUyariOkundu || reddetGerekce.trim().length === 0}
+              compact
             >
               Talebi Reddet
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-    </SafeAreaView>
+            </DangerButton>
+          </>
+        }
+      >
+        <AppInput
+          label="Gerekçenizi Giriniz"
+          value={reddetGerekce}
+          onChangeText={(v) => setReddetGerekce(v.slice(0, 255))}
+          maxLength={255}
+          multiline
+          numberOfLines={3}
+          autoFocus
+          helperText={`${reddetGerekce.length}/255`}
+        />
+        <InfoBox tone="warning" title="UYARI">
+          {`${asString(reddetHedefi?.belgeNumarasi) ?? 'Seçili'} numaralı belge için iptal talebini reddetmek istiyorsunuz. Reddettiğiniz takdirde ret işleminiz geri çekilemeyecektir.`}
+        </InfoBox>
+        <CheckRow
+          label="Uyarıyı Okudum"
+          checked={reddetUyariOkundu}
+          onChange={() => setReddetUyariOkundu((v) => !v)}
+        />
+      </AppDialog>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  merkezi: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  listContent: { padding: 16, paddingTop: 0, gap: 12 },
-  card: { borderRadius: 16, marginBottom: 12 },
-  cardContent: { gap: 4 },
-  mutedText: { opacity: 0.7 },
-  durumMetni: { color: '#f2b8b5', marginTop: 2 },
-  dialogText: { marginBottom: 8 },
-  checkboxStili: { paddingHorizontal: 0 },
-  checkboxEtiket: { fontSize: 14 },
-  karakterSayaci: { alignSelf: 'flex-end', opacity: 0.6, marginTop: 2, marginBottom: 8 },
-  dialogUyariBaslik: { fontWeight: '700', marginBottom: 4 },
+  merkezi: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
+  liste: { paddingHorizontal: spacing.screen, paddingBottom: spacing.xxl, gap: spacing.card, flexGrow: 1 },
+  kart: { gap: spacing.sm },
+  kartBasi: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: spacing.xs },
+  kartBasiMetin: { flex: 1, minWidth: 160, gap: 2 },
+  detaylar: { gap: spacing.xxs },
+  eylemler: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, paddingTop: spacing.xxs },
+  eylemDugmesi: { flexGrow: 1, minWidth: 140 },
 });

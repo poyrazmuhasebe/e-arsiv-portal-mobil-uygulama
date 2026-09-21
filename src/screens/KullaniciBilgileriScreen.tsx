@@ -1,14 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityIndicator, Appbar, Button, Card, Text, TextInput, useTheme } from 'react-native-paper';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
-import SecimAlani from '../components/SecimAlani';
+import {
+  Alert,
+  AppHeader,
+  AppInput,
+  AppScreen,
+  AppSelect,
+  FormRow,
+  PrimaryButton,
+  SectionCard,
+} from '../components/ui';
 import { KULLANICI_ILLERI, KULLANICI_ULKELERI } from '../constants/faturaConstants';
 import { kullaniciBilgileriDetayGetir, kullaniciBilgileriKaydet } from '../services/gibApi';
 import { useAuthStore } from '../store/useAuthStore';
+import { colors, spacing } from '../theme';
 import type { KullaniciDetayBilgisi } from '../types/gib';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'KullaniciBilgileri'>;
@@ -44,7 +52,6 @@ const BOS_BILGI: KullaniciDetayBilgisi = {
  * <select> (düzenlenebilir) — bu ayrım burada da birebir korunuyor.
  */
 export default function KullaniciBilgileriScreen({ navigation }: Props) {
-  const theme = useTheme();
   const token = useAuthStore((s) => s.token);
 
   const [bilgi, setBilgi] = useState<KullaniciDetayBilgisi>(BOS_BILGI);
@@ -86,192 +93,142 @@ export default function KullaniciBilgileriScreen({ navigation }: Props) {
   };
 
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: theme.colors.background }]}
-      edges={['top', 'bottom', 'left', 'right']}
-    >
-      <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Kullanıcı Bilgileri" />
-      </Appbar.Header>
+    <AppScreen>
+      <AppHeader title="Kullanıcı Bilgileri" onBack={() => navigation.goBack()} />
 
       {yukleniyor ? (
-        <ActivityIndicator size="large" style={styles.merkezi} />
+        <View style={styles.merkezi}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
       ) : (
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-            <Card mode="elevated" style={styles.card}>
-              <Card.Content style={styles.icerik}>
-                <TextInput mode="outlined" label="VKN/TCKN" value={bilgi.vknTckn} editable={false} />
-                <TextInput
-                  mode="outlined"
-                  label="Unvan (Tüzel Kişiler için)"
-                  value={bilgi.unvan}
-                  onChangeText={(v) => guncelle({ unvan: v })}
-                />
-                <TextInput
-                  mode="outlined"
+          <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
+            {/* VKN/TCKN GİB'de <span>: salt okunur. */}
+            <SectionCard title="Kimlik Bilgileri" icon="card-account-details-outline">
+              <AppInput label="VKN/TCKN" value={bilgi.vknTckn} editable={false} />
+              {/* Etiketler uzun: telefonda alt alta, geniş ekranda yan yana. */}
+              <FormRow minColumnWidth={220}>
+                <AppInput
                   label="Ad (Gerçek Kişiler İçin)"
                   value={bilgi.ad}
                   onChangeText={(v) => guncelle({ ad: v })}
                 />
-                <TextInput
-                  mode="outlined"
+                <AppInput
                   label="Soyad (Gerçek Kişiler İçin)"
                   value={bilgi.soyad}
                   onChangeText={(v) => guncelle({ soyad: v })}
                 />
-                <TextInput
-                  mode="outlined"
-                  label="Sicil No"
-                  value={bilgi.sicilNo}
-                  onChangeText={(v) => guncelle({ sicilNo: v })}
-                />
-                <TextInput
-                  mode="outlined"
-                  label="Mersis No"
-                  value={bilgi.mersisNo}
-                  onChangeText={(v) => guncelle({ mersisNo: v })}
-                />
-                <TextInput
-                  mode="outlined"
-                  label="Vergi Dairesi"
-                  value={bilgi.vergiDairesi}
-                  onChangeText={(v) => guncelle({ vergiDairesi: v })}
-                />
-              </Card.Content>
-            </Card>
+              </FormRow>
+              <AppInput
+                label="Unvan (Tüzel Kişiler için)"
+                value={bilgi.unvan}
+                onChangeText={(v) => guncelle({ unvan: v })}
+              />
+              <FormRow>
+                <AppInput label="Sicil No" value={bilgi.sicilNo} onChangeText={(v) => guncelle({ sicilNo: v })} />
+                <AppInput label="Mersis No" value={bilgi.mersisNo} onChangeText={(v) => guncelle({ mersisNo: v })} />
+              </FormRow>
+              <AppInput
+                label="Vergi Dairesi"
+                value={bilgi.vergiDairesi}
+                onChangeText={(v) => guncelle({ vergiDairesi: v })}
+              />
+            </SectionCard>
 
-            <Card mode="elevated" style={styles.card}>
-              <Card.Title title="Adres" />
-              <Card.Content style={styles.icerik}>
-                <TextInput
-                  mode="outlined"
-                  label="Cadde"
-                  value={bilgi.cadde}
-                  onChangeText={(v) => guncelle({ cadde: v })}
-                />
-                <TextInput
-                  mode="outlined"
-                  label="Apartman Adı"
-                  value={bilgi.apartmanAdi}
-                  onChangeText={(v) => guncelle({ apartmanAdi: v })}
-                />
-                <TextInput
-                  mode="outlined"
+            <SectionCard title="Adres Bilgileri" icon="map-marker-outline">
+              <AppInput label="Cadde" value={bilgi.cadde} onChangeText={(v) => guncelle({ cadde: v })} />
+              <AppInput
+                label="Apartman Adı"
+                value={bilgi.apartmanAdi}
+                onChangeText={(v) => guncelle({ apartmanAdi: v })}
+              />
+              <FormRow>
+                <AppInput
                   label="Apartman No"
                   value={bilgi.apartmanNo}
                   onChangeText={(v) => guncelle({ apartmanNo: v })}
                 />
-                <TextInput
-                  mode="outlined"
-                  label="Kapı No"
-                  value={bilgi.kapiNo}
-                  onChangeText={(v) => guncelle({ kapiNo: v })}
-                />
-                <TextInput
-                  mode="outlined"
-                  label="Mahalle"
-                  value={bilgi.kasaba}
-                  onChangeText={(v) => guncelle({ kasaba: v })}
-                />
-                <TextInput
-                  mode="outlined"
-                  label="İlçe"
-                  value={bilgi.ilce}
-                  onChangeText={(v) => guncelle({ ilce: v })}
-                />
-                <SecimAlani
+                <AppInput label="Kapı No" value={bilgi.kapiNo} onChangeText={(v) => guncelle({ kapiNo: v })} />
+              </FormRow>
+              <AppInput label="Mahalle" value={bilgi.kasaba} onChangeText={(v) => guncelle({ kasaba: v })} />
+              <FormRow>
+                <AppInput label="İlçe" value={bilgi.ilce} onChangeText={(v) => guncelle({ ilce: v })} />
+                <AppSelect
                   label="İl"
                   value={bilgi.il}
                   secenekler={KULLANICI_ILLERI}
                   onSelect={(v) => guncelle({ il: v })}
                 />
-                <TextInput
-                  mode="outlined"
-                  label="Posta Kodu"
-                  value={bilgi.postaKodu}
-                  onChangeText={(v) => guncelle({ postaKodu: v })}
-                  keyboardType="number-pad"
-                />
-                <SecimAlani
-                  label="Ülke"
-                  value={bilgi.ulke}
-                  secenekler={KULLANICI_ULKELERI}
-                  onSelect={(v) => guncelle({ ulke: v })}
-                />
-              </Card.Content>
-            </Card>
+              </FormRow>
+              <AppInput
+                label="Posta Kodu"
+                value={bilgi.postaKodu}
+                onChangeText={(v) => guncelle({ postaKodu: v })}
+                keyboardType="number-pad"
+              />
+              <AppSelect
+                label="Ülke"
+                value={bilgi.ulke}
+                secenekler={KULLANICI_ULKELERI}
+                onSelect={(v) => guncelle({ ulke: v })}
+              />
+            </SectionCard>
 
-            <Card mode="elevated" style={styles.card}>
-              <Card.Title title="İletişim" />
-              <Card.Content style={styles.icerik}>
-                <TextInput
-                  mode="outlined"
-                  label="Tel No"
-                  value={bilgi.telNo}
-                  onChangeText={(v) => guncelle({ telNo: v })}
-                  keyboardType="phone-pad"
-                />
-                <TextInput
-                  mode="outlined"
-                  label="Faks No"
-                  value={bilgi.faksNo}
-                  onChangeText={(v) => guncelle({ faksNo: v })}
-                  keyboardType="phone-pad"
-                />
-                <TextInput
-                  mode="outlined"
-                  label="e-Posta Adresi"
-                  value={bilgi.ePostaAdresi}
-                  onChangeText={(v) => guncelle({ ePostaAdresi: v })}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                />
-                <TextInput
-                  mode="outlined"
-                  label="Web Sitesi Adresi"
-                  value={bilgi.webSitesiAdresi}
-                  onChangeText={(v) => guncelle({ webSitesiAdresi: v })}
-                  autoCapitalize="none"
-                />
-                <TextInput
-                  mode="outlined"
-                  label="İş Merkezi"
-                  value={bilgi.isMerkezi}
-                  onChangeText={(v) => guncelle({ isMerkezi: v })}
-                />
-              </Card.Content>
-            </Card>
+            <SectionCard title="İletişim Bilgileri" icon="phone-outline">
+              <AppInput
+                label="Tel No"
+                value={bilgi.telNo}
+                onChangeText={(v) => guncelle({ telNo: v })}
+                keyboardType="phone-pad"
+              />
+              <AppInput
+                label="Faks No"
+                value={bilgi.faksNo}
+                onChangeText={(v) => guncelle({ faksNo: v })}
+                keyboardType="phone-pad"
+              />
+              <AppInput
+                label="e-Posta Adresi"
+                value={bilgi.ePostaAdresi}
+                onChangeText={(v) => guncelle({ ePostaAdresi: v })}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+              <AppInput
+                label="Web Sitesi Adresi"
+                value={bilgi.webSitesiAdresi}
+                onChangeText={(v) => guncelle({ webSitesiAdresi: v })}
+                autoCapitalize="none"
+              />
+              <AppInput label="İş Merkezi" value={bilgi.isMerkezi} onChangeText={(v) => guncelle({ isMerkezi: v })} />
+            </SectionCard>
 
-            <Button
-              mode="contained"
-              icon="content-save"
+            <PrimaryButton
+              icon="content-save-outline"
               onPress={handleKaydet}
               loading={kaydediliyor}
               disabled={kaydediliyor}
-              style={styles.kaydetButonu}
-              contentStyle={styles.kaydetButonuIcerik}
+              fullWidth
             >
               Kaydet
-            </Button>
+            </PrimaryButton>
           </ScrollView>
         </KeyboardAvoidingView>
       )}
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
   flex: { flex: 1 },
-  merkezi: { flex: 1 },
-  scrollContent: { padding: 16, gap: 16 },
-  card: { borderRadius: 16 },
-  icerik: { gap: 12 },
-  kaydetButonu: { borderRadius: 8, marginTop: 4 },
-  kaydetButonuIcerik: { paddingVertical: 6 },
+  merkezi: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  icerik: {
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xxl,
+    gap: spacing.card,
+  },
 });

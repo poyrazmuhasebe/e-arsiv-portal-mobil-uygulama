@@ -74,7 +74,10 @@ export default function AppDialog({
                 contentContainerStyle={styles.govdeIcerik}
                 keyboardShouldPersistTaps="handled"
               >
-                {typeof children === 'string' ? <Text style={styles.metin}>{children}</Text> : children}
+                {/* Başıboş metin/sayı çocuklar <Text>'e sarılır (RN aksi hâlde çöker). */}
+                {React.Children.map(children, (c) =>
+                  typeof c === 'string' || typeof c === 'number' ? <Text style={styles.metin}>{c}</Text> : c,
+                )}
               </ScrollView>
             ) : null}
             {actions ? <View style={stackedActions ? styles.eylemlerAlt : styles.eylemler}>{actions}</View> : null}

@@ -1,20 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Checkbox, Chip, Text, TextInput, useTheme } from 'react-native-paper';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { TextInput } from 'react-native-paper';
 
 import DuyuruKutusu from '../components/DuyuruKutusu';
+import {
+  Alert,
+  AppInput,
+  AppScreen,
+  CheckRow,
+  Icon,
+  InfoBox,
+  PrimaryButton,
+  TextButton,
+} from '../components/ui';
 import { useAuthStore } from '../store/useAuthStore';
 import { useHesapStore } from '../store/useHesapStore';
 import { hatirlananKodlariOku, koduHatirla, koduUnut } from '../utils/hatirlananKodlar';
 import { deleteSecureItem } from '../utils/secureStorage';
+import { colors, radius, spacing, typography } from '../theme';
 
 // Hatırlanan GİB kullanıcı kodları UYGULAMA HESABINA ÖZEL bir listede
 // tutulur (bir kullanıcı birden fazla GİB koduyla çalışabilir); yalnızca giriş
@@ -24,7 +27,6 @@ import { deleteSecureItem } from '../utils/secureStorage';
 const ESKI_HATIRLANAN_SIFRE_KEY = 'gib_hatirlanan_sifre';
 
 export default function LoginScreen() {
-  const theme = useTheme();
   const login = useAuthStore((s) => s.login);
   const isLoading = useAuthStore((s) => s.isLoading);
   const hesapKullanicisi = useHesapStore((s) => s.kullanici);
@@ -109,7 +111,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom', 'left', 'right']}>
+    <AppScreen>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -120,149 +122,181 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         >
-          <DuyuruKutusu />
+          <View style={styles.govde}>
+            <DuyuruKutusu />
 
-          <View style={styles.header}>
-            <Text variant="headlineSmall" style={styles.title}>
-              E-ARŞİV PORTAL İNTERAKTİF ŞİFRE İLE GİRİŞ EKRANI
-            </Text>
-            <Text variant="bodyMedium" style={styles.subtitle}>
-              Kullanıcı Bilgileri
-            </Text>
-          </View>
-
-          <View style={styles.form}>
-            {hatirlananKodlar.length > 1 && (
-              <View style={styles.kodlar}>
-                <Text variant="labelSmall" style={styles.kodlarBaslik}>
-                  Hatırlanan kullanıcı kodları (kaldırmak için basılı tutun)
-                </Text>
-                <View style={styles.kodSatiri}>
-                  {hatirlananKodlar.map((kod) => (
-                    <Chip
-                      key={kod}
-                      compact
-                      selected={kullaniciKodu.trim() === kod}
-                      showSelectedCheck={false}
-                      onPress={() => {
-                        setKullaniciKodu(kod);
-                        setKullaniciSifresi('');
-                      }}
-                      onLongPress={() => handleKoduUnut(kod)}
-                      disabled={isLoading}
-                    >
-                      {kod}
-                    </Chip>
-                  ))}
-                </View>
+            <View style={styles.header}>
+              <View style={styles.logo}>
+                <Icon name="file-document-outline" size={32} color={colors.primary} />
               </View>
-            )}
-
-            <TextInput
-              mode="outlined"
-              label="GİB Kullanıcı Kodu"
-              value={kullaniciKodu}
-              onChangeText={setKullaniciKodu}
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="username"
-              keyboardType="default"
-              returnKeyType="next"
-              style={styles.input}
-              disabled={isLoading}
-            />
-
-            <TextInput
-              mode="outlined"
-              label="Şifre"
-              value={kullaniciSifresi}
-              onChangeText={setKullaniciSifresi}
-              secureTextEntry={!sifreGorunur}
-              autoCapitalize="none"
-              autoCorrect={false}
-              autoComplete="password"
-              returnKeyType="done"
-              onSubmitEditing={handleGirisYap}
-              style={styles.input}
-              disabled={isLoading}
-              right={
-                <TextInput.Icon
-                  icon={sifreGorunur ? 'eye-off' : 'eye'}
-                  onPress={() => setSifreGorunur((v) => !v)}
-                  forceTextInputFocus={false}
-                />
-              }
-            />
-
-            <View style={styles.hatirlaGrubu}>
-              <Checkbox.Item
-                label="Kullanıcı Kodunu Hatırla"
-                status={kullaniciKoduHatirla ? 'checked' : 'unchecked'}
-                onPress={() => setKullaniciKoduHatirla((v) => !v)}
-                style={styles.hatirlaOgesi}
-                labelStyle={styles.hatirlaEtiket}
-              />
+              <Text style={styles.title} accessibilityRole="header">
+                e-Arşiv Portal
+              </Text>
+              <Text style={styles.subtitle}>GİB İnteraktif Giriş</Text>
             </View>
 
-            <Button
-              mode="contained"
-              onPress={handleGirisYap}
-              loading={isLoading}
-              disabled={girisYapDisabled}
-              style={styles.button}
-              contentStyle={styles.buttonContent}
-            >
-              Giriş Yap
-            </Button>
+            <View style={styles.form}>
+              {hatirlananKodlar.length > 1 && (
+                <View style={styles.kodlar}>
+                  <Text style={styles.kodlarBaslik}>
+                    Hatırlanan kullanıcı kodları (kaldırmak için basılı tutun)
+                  </Text>
+                  <View style={styles.kodSatiri}>
+                    {hatirlananKodlar.map((kod) => {
+                      const secili = kullaniciKodu.trim() === kod;
+                      return (
+                        <Pressable
+                          key={kod}
+                          onPress={() => {
+                            setKullaniciKodu(kod);
+                            setKullaniciSifresi('');
+                          }}
+                          onLongPress={() => handleKoduUnut(kod)}
+                          disabled={isLoading}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Kullanıcı kodu ${kod}`}
+                          accessibilityHint="Kaldırmak için basılı tutun"
+                          accessibilityState={{ selected: secili, disabled: isLoading }}
+                          hitSlop={4}
+                          style={({ pressed }) => [
+                            styles.kodHapi,
+                            secili && styles.kodHapiSecili,
+                            pressed && styles.kodHapiBasili,
+                            isLoading && styles.kodHapiPasif,
+                          ]}
+                        >
+                          {secili ? <Icon name="account-check-outline" size={16} color={colors.primary} /> : null}
+                          <Text style={[styles.kodYazi, secili && styles.kodYaziSecili]} numberOfLines={1}>
+                            {kod}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              )}
 
-            <Text variant="bodySmall" style={styles.disclaimer}>
-              Bu uygulama GİB'in resmi bir ürünü değildir. GİB kullanıcı kodunuz,
-              şifreniz ve fatura verileriniz yalnızca cihazınızdan DOĞRUDAN e-Arşiv
-              portalına gider; hesap sunucumuza ya da başka bir üçüncü tarafa hiçbir
-              koşulda gönderilmez. GİB şifreniz cihazda da saklanmaz; her girişte
-              yeniden girmeniz gerekir.{'\n\n'}
-              Uygulama hesabınız (e-posta, kullanıcı adı, şifre özeti) ayrıdır ve
-              Cloudflare'de, Avrupa Birliği'nde saklanır.
-            </Text>
+              <AppInput
+                label="GİB Kullanıcı Kodu"
+                value={kullaniciKodu}
+                onChangeText={setKullaniciKodu}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="username"
+                keyboardType="default"
+                returnKeyType="next"
+                disabled={isLoading}
+              />
 
-            <Button
-              mode="text"
-              onPress={handleHesaptanCik}
-              disabled={isLoading}
-              style={styles.hesapCikis}
-            >
-              {hesapKullanicisi === null
-                ? 'Kayıt ol / giriş yap'
-                : `Hesaptan çık (${hesapKullanicisi.kullaniciAdi})`}
-            </Button>
+              <AppInput
+                label="Şifre"
+                value={kullaniciSifresi}
+                onChangeText={setKullaniciSifresi}
+                secureTextEntry={!sifreGorunur}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="password"
+                returnKeyType="done"
+                onSubmitEditing={handleGirisYap}
+                disabled={isLoading}
+                right={
+                  <TextInput.Icon
+                    icon={sifreGorunur ? 'eye-off' : 'eye'}
+                    onPress={() => setSifreGorunur((v) => !v)}
+                    forceTextInputFocus={false}
+                    accessibilityLabel={sifreGorunur ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                  />
+                }
+              />
+
+              <CheckRow
+                label="Kullanıcı Kodunu Hatırla"
+                checked={kullaniciKoduHatirla}
+                onChange={() => setKullaniciKoduHatirla((v) => !v)}
+              />
+
+              <PrimaryButton
+                icon="login"
+                onPress={handleGirisYap}
+                loading={isLoading}
+                disabled={girisYapDisabled}
+                fullWidth
+              >
+                Giriş Yap
+              </PrimaryButton>
+
+              <InfoBox tone="primary" icon="shield-lock-outline" title="Güvenliğiniz">
+                <Text style={styles.guvenlikMetni}>
+                  Bu uygulama GİB'in resmi bir ürünü değildir. GİB kullanıcı kodunuz,
+                  şifreniz ve fatura verileriniz yalnızca cihazınızdan DOĞRUDAN e-Arşiv
+                  portalına gider; hesap sunucumuza ya da başka bir üçüncü tarafa hiçbir
+                  koşulda gönderilmez. GİB şifreniz cihazda da saklanmaz; her girişte
+                  yeniden girmeniz gerekir.
+                </Text>
+                <Text style={styles.guvenlikMetni}>
+                  Uygulama hesabınız (e-posta, kullanıcı adı, şifre özeti) ayrıdır ve
+                  Cloudflare'de, Avrupa Birliği'nde saklanır.
+                </Text>
+              </InfoBox>
+
+              <TextButton onPress={handleHesaptanCik} disabled={isLoading} fullWidth>
+                {hesapKullanicisi === null
+                  ? 'Kayıt ol / giriş yap'
+                  : `Hesaptan çık (${hesapKullanicisi.kullaniciAdi})`}
+              </TextButton>
+            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  hesapCikis: { marginTop: 4 },
-  safeArea: { flex: 1 },
   flex: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: spacing.screen,
+    paddingVertical: spacing.xl,
   },
-  header: { marginBottom: 32 },
-  title: { fontWeight: '700', marginBottom: 8 },
-  subtitle: { opacity: 0.6 },
-  form: { gap: 16 },
-  input: { width: '100%' },
-  hatirlaGrubu: { marginTop: -8, marginBottom: -8 },
-  kodlar: { width: '100%', gap: 6 },
-  kodlarBaslik: { opacity: 0.7 },
-  kodSatiri: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  hatirlaOgesi: { paddingHorizontal: 0 },
-  hatirlaEtiket: { fontSize: 14 },
-  button: { marginTop: 8, borderRadius: 8 },
-  buttonContent: { paddingVertical: 6 },
-  disclaimer: { marginTop: 16, opacity: 0.5, textAlign: 'center' },
+  // Geniş ekranda (tablet) form ortada, okunabilir genişlikte kalır.
+  govde: { width: '100%', maxWidth: 480, alignSelf: 'center', gap: spacing.xl },
+  header: { alignItems: 'center', gap: spacing.xs },
+  logo: {
+    width: 64,
+    height: 64,
+    borderRadius: radius.xlarge,
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.xxs,
+  },
+  title: { ...typography.screenTitle, textAlign: 'center' },
+  subtitle: { ...typography.bodySecondary, textAlign: 'center' },
+  form: { gap: spacing.md },
+  kodlar: { gap: spacing.xs },
+  kodlarBaslik: { ...typography.caption },
+  kodSatiri: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+  // Hatırlanan kod "hapı": 40dp yükseklik + hitSlop ile ≥ 44dp dokunma alanı.
+  kodHapi: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xxs,
+    minHeight: 40,
+    maxWidth: '100%',
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surfaceElevated,
+  },
+  kodHapiSecili: { borderColor: colors.primaryBorder, backgroundColor: colors.primarySoft },
+  kodHapiBasili: { backgroundColor: colors.surfaceSoft },
+  kodHapiPasif: { opacity: 0.6 },
+  kodYazi: { ...typography.label, color: colors.textPrimary, flexShrink: 1 },
+  kodYaziSecili: { color: colors.primary, fontWeight: '600' },
+  guvenlikMetni: { ...typography.bodySecondary, color: colors.textSecondary },
 });

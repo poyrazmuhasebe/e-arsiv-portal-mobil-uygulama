@@ -1,17 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Appbar, Button, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { TextInput } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import { Alert, AppHeader, AppInput, AppScreen, InfoBox, PrimaryButton } from '../components/ui';
 import { useHesapStore } from '../store/useHesapStore';
+import { colors, spacing, typography } from '../theme';
 import {
   EPOSTA_EN_FAZLA,
   GIB_KODU_CAKISMA_MESAJI,
@@ -33,7 +27,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'HesapKayit'>;
 // okunur; hiçbir koşulda sunucuya gönderilmez (bkz. utils/hatirlananKodlar.ts).
 
 export default function HesapKayitScreen({ navigation }: Props) {
-  const theme = useTheme();
   const kayitOl = useHesapStore((s) => s.kayitOl);
   const yukleniyor = useHesapStore((s) => s.yukleniyor);
 
@@ -80,93 +73,69 @@ export default function HesapKayitScreen({ navigation }: Props) {
     hata !== null && (dokunuldu || deger.length > 0);
 
   return (
-    <SafeAreaView style={styles.kapsayici} edges={['top', 'left', 'right']}>
-      <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Kayıt Ol" />
-      </Appbar.Header>
+    <AppScreen edges={['top', 'left', 'right']}>
+      <AppHeader title="Kayıt Ol" onBack={() => navigation.goBack()} />
 
       <KeyboardAvoidingView
         style={styles.kapsayici}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
-          <TextInput
-            label="E-posta"
-            value={eposta}
-            onChangeText={setEposta}
-            mode="outlined"
-            autoCapitalize="none"
-            autoComplete="email"
-            keyboardType="email-address"
-            maxLength={EPOSTA_EN_FAZLA}
-            error={hataGoster(epostaHata, eposta)}
-          />
-          <HelperText type="error" visible={hataGoster(epostaHata, eposta)}>
-            {epostaHata ?? ''}
-          </HelperText>
+          <View style={styles.form}>
+            <AppInput
+              label="E-posta"
+              value={eposta}
+              onChangeText={setEposta}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              maxLength={EPOSTA_EN_FAZLA}
+              errorText={hataGoster(epostaHata, eposta) ? epostaHata : null}
+            />
 
-          <TextInput
-            label="Uygulama Kullanıcı Adı"
-            value={kullaniciAdi}
-            onChangeText={setKullaniciAdi}
-            mode="outlined"
-            autoCapitalize="none"
-            autoCorrect={false}
-            maxLength={KULLANICI_ADI_EN_FAZLA}
-            error={hataGoster(kullaniciAdiHata, kullaniciAdi)}
-          />
-          <HelperText
-            type={hataGoster(kullaniciAdiHata, kullaniciAdi) ? 'error' : 'info'}
-            visible
-          >
-            {hataGoster(kullaniciAdiHata, kullaniciAdi)
-              ? (kullaniciAdiHata ?? '')
-              : 'GİB kullanıcı kodunuz değildir. 3–20 karakter, en az bir harf.'}
-          </HelperText>
+            <AppInput
+              label="Uygulama Kullanıcı Adı"
+              value={kullaniciAdi}
+              onChangeText={setKullaniciAdi}
+              autoCapitalize="none"
+              autoCorrect={false}
+              maxLength={KULLANICI_ADI_EN_FAZLA}
+              errorText={hataGoster(kullaniciAdiHata, kullaniciAdi) ? kullaniciAdiHata : null}
+              helperText="GİB kullanıcı kodunuz değildir. 3–20 karakter, en az bir harf."
+            />
 
-          <TextInput
-            label="Şifre"
-            value={sifre}
-            onChangeText={setSifre}
-            mode="outlined"
-            secureTextEntry={!sifreGorunur}
-            autoCapitalize="none"
-            autoComplete="new-password"
-            maxLength={SIFRE_EN_FAZLA}
-            error={hataGoster(sifreHata, sifre)}
-            right={
-              <TextInput.Icon
-                icon={sifreGorunur ? 'eye-off' : 'eye'}
-                onPress={() => setSifreGorunur((o) => !o)}
-                accessibilityLabel={sifreGorunur ? 'Şifreyi gizle' : 'Şifreyi göster'}
-              />
-            }
-          />
-          <HelperText type={hataGoster(sifreHata, sifre) ? 'error' : 'info'} visible>
-            {hataGoster(sifreHata, sifre)
-              ? (sifreHata ?? '')
-              : 'En az 8 karakter. GİB şifrenizden farklı olmalı.'}
-          </HelperText>
+            <AppInput
+              label="Şifre"
+              value={sifre}
+              onChangeText={setSifre}
+              secureTextEntry={!sifreGorunur}
+              autoCapitalize="none"
+              autoComplete="new-password"
+              maxLength={SIFRE_EN_FAZLA}
+              errorText={hataGoster(sifreHata, sifre) ? sifreHata : null}
+              helperText="En az 8 karakter. GİB şifrenizden farklı olmalı."
+              right={
+                <TextInput.Icon
+                  icon={sifreGorunur ? 'eye-off' : 'eye'}
+                  onPress={() => setSifreGorunur((o) => !o)}
+                  accessibilityLabel={sifreGorunur ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                />
+              }
+            />
+          </View>
 
-          <Button
-            mode="contained"
-            onPress={handleKayit}
-            loading={yukleniyor}
-            disabled={yukleniyor}
-            style={styles.buton}
-            contentStyle={styles.butonIc}
-          >
+          <PrimaryButton onPress={handleKayit} loading={yukleniyor} disabled={yukleniyor} fullWidth>
             Kayıt Ol
-          </Button>
+          </PrimaryButton>
 
           {/* Aydınlatma metni ve gizlilik politikası kayıt düğmesinin
               YAKININDA. Açık rıza kutucuğu BİLEREK YOK: sözleşmenin kurulması
               için gerekli veriler açık rızaya bağlanmaz (KVKK 2026/347). */}
-          <Text variant="bodySmall" style={styles.hukukMetni}>
+          <Text style={styles.hukukMetni}>
             Kayıt olarak{' '}
             <Text
-              style={[styles.baglanti, { color: theme.colors.primary }]}
+              style={styles.baglanti}
+              accessibilityRole="link"
               onPress={() => navigation.navigate('HukukiMetin', { metin: 'sartlar' })}
             >
               Hizmet Şartları
@@ -174,14 +143,16 @@ export default function HesapKayitScreen({ navigation }: Props) {
             'nı kabul etmiş olursunuz. Kişisel verilerinizin nasıl işlendiği
             için{' '}
             <Text
-              style={[styles.baglanti, { color: theme.colors.primary }]}
+              style={styles.baglanti}
+              accessibilityRole="link"
               onPress={() => navigation.navigate('HukukiMetin', { metin: 'aydinlatma' })}
             >
               Aydınlatma Metni
             </Text>{' '}
             ve{' '}
             <Text
-              style={[styles.baglanti, { color: theme.colors.primary }]}
+              style={styles.baglanti}
+              accessibilityRole="link"
               onPress={() => navigation.navigate('HukukiMetin', { metin: 'gizlilik' })}
             >
               Gizlilik Politikası
@@ -189,26 +160,29 @@ export default function HesapKayitScreen({ navigation }: Props) {
             'nı inceleyin.
           </Text>
 
-          <View style={[styles.bilgi, { borderColor: theme.colors.outlineVariant }]}>
-            <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-              Bu bilgiler hesap sunucumuza (Cloudflare, Avrupa Birliği) gönderilir.
-              Şifreniz orada geri döndürülemez biçimde özetlenir, açık hâli
-              hiçbir yerde saklanmaz. GİB kullanıcı kodunuz, GİB şifreniz ve
-              fatura verileriniz buraya hiçbir koşulda gönderilmez.
-            </Text>
-          </View>
+          <InfoBox tone="primary" icon="shield-lock-outline" title="Verileriniz nereye gider?">
+            Bu bilgiler hesap sunucumuza (Cloudflare, Avrupa Birliği) gönderilir. Şifreniz orada geri döndürülemez
+            biçimde özetlenir, açık hâli hiçbir yerde saklanmaz. GİB kullanıcı kodunuz, GİB şifreniz ve fatura
+            verileriniz buraya hiçbir koşulda gönderilmez.
+          </InfoBox>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
   kapsayici: { flex: 1 },
-  icerik: { padding: 20, paddingBottom: 48 },
-  buton: { marginTop: 8 },
-  butonIc: { paddingVertical: 6 },
-  hukukMetni: { marginTop: 16, opacity: 0.8, lineHeight: 18 },
-  baglanti: { textDecorationLine: 'underline' },
-  bilgi: { borderWidth: 1, borderRadius: 12, padding: 14, marginTop: 20 },
+  icerik: {
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.lg,
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+  },
+  form: { gap: spacing.xxs },
+  hukukMetni: { ...typography.bodySecondary },
+  baglanti: { color: colors.primary, fontWeight: '600', textDecorationLine: 'underline' },
 });

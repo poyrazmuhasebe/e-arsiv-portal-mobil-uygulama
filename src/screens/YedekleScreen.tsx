@@ -1,23 +1,27 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  Appbar,
-  Button,
-  Card,
-  Dialog,
-  Portal,
-  ProgressBar,
-  RadioButton,
-  Switch,
-  Text,
-  useTheme,
-} from 'react-native-paper';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ProgressBar } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { Directory } from 'expo-file-system';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
 import type { RootStackParamList } from '../../App';
+import {
+  Alert,
+  AppCard,
+  AppDialog,
+  AppHeader,
+  AppScreen,
+  DangerSoftButton,
+  DialogText,
+  Icon,
+  InfoBox,
+  PrimaryButton,
+  SecondaryButton,
+  SectionCard,
+  TextButton,
+  ToggleRow,
+} from '../components/ui';
 import { tarihFormatla } from '../components/TarihAraligiFiltresi';
 import { GibApiError, faturaHTMLGetir, gibHatasiniIsle, taslakGetir } from '../services/gibApi';
 import {
@@ -30,6 +34,7 @@ import {
   yedekKlasoruSec,
 } from '../services/yedekDeposu';
 import { useAuthStore } from '../store/useAuthStore';
+import { TOUCH_MIN, colors, radius, spacing, typography } from '../theme';
 import { filigranliFaturaHtml } from '../utils/faturaFiligran';
 import { yedekPdfBase64 } from '../utils/pdf';
 import {
@@ -66,7 +71,6 @@ type Durum =
  * sunucusuna (Cloudflare) gönderilmez.
  */
 export default function YedekleScreen({ navigation }: Props) {
-  const theme = useTheme();
   const token = useAuthStore((s) => s.token);
   const kullaniciBilgisi = useAuthStore((s) => s.kullaniciBilgisi);
 
@@ -188,192 +192,225 @@ export default function YedekleScreen({ navigation }: Props) {
     navigation.replace('YedekleriGoruntule');
   };
 
+  // Kutunun başlığı ve görünümü (ikon/ton) duruma göre; düğmeler ve metinler
+  // eskisiyle aynı.
+  const kutuBasligi =
+    durum.tur === 'suruyor'
+      ? 'Yedekleme devam ediyor'
+      : durum.tur === 'hata'
+        ? 'Yedekleme yarıda kaldı'
+        : durum.tur === 'bitti' && durum.sonuc.durduruldu
+          ? 'Yedekleme durduruldu'
+          : 'Yedekleme tamamlanmıştır';
+  const kutuGorunumu =
+    durum.tur === 'hata'
+      ? ({ icon: 'alert-circle-outline', tone: 'danger' } as const)
+      : durum.tur === 'bitti' && (durum.sonuc.durduruldu || durum.sonuc.hatali > 0)
+        ? ({ icon: 'alert-outline', tone: 'warning' } as const)
+        : durum.tur === 'bitti'
+          ? ({ icon: 'check-circle-outline', tone: 'success' } as const)
+          : ({ icon: 'folder-sync-outline', tone: 'default' } as const);
+
   return (
-    <SafeAreaView
-      style={[styles.safeArea, { backgroundColor: theme.colors.background }]}
-      edges={['top', 'bottom', 'left', 'right']}
-    >
-      <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => navigation.goBack()} disabled={suruyor} />
-        <Appbar.Content title="Faturaları Şimdi Yedekle" />
-      </Appbar.Header>
+    <AppScreen>
+      <AppHeader title="Faturaları Şimdi Yedekle" onBack={() => navigation.goBack()} backDisabled={suruyor} />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Card mode="elevated" style={styles.card}>
-          <Card.Title title="Yedek klasörü" />
-          <Card.Content style={styles.cardContent}>
+      <ScrollView contentContainerStyle={styles.icerik}>
+        <SectionCard title="Yedek klasörü" icon="folder-outline">
+          <View style={styles.klasorSatiri}>
+            <Icon
+              name={klasor ? 'folder' : 'folder-alert-outline'}
+              size={22}
+              color={klasorYukleniyor ? colors.textMuted : klasor ? colors.primary : colors.warning}
+            />
             {klasorYukleniyor ? (
-              <Text variant="bodyMedium" style={styles.mutedText}>
-                Yükleniyor…
-              </Text>
+              <Text style={[typography.body, styles.soluk, styles.klasorAdi]}>Yükleniyor…</Text>
             ) : klasor ? (
-              <Text variant="bodyMedium">{klasorGorunenAdi(klasor)}</Text>
+              <Text style={[typography.body, styles.klasorAdi]} selectable>
+                {klasorGorunenAdi(klasor)}
+              </Text>
             ) : (
-              <Text variant="bodyMedium" style={styles.uyari}>
-                Henüz klasör seçilmedi.
-              </Text>
+              <Text style={[typography.body, styles.uyari, styles.klasorAdi]}>Henüz klasör seçilmedi.</Text>
             )}
-            <Text variant="bodySmall" style={styles.mutedText}>
-              {KLASOR_SECILEBILIR
-                ? 'Faturalar bu klasörün içinde, her mükellef için ayrı bir alt klasöre PDF olarak kaydedilir. Telefonun "Dosyalar" uygulamasından da görebilirsiniz.'
-                : "iPhone'da uygulamalar klasör seçemiyor; faturalar uygulamanın kendi klasörüne kaydedilir ve uygulama silinirse onlar da silinir. Önemli yedekleri Görüntüle ekranından Paylaş ile iCloud Drive'a da kaydedin."}
-            </Text>
-          </Card.Content>
+          </View>
           {KLASOR_SECILEBILIR && (
-            <Card.Actions>
-              <Button mode="outlined" icon="folder" onPress={handleKlasorSec} disabled={suruyor}>
-                {klasor ? 'Klasörü Değiştir' : 'Klasör Seç'}
-              </Button>
-            </Card.Actions>
+            <SecondaryButton icon="folder" onPress={handleKlasorSec} disabled={suruyor} compact style={styles.solaYasli}>
+              {klasor ? 'Klasörü Değiştir' : 'Klasör Seç'}
+            </SecondaryButton>
           )}
-        </Card>
+          <Text style={typography.bodySecondary}>
+            {KLASOR_SECILEBILIR
+              ? 'Faturalar bu klasörün içinde, her mükellef için ayrı bir alt klasöre PDF olarak kaydedilir. Telefonun "Dosyalar" uygulamasından da görebilirsiniz.'
+              : "iPhone'da uygulamalar klasör seçemiyor; faturalar uygulamanın kendi klasörüne kaydedilir ve uygulama silinirse onlar da silinir. Önemli yedekleri Görüntüle ekranından Paylaş ile iCloud Drive'a da kaydedin."}
+          </Text>
+        </SectionCard>
 
-        <Card mode="elevated" style={styles.card}>
-          <Card.Title title="Dönem" />
-          <Card.Content>
-            <RadioButton.Group onValueChange={(v) => setSure(v as YedekSuresi)} value={sure}>
-              {YEDEK_SURELERI.map((s) => (
-                <RadioButton.Item key={s.anahtar} label={s.etiket} value={s.anahtar} disabled={suruyor} />
-              ))}
-            </RadioButton.Group>
-            <Text variant="bodySmall" style={styles.mutedText}>
-              {noktaliTarih(baslangicOnizleme)} – {noktaliTarih(new Date())} arası, GİB'in 7 gün sınırı nedeniyle{' '}
-              {parcaSayisi} ayrı sorguyla yedeklenir.
-            </Text>
-          </Card.Content>
-        </Card>
+        <SectionCard title="Dönem" icon="calendar-range">
+          <View accessibilityRole="radiogroup" style={styles.secenekler}>
+            {YEDEK_SURELERI.map((s) => {
+              const secili = s.anahtar === sure;
+              return (
+                <Pressable
+                  key={s.anahtar}
+                  onPress={() => setSure(s.anahtar)}
+                  disabled={suruyor}
+                  accessibilityRole="radio"
+                  accessibilityLabel={s.etiket}
+                  accessibilityState={{ checked: secili, disabled: suruyor }}
+                  android_ripple={{ color: colors.primarySoft }}
+                  style={({ pressed }) => [
+                    styles.secenek,
+                    secili && styles.seciliSecenek,
+                    pressed && !secili && styles.basiliSecenek,
+                  ]}
+                >
+                  <Icon
+                    name={secili ? 'radiobox-marked' : 'radiobox-blank'}
+                    size={22}
+                    color={suruyor ? colors.textMuted : secili ? colors.primary : colors.textSecondary}
+                  />
+                  <Text style={[typography.body, styles.secenekMetni, suruyor && styles.soluk]}>{s.etiket}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <InfoBox tone="info" icon="calendar-clock">
+            {`${noktaliTarih(baslangicOnizleme)} – ${noktaliTarih(new Date())} arası, GİB'in 7 gün sınırı nedeniyle ${parcaSayisi} ayrı sorguyla yedeklenir.`}
+          </InfoBox>
+        </SectionCard>
 
-        <Card mode="elevated" style={styles.card}>
-          <Card.Content style={styles.switchSatiri}>
-            <View style={styles.switchMetni}>
-              <Text variant="titleSmall">Onaylanmamış ve silinmiş faturalar da</Text>
-              <Text variant="bodySmall" style={styles.mutedText}>
-                Kapalıyken yalnızca GİB'de onaylanmış faturalar yedeklenir.
-              </Text>
-            </View>
-            <Switch value={taslaklarDahil} onValueChange={setTaslaklarDahil} disabled={suruyor} />
-          </Card.Content>
-        </Card>
+        <AppCard>
+          <ToggleRow
+            title="Onaylanmamış ve silinmiş faturalar da"
+            description="Kapalıyken yalnızca GİB'de onaylanmış faturalar yedeklenir."
+            value={taslaklarDahil}
+            onValueChange={setTaslaklarDahil}
+            disabled={suruyor}
+          />
+        </AppCard>
 
-        <Text variant="bodySmall" style={styles.mutedText}>
+        <InfoBox tone="neutral">
           Daha önce yedeklenmiş faturalar yeniden indirilmez; yarıda kalan bir yedeklemeyi tekrar başlatırsanız kaldığı
           yerden devam eder. Yedekleme sürerken uygulamayı açık tutun.
-        </Text>
+        </InfoBox>
 
-        <Button mode="contained" icon="content-save" onPress={baslat} disabled={suruyor || !klasor}>
+        <PrimaryButton icon="content-save" onPress={baslat} disabled={suruyor || !klasor} fullWidth>
           Yedeklemeyi Başlat
-        </Button>
+        </PrimaryButton>
       </ScrollView>
 
-      <Portal>
-        {/* Dialog'un DOĞRUDAN çocukları yalnızca Title/Content/Actions olmalı:
-            Paper, ilk çocuğa `style` ekliyor (Dialog.tsx cloneElement); ilk
-            çocuk bir <></> olursa "Invalid prop `style` supplied to
-            `React.Fragment`" hatası çıkar. Duruma göre değişen kısımlar bu
-            üç bileşenin İÇİNDE seçiliyor. */}
-        <Dialog visible={durum.tur !== 'bosta'} dismissable={false}>
-          <Dialog.Title>
-            {durum.tur === 'suruyor'
-              ? 'Yedekleme devam ediyor'
-              : durum.tur === 'hata'
-                ? 'Yedekleme yarıda kaldı'
-                : durum.tur === 'bitti' && durum.sonuc.durduruldu
-                  ? 'Yedekleme durduruldu'
-                  : 'Yedekleme tamamlanmıştır'}
-          </Dialog.Title>
-          <Dialog.Content style={styles.dialogIcerik}>
-            {durum.tur === 'suruyor' &&
-              (durum.ilerleme ? (
-                  <>
-                    <Text variant="bodyMedium">
-                      {noktaliTarih(durum.ilerleme.parca.baslangic)} – {noktaliTarih(durum.ilerleme.parca.bitis)} arası
-                      yedekleniyor
-                    </Text>
-                    <Text variant="bodySmall" style={styles.mutedText}>
-                      Sorgu {durum.ilerleme.parcaSirasi} / {durum.ilerleme.parcaSayisi}
-                    </Text>
-                    <ProgressBar
-                      progress={(durum.ilerleme.parcaSirasi - 1) / durum.ilerleme.parcaSayisi}
-                      style={styles.ilerlemeCubugu}
-                    />
-                    <Text variant="bodySmall">
-                      Kaydedilen: {durum.ilerleme.kaydedilen} · Zaten yedekli: {durum.ilerleme.atlanan}
-                      {durum.ilerleme.hatali > 0 ? ` · Hatalı: ${durum.ilerleme.hatali}` : ''}
-                    </Text>
-                  </>
+      {/* AppDialog Paper `Dialog` değil; çocuklarına `style` eklemez, bu
+          yüzden duruma göre değişen kısımlar Fragment içinde verilebilir. */}
+      <AppDialog
+        visible={durum.tur !== 'bosta'}
+        title={kutuBasligi}
+        icon={kutuGorunumu.icon}
+        tone={kutuGorunumu.tone}
+        actions={
+          durum.tur === 'suruyor' ? (
+            <DangerSoftButton icon="stop" onPress={() => (durdurIstendi.current = true)} compact>
+              Durdur
+            </DangerSoftButton>
+          ) : (
+            <>
+              {durum.tur === 'bitti' ? (
+                <TextButton onPress={kutuyuKapat} compact>
+                  Kapat
+                </TextButton>
               ) : (
-                <Text variant="bodyMedium">Hazırlanıyor…</Text>
-              ))}
+                <PrimaryButton onPress={kutuyuKapat} compact>
+                  Kapat
+                </PrimaryButton>
+              )}
+              {durum.tur === 'bitti' && (
+                <PrimaryButton icon="folder-open-outline" onPress={yedeklereGit} compact>
+                  Yedekleri Görüntüle
+                </PrimaryButton>
+              )}
+            </>
+          )
+        }
+      >
+        {durum.tur === 'suruyor' &&
+          (durum.ilerleme ? (
+            <>
+              <DialogText>
+                {noktaliTarih(durum.ilerleme.parca.baslangic)} – {noktaliTarih(durum.ilerleme.parca.bitis)} arası
+                yedekleniyor
+              </DialogText>
+              <Text style={typography.caption}>
+                Sorgu {durum.ilerleme.parcaSirasi} / {durum.ilerleme.parcaSayisi}
+              </Text>
+              <ProgressBar
+                progress={(durum.ilerleme.parcaSirasi - 1) / durum.ilerleme.parcaSayisi}
+                color={colors.primary}
+                style={styles.ilerlemeCubugu}
+              />
+              <Text style={typography.bodySecondary}>
+                Kaydedilen: {durum.ilerleme.kaydedilen} · Zaten yedekli: {durum.ilerleme.atlanan}
+                {durum.ilerleme.hatali > 0 ? ` · Hatalı: ${durum.ilerleme.hatali}` : ''}
+              </Text>
+            </>
+          ) : (
+            <DialogText>Hazırlanıyor…</DialogText>
+          ))}
 
-            {durum.tur === 'bitti' && (
-              <>
-                <Text variant="bodyMedium">
-                  Kaydedilen: {durum.sonuc.kaydedilen} · Zaten yedekli: {durum.sonuc.atlanan}
-                  {durum.sonuc.hatali > 0 ? ` · Hatalı: ${durum.sonuc.hatali}` : ''}
-                </Text>
-                {durum.sonuc.hatalar.slice(0, 5).map((h) => (
-                  <Text key={h.belge} variant="bodySmall" style={styles.uyari}>
-                    {h.belge}: {h.mesaj}
-                  </Text>
-                ))}
-                {!durum.sonuc.durduruldu && durum.sonuc.hatali === 0 && (
-                  <Text variant="bodySmall" style={styles.mutedText}>
-                    Yedeklenen faturalara yönlendiriliyorsunuz…
-                  </Text>
-                )}
-              </>
+        {durum.tur === 'bitti' && (
+          <>
+            <DialogText>
+              Kaydedilen: {durum.sonuc.kaydedilen} · Zaten yedekli: {durum.sonuc.atlanan}
+              {durum.sonuc.hatali > 0 ? ` · Hatalı: ${durum.sonuc.hatali}` : ''}
+            </DialogText>
+            {durum.sonuc.hatalar.slice(0, 5).map((h) => (
+              <Text key={h.belge} style={[typography.bodySecondary, styles.hata]}>
+                {h.belge}: {h.mesaj}
+              </Text>
+            ))}
+            {!durum.sonuc.durduruldu && durum.sonuc.hatali === 0 && (
+              <Text style={typography.caption}>Yedeklenen faturalara yönlendiriliyorsunuz…</Text>
             )}
+          </>
+        )}
 
-            {durum.tur === 'hata' && (
-              <>
-                <Text variant="bodyMedium">{durum.mesaj}</Text>
-                {durum.sonuc && (
-                  <Text variant="bodySmall" style={styles.mutedText}>
-                    O ana kadar kaydedilen {durum.sonuc.kaydedilen} fatura klasörde duruyor. Tekrar başlatırsanız
-                    kaldığı yerden devam eder.
-                  </Text>
-                )}
-              </>
+        {durum.tur === 'hata' && (
+          <>
+            <DialogText>{durum.mesaj}</DialogText>
+            {durum.sonuc && (
+              <Text style={typography.bodySecondary}>
+                O ana kadar kaydedilen {durum.sonuc.kaydedilen} fatura klasörde duruyor. Tekrar başlatırsanız kaldığı
+                yerden devam eder.
+              </Text>
             )}
-          </Dialog.Content>
-          {/* Dialog.Actions da her çocuğuna style ekliyor ve aralığı çocuk
-              sırasına göre veriyor: düğmeler Fragment'sız ve `false`suz,
-              süzülmüş bir dizi olarak verilir. */}
-          <Dialog.Actions>
-            {durum.tur === 'suruyor'
-              ? [
-                  <Button key="durdur" onPress={() => (durdurIstendi.current = true)}>
-                    Durdur
-                  </Button>,
-                ]
-              : [
-                  <Button key="kapat" onPress={kutuyuKapat}>
-                    Kapat
-                  </Button>,
-                  ...(durum.tur === 'bitti'
-                    ? [
-                        <Button key="gor" onPress={yedeklereGit}>
-                          Yedekleri Görüntüle
-                        </Button>,
-                      ]
-                    : []),
-                ]}
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
-    </SafeAreaView>
+          </>
+        )}
+      </AppDialog>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  content: { padding: 16, gap: 12 },
-  card: { borderRadius: 16 },
-  cardContent: { gap: 6 },
-  mutedText: { opacity: 0.7 },
-  uyari: { color: '#f2b8b5' },
-  switchSatiri: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  switchMetni: { flex: 1, gap: 2 },
-  dialogIcerik: { gap: 8 },
-  ilerlemeCubugu: { marginVertical: 4 },
+  icerik: { paddingHorizontal: spacing.screen, paddingTop: spacing.xs, paddingBottom: spacing.xxl, gap: spacing.card },
+  klasorSatiri: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  klasorAdi: { flex: 1, minWidth: 0 },
+  solaYasli: { alignSelf: 'flex-start' },
+  soluk: { color: colors.textMuted },
+  uyari: { color: colors.warning },
+  hata: { color: colors.danger },
+  secenekler: { gap: spacing.xs },
+  secenek: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: TOUCH_MIN + 4,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.medium,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.backgroundSecondary,
+    overflow: 'hidden',
+  },
+  seciliSecenek: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+  basiliSecenek: { backgroundColor: colors.surfaceElevated },
+  secenekMetni: { flex: 1 },
+  ilerlemeCubugu: { marginVertical: spacing.xxs, borderRadius: radius.pill },
 });

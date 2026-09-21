@@ -1,13 +1,37 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityIndicator, Appbar, Button, Card, Searchbar, Text, TextInput, useTheme } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
-import SecimAlani from '../components/SecimAlani';
+import {
+  Alert,
+  AppCard,
+  AppHeader,
+  AppIconButton,
+  AppInput,
+  AppScreen,
+  AppSelect,
+  DangerSoftButton,
+  DetailRow,
+  EmptyState,
+  InfoBox,
+  PrimaryButton,
+  SearchBar,
+  SecondaryButton,
+  TextButton,
+} from '../components/ui';
 import { ULKELER, VARSAYILAN_ULKE } from '../constants/faturaConstants';
 import { useAuthStore } from '../store/useAuthStore';
+import { colors, spacing, typography } from '../theme';
 import {
   MAX_ALICI_KAYDI,
   aliciAdresGuncelle,
@@ -42,7 +66,6 @@ function aliciAdi(a: AliciFormu): string {
  * Mevcut bir kayıtta da yalnızca adres ve ülke düzenlenebilir.
  */
 export default function AliciDefteriScreen({ navigation }: Props) {
-  const theme = useTheme();
   const token = useAuthStore((s) => s.token);
 
   const [liste, setListe] = useState<KayitliAlici[]>([]);
@@ -163,144 +186,173 @@ export default function AliciDefteriScreen({ navigation }: Props) {
 
   if (yeniAlici) {
     return (
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom', 'left', 'right']}>
-        <Appbar.Header elevated>
-          <Appbar.BackAction onPress={() => setYeniAlici(null)} />
-          <Appbar.Content title="Alıcı Ekle" />
-        </Appbar.Header>
+      <AppScreen>
+        <AppHeader title="Alıcı Ekle" onBack={() => setYeniAlici(null)} />
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
-            <Text variant="bodySmall" style={styles.aciklama}>
-              VKN/TCKN girin; Unvan/Ad/Soyad/Vergi Dairesi GİB'den otomatik gelir ve elle
-              değiştirilemez. Adres zorunludur.
-            </Text>
+            <InfoBox tone="info">
+              VKN/TCKN girin; Unvan/Ad/Soyad/Vergi Dairesi GİB'den otomatik gelir ve elle değiştirilemez. Adres
+              zorunludur.
+            </InfoBox>
             <AliciBilgileriKarti
               token={token}
               alici={yeniAlici}
               onAliciChange={(patch) => setYeniAlici((onceki) => (onceki ? { ...onceki, ...patch } : onceki))}
               kayitliSecimGoster={false}
             />
-            <Button
-              mode="contained"
+            <PrimaryButton
+              icon="content-save-outline"
               onPress={yeniAliciyiKaydet}
               disabled={!yeniAliciGecerli || kaydediliyor}
               loading={kaydediliyor}
+              fullWidth
             >
               Deftere Kaydet
-            </Button>
+            </PrimaryButton>
           </ScrollView>
         </KeyboardAvoidingView>
-      </SafeAreaView>
+      </AppScreen>
     );
   }
 
-  return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom', 'left', 'right']}>
-      <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Alıcı Defteri" />
-        <Appbar.Action icon="account-plus" accessibilityLabel="Alıcı ekle" onPress={() => setYeniAlici(bosAlici())} />
-      </Appbar.Header>
-
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
-          <Text variant="bodySmall" style={styles.aciklama}>
-            Bu defter yalnızca bu hesaba özeldir ve cihazda şifreli saklanır. Fatura başarıyla
-            oluşturulunca alıcı otomatik eklenir. {liste.length}/{MAX_ALICI_KAYDI} kayıt.
+  const aliciKartiCiz = ({ item: kayit }: { item: KayitliAlici }) => {
+    const duzenleniyor = duzenlenen === kayit.vknTckn;
+    return (
+      <AppCard style={styles.kart}>
+        <View style={styles.kartBaslik}>
+          <Text style={typography.cardTitle} numberOfLines={2}>
+            {aliciAdi(kayit)}
           </Text>
-
-          {liste.length > 0 && (
-            <Searchbar placeholder="Unvan, ad veya VKN/TCKN ara" value={arama} onChangeText={setArama} />
-          )}
-
-          {yukleniyor ? (
-            <ActivityIndicator style={styles.yukleniyor} />
-          ) : liste.length === 0 ? (
-            <Text variant="bodyMedium" style={styles.aciklama}>
-              Henüz kayıtlı alıcı yok. Sağ üstteki düğmeyle elle ekleyebilirsiniz.
-            </Text>
-          ) : gorunenler.length === 0 ? (
-            <Text variant="bodyMedium" style={styles.aciklama}>
-              Aramayla eşleşen alıcı yok.
-            </Text>
+          <Text style={typography.caption} selectable>
+            VKN/TCKN: {kayit.vknTckn}
+          </Text>
+        </View>
+        <View style={styles.kartIcerik}>
+          <DetailRow label="Vergi Dairesi" value={kayit.vergiDairesi} />
+          {duzenleniyor ? (
+            <View style={styles.duzenleAlanlari}>
+              <AppSelect label="Ülke" value={taslakUlke} secenekler={ULKELER} onSelect={setTaslakUlke} zorunlu />
+              <AppInput
+                label="Adres *"
+                value={taslakAdres}
+                onChangeText={setTaslakAdres}
+                multiline
+                numberOfLines={2}
+              />
+            </View>
           ) : (
-            gorunenler.map((kayit) => {
-              const duzenleniyor = duzenlenen === kayit.vknTckn;
-              return (
-                <Card key={kayit.vknTckn} mode="elevated" style={styles.kart}>
-                  <Card.Title title={aliciAdi(kayit)} subtitle={kayit.vknTckn} titleNumberOfLines={2} />
-                  <Card.Content style={styles.kartIcerik}>
-                    {kayit.vergiDairesi ? (
-                      <Text variant="bodySmall" style={styles.soluk}>
-                        Vergi Dairesi: {kayit.vergiDairesi}
-                      </Text>
-                    ) : null}
-                    {duzenleniyor ? (
-                      <>
-                        <SecimAlani label="Ülke" value={taslakUlke} secenekler={ULKELER} onSelect={setTaslakUlke} zorunlu />
-                        <TextInput
-                          mode="outlined"
-                          label="Adres *"
-                          value={taslakAdres}
-                          onChangeText={setTaslakAdres}
-                          multiline
-                          numberOfLines={2}
-                        />
-                      </>
-                    ) : (
-                      <>
-                        <Text variant="bodySmall" style={styles.soluk}>
-                          Ülke: {kayit.ulke}
-                        </Text>
-                        <Text variant="bodyMedium">{kayit.adres}</Text>
-                      </>
-                    )}
-                  </Card.Content>
-                  {/* Card.Actions her çocuğuna style ekliyor (Paper cloneElement);
-                      <></> verilirse "Invalid prop `style` supplied to
-                      `React.Fragment`" hatası çıkar. Düğmeler anahtarlı dizi. */}
-                  <Card.Actions>
-                    {duzenleniyor
-                      ? [
-                          <Button key="vazgec" mode="text" onPress={() => setDuzenlenen(null)}>
-                            Vazgeç
-                          </Button>,
-                          <Button key="kaydet" mode="contained" onPress={duzenlemeyiKaydet}>
-                            Kaydet
-                          </Button>,
-                        ]
-                      : [
-                          <Button
-                            key="sil"
-                            mode="text"
-                            icon="delete-outline"
-                            textColor={theme.colors.error}
-                            onPress={() => silmeyiOnayla(kayit)}
-                          >
-                            Sil
-                          </Button>,
-                          <Button key="duzenle" mode="text" icon="pencil-outline" onPress={() => duzenlemeyiBaslat(kayit)}>
-                            Adresi Düzenle
-                          </Button>,
-                        ]}
-                  </Card.Actions>
-                </Card>
-              );
-            })
+            <View style={styles.detaylar}>
+              <DetailRow label="Ülke" value={kayit.ulke} />
+              <DetailRow label="Adres" value={kayit.adres} stacked />
+            </View>
           )}
-        </ScrollView>
+        </View>
+        <View style={styles.eylemler}>
+          {duzenleniyor ? (
+            <>
+              <TextButton compact onPress={() => setDuzenlenen(null)}>
+                Vazgeç
+              </TextButton>
+              <PrimaryButton compact icon="content-save-outline" onPress={duzenlemeyiKaydet}>
+                Kaydet
+              </PrimaryButton>
+            </>
+          ) : (
+            <>
+              <DangerSoftButton compact icon="delete-outline" onPress={() => silmeyiOnayla(kayit)}>
+                Sil
+              </DangerSoftButton>
+              <SecondaryButton compact icon="pencil-outline" onPress={() => duzenlemeyiBaslat(kayit)}>
+                Adresi Düzenle
+              </SecondaryButton>
+            </>
+          )}
+        </View>
+      </AppCard>
+    );
+  };
+
+  return (
+    <AppScreen>
+      <AppHeader
+        title="Alıcı Defteri"
+        onBack={() => navigation.goBack()}
+        right={
+          <AppIconButton
+            icon="account-plus-outline"
+            accessibilityLabel="Alıcı ekle"
+            onPress={() => setYeniAlici(bosAlici())}
+          />
+        }
+      />
+
+      {/* Kart içindeki adres alanı klavyeyle düzenlenebildiği için liste
+          KeyboardAvoidingView içinde; removeClippedSubviews={false} odaklı
+          alanın ekran dışına kayınca sökülüp odağın kaybolmasını önler. */}
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+        <FlatList
+          data={yukleniyor ? [] : gorunenler}
+          keyExtractor={(kayit) => kayit.vknTckn}
+          renderItem={aliciKartiCiz}
+          extraData={[duzenlenen, taslakAdres, taslakUlke]}
+          keyboardShouldPersistTaps="handled"
+          removeClippedSubviews={false}
+          contentContainerStyle={styles.icerik}
+          ListHeaderComponent={
+            <View style={styles.ust}>
+              <InfoBox tone="primary" icon="shield-lock-outline">
+                Bu defter yalnızca bu hesaba özeldir ve cihazda şifreli saklanır. Fatura başarıyla oluşturulunca
+                alıcı otomatik eklenir.
+              </InfoBox>
+              <Text style={[typography.caption, styles.sayac]}>
+                {liste.length}/{MAX_ALICI_KAYDI} kayıt
+              </Text>
+              {liste.length > 0 && (
+                <SearchBar placeholder="Unvan, ad veya VKN/TCKN ara" value={arama} onChangeText={setArama} />
+              )}
+            </View>
+          }
+          ListEmptyComponent={
+            yukleniyor ? (
+              <ActivityIndicator style={styles.yukleniyor} color={colors.primary} />
+            ) : liste.length === 0 ? (
+              <EmptyState
+                icon="account-multiple-outline"
+                title="Henüz kayıtlı alıcı yok"
+                description="Sağ üstteki düğmeyle elle ekleyebilirsiniz."
+              />
+            ) : (
+              <EmptyState icon="magnify" title="Aramayla eşleşen alıcı yok." />
+            )
+          }
+        />
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
   flex: { flex: 1 },
-  icerik: { padding: 16, gap: 12 },
-  aciklama: { opacity: 0.7 },
-  yukleniyor: { marginTop: 24 },
-  kart: { borderRadius: 16 },
-  kartIcerik: { gap: 8 },
-  soluk: { opacity: 0.7 },
+  icerik: {
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xxl,
+    gap: spacing.card,
+  },
+  ust: { gap: spacing.sm },
+  sayac: { alignSelf: 'flex-end' },
+  yukleniyor: { marginTop: spacing.xl },
+  kart: { gap: spacing.sm },
+  kartBaslik: { gap: 2 },
+  kartIcerik: { gap: spacing.xs },
+  detaylar: { gap: spacing.xs },
+  duzenleAlanlari: { gap: spacing.sm },
+  eylemler: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingTop: spacing.xxs,
+  },
 });

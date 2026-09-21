@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Appbar, Button, HelperText, Text, TextInput, useTheme } from 'react-native-paper';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { TextInput } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import {
+  Alert,
+  AppHeader,
+  AppInput,
+  AppScreen,
+  InfoBox,
+  PrimaryButton,
+  TextButton,
+} from '../components/ui';
 import {
   sifreSifirlamaBaslat,
   sifreSifirlamaTamamla,
@@ -23,6 +24,7 @@ import {
   epostaNormalize,
   sifreHatasi,
 } from '../utils/hesapDogrulama';
+import { spacing, typography } from '../theme';
 import type { RootStackParamList } from '../../App';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SifremiUnuttum'>;
@@ -41,8 +43,6 @@ function gelistirmeMi(): boolean {
  * göstermiyoruz.
  */
 export default function SifremiUnuttumScreen({ route, navigation }: Props) {
-  const theme = useTheme();
-
   const [adim, setAdim] = useState<'eposta' | 'kod'>('eposta');
   const [eposta, setEposta] = useState(route.params?.eposta ?? '');
   const [kod, setKod] = useState('');
@@ -96,11 +96,8 @@ export default function SifremiUnuttumScreen({ route, navigation }: Props) {
   };
 
   return (
-    <SafeAreaView style={styles.kapsayici} edges={['top', 'left', 'right']}>
-      <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Şifremi Unuttum" />
-      </Appbar.Header>
+    <AppScreen edges={['top', 'left', 'right']}>
+      <AppHeader title="Şifremi Unuttum" onBack={() => navigation.goBack()} />
 
       <KeyboardAvoidingView
         style={styles.kapsayici}
@@ -109,119 +106,109 @@ export default function SifremiUnuttumScreen({ route, navigation }: Props) {
         <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
           {adim === 'eposta' ? (
             <>
-              <Text variant="bodyMedium" style={styles.aciklama}>
+              <Text style={styles.aciklama}>
                 Hesabınızın e-posta adresini girin. Adres kayıtlıysa 6 haneli
                 bir sıfırlama kodu göndereceğiz.
               </Text>
 
-              <TextInput
+              <AppInput
                 label="E-posta"
                 value={eposta}
                 onChangeText={setEposta}
-                mode="outlined"
                 autoCapitalize="none"
                 autoComplete="email"
                 keyboardType="email-address"
                 maxLength={EPOSTA_EN_FAZLA}
-                error={epostaHata !== null && eposta.length > 0}
+                errorText={epostaHata !== null && eposta.length > 0 ? epostaHata : null}
               />
-              <HelperText type="error" visible={epostaHata !== null && eposta.length > 0}>
-                {epostaHata ?? ''}
-              </HelperText>
 
-              <Button
-                mode="contained"
+              <PrimaryButton
                 onPress={handleBaslat}
                 loading={mesgul}
                 disabled={mesgul || epostaHata !== null}
-                contentStyle={styles.butonIc}
+                fullWidth
               >
                 Kod Gönder
-              </Button>
+              </PrimaryButton>
             </>
           ) : (
             <>
-              <Text variant="bodyMedium" style={styles.aciklama}>
+              <Text style={styles.aciklama}>
                 {epostaN} adresine bir kod gönderildi (adres kayıtlıysa). Kodu
                 ve yeni şifrenizi girin.
               </Text>
 
-              <TextInput
-                label="Sıfırlama kodu"
-                value={kod}
-                onChangeText={(deger) =>
-                  setKod(deger.replace(/[^0-9]/g, '').slice(0, KOD_HANE))
-                }
-                mode="outlined"
-                keyboardType="number-pad"
-                maxLength={KOD_HANE}
-                autoComplete="one-time-code"
-                style={styles.alan}
-              />
+              <View style={styles.form}>
+                <AppInput
+                  label="Sıfırlama kodu"
+                  value={kod}
+                  onChangeText={(deger) =>
+                    setKod(deger.replace(/[^0-9]/g, '').slice(0, KOD_HANE))
+                  }
+                  keyboardType="number-pad"
+                  maxLength={KOD_HANE}
+                  autoComplete="one-time-code"
+                />
 
-              <TextInput
-                label="Yeni şifre"
-                value={yeniSifre}
-                onChangeText={setYeniSifre}
-                mode="outlined"
-                secureTextEntry={!sifreGorunur}
-                autoCapitalize="none"
-                autoComplete="new-password"
-                maxLength={SIFRE_EN_FAZLA}
-                error={sifreHata !== null && yeniSifre.length > 0}
-                right={
-                  <TextInput.Icon
-                    icon={sifreGorunur ? 'eye-off' : 'eye'}
-                    onPress={() => setSifreGorunur((o) => !o)}
-                    accessibilityLabel={sifreGorunur ? 'Şifreyi gizle' : 'Şifreyi göster'}
-                  />
-                }
-              />
-              <HelperText type="error" visible={sifreHata !== null && yeniSifre.length > 0}>
-                {sifreHata ?? ''}
-              </HelperText>
+                <AppInput
+                  label="Yeni şifre"
+                  value={yeniSifre}
+                  onChangeText={setYeniSifre}
+                  secureTextEntry={!sifreGorunur}
+                  autoCapitalize="none"
+                  autoComplete="new-password"
+                  maxLength={SIFRE_EN_FAZLA}
+                  errorText={sifreHata !== null && yeniSifre.length > 0 ? sifreHata : null}
+                  right={
+                    <TextInput.Icon
+                      icon={sifreGorunur ? 'eye-off' : 'eye'}
+                      onPress={() => setSifreGorunur((o) => !o)}
+                      accessibilityLabel={sifreGorunur ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                    />
+                  }
+                />
+              </View>
 
-              <Button
-                mode="contained"
-                onPress={handleTamamla}
-                loading={mesgul}
-                disabled={mesgul || kod.length !== KOD_HANE || sifreHata !== null}
-                contentStyle={styles.butonIc}
-              >
-                Şifreyi Değiştir
-              </Button>
+              <View style={styles.butonlar}>
+                <PrimaryButton
+                  onPress={handleTamamla}
+                  loading={mesgul}
+                  disabled={mesgul || kod.length !== KOD_HANE || sifreHata !== null}
+                  fullWidth
+                >
+                  Şifreyi Değiştir
+                </PrimaryButton>
 
-              <Button mode="text" onPress={() => setAdim('eposta')} disabled={mesgul}>
-                Adresi değiştir
-              </Button>
+                <TextButton onPress={() => setAdim('eposta')} disabled={mesgul} fullWidth>
+                  Adresi değiştir
+                </TextButton>
+              </View>
 
               {gelistirmeKodu !== undefined && (
-                <View style={[styles.gelistirme, { borderColor: theme.colors.tertiary }]}>
-                  <Text variant="bodySmall" style={{ color: theme.colors.tertiary }}>
-                    Yerel geliştirme: kod {gelistirmeKodu}
-                  </Text>
-                </View>
+                <InfoBox tone="info" icon="code-tags">
+                  {`Yerel geliştirme: kod ${gelistirmeKodu}`}
+                </InfoBox>
               )}
             </>
           )}
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
   kapsayici: { flex: 1 },
-  icerik: { padding: 20, paddingBottom: 48 },
-  aciklama: { opacity: 0.75, marginBottom: 18 },
-  alan: { marginBottom: 14 },
-  butonIc: { paddingVertical: 6 },
-  gelistirme: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginTop: 12,
+  icerik: {
+    paddingHorizontal: spacing.screen,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.xxxl,
+    gap: spacing.lg,
+    width: '100%',
+    maxWidth: 560,
     alignSelf: 'center',
   },
+  aciklama: { ...typography.bodySecondary },
+  form: { gap: spacing.sm },
+  butonlar: { gap: spacing.xxs },
 });

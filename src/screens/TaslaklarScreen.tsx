@@ -1,23 +1,35 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, Modal, Platform, Pressable, ScrollView, FlatList, StyleSheet, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import {
-  ActivityIndicator,
-  Appbar,
-  Button,
-  Card,
-  Checkbox,
-  Chip,
-  Dialog,
-  Portal,
-  RadioButton,
-  Text,
-  TextInput,
-  useTheme,
-} from 'react-native-paper';
+import { FlatList, Modal, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import FaturaWebView from '../components/FaturaWebView';
+import TarihAraligiFiltresi from '../components/TarihAraligiFiltresi';
+import {
+  Alert,
+  AppCard,
+  AppDialog,
+  AppHeader,
+  AppIconButton,
+  AppInput,
+  AppScreen,
+  AppSelect,
+  CheckRow,
+  DangerButton,
+  DangerSoftButton,
+  DateField,
+  DetailRow,
+  DialogText,
+  EmptyState,
+  InfoBox,
+  PrimaryButton,
+  SecondaryButton,
+  StatusBadge,
+  TextButton,
+  type IconName,
+  type StatusBadgeDurum,
+} from '../components/ui';
+import { colors, radius, spacing, typography } from '../theme';
 
 import type { RootStackParamList } from '../../App';
 import {
@@ -35,7 +47,6 @@ import { useAuthStore } from '../store/useAuthStore';
 import { pdfIndir, pdfPaylas } from '../utils/pdf';
 import type { TaslakFatura } from '../types/gib';
 import { filigranliFaturaHtml, iptalItirazDurumMetni, iptalKabulEdildiMi } from '../utils/faturaFiligran';
-import { EN_FAZLA_GUN, aralikGecerliMi, araligiSinirla } from '../utils/tarihAraligi';
 import {
   ITIRAZ_ACIKLAMA_EN_FAZLA,
   ITIRAZ_BELGE_NO_EN_FAZLA,
@@ -64,6 +75,17 @@ function taslakDurumu(item: TaslakFatura): TaslakDurum {
 }
 
 // İptal/itiraz durum metni ve filigran kuralları: src/utils/faturaFiligran.ts
+
+// Kartta iptal/itiraz talebinin ikinci rozeti — yalnızca görünüm eşlemesi;
+// metnin kendisi iptalItirazDurumMetni'nden gelir ve aynen gösterilir.
+function talepRozeti(metin: string): StatusBadgeDurum {
+  if (metin.endsWith('Reddedildi')) return 'rejected';
+  if (metin.endsWith('Kabul Edildi')) return 'cancelAccepted';
+  return 'pending';
+}
+
+// AppSelect'in beklediği biçim; değer ve etiketler ITIRAZ_YONTEMLERI'yle birebir.
+const ITIRAZ_YONTEMI_SECENEKLERI = ITIRAZ_YONTEMLERI.map((y) => ({ value: y.deger, label: y.etiket }));
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Taslaklar'>;
 
@@ -97,7 +119,6 @@ function telefonMaskele(rakamlar: string): string {
 const SMS_SURESI_SN = 180;
 
 export default function TaslaklarScreen({ navigation }: Props) {
-  const theme = useTheme();
   const token = useAuthStore((s) => s.token);
 
   const [taslaklar, setTaslaklar] = useState<TaslakFatura[]>([]);
@@ -106,8 +127,8 @@ export default function TaslaklarScreen({ navigation }: Props) {
 
   const [baslangicTarih, setBaslangicTarih] = useState<Date>(yediGunOncesi);
   const [bitisTarih, setBitisTarih] = useState<Date>(() => new Date());
-  const [acikPicker, setAcikPicker] = useState<'baslangic' | 'bitis' | null>(null);
-
+  // Tarih seçici, 7 günlük sınır düzeltmesi ve Sorgula güvencesi ortak
+  // TarihAraligiFiltresi bileşeninde (davranış buradaki eski kopyayla aynı).
 
   // SMS ile imzalama (GİB İmza) — GİB'in kendi arayüzündeki gerçek iki
   // adımlı sihirbazın birebir taklidi: 1) uyarı onayı + kayıtlı cep telefonu
@@ -193,13 +214,9 @@ export default function TaslaklarScreen({ navigation }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [veriYukle]);
 
+  // GİB 1 haftadan uzun aralığı reddediyor: geçersiz aralıkta
+  // TarihAraligiFiltresi bu fonksiyonu hiç çağırmaz (son güvence orada).
   const handleSorgula = async () => {
-    // GİB 1 haftadan uzun aralığı reddediyor; tarih seçimi zaten sınırlıyor,
-    // bu son bir güvence.
-    if (!aralikGecerliMi(baslangicTarih, bitisTarih)) {
-      Alert.alert('Tarih aralığı çok uzun', `GİB en fazla ${EN_FAZLA_GUN} günlük aralıkta sorgulamaya izin veriyor.`);
-      return;
-    }
     setYukleniyor(true);
     await veriYukle(baslangicTarih, bitisTarih);
     setYukleniyor(false);
@@ -211,27 +228,11 @@ export default function TaslaklarScreen({ navigation }: Props) {
     setYenileniyor(false);
   };
 
-  const handleTarihSecildi = (_event: DateTimePickerChangeEvent, secilen: Date) => {
-    const hedef = acikPicker;
-    setAcikPicker(null); // Android'de picker modal olarak açılır, seçim sonrası kapanır
-    if (hedef !== 'baslangic' && hedef !== 'bitis') return;
-    // GİB 1 haftadan uzun aralığa izin vermiyor: seçilen uca dokunulmaz,
-    // DİĞER uç gerekirse kaydırılır (bkz. utils/tarihAraligi.ts).
-    const sonuc = araligiSinirla(
-      hedef === 'baslangic' ? secilen : baslangicTarih,
-      hedef === 'bitis' ? secilen : bitisTarih,
-      hedef,
-    );
-    setBaslangicTarih(sonuc.baslangic);
-    setBitisTarih(sonuc.bitis);
-    if (sonuc.duzeltildi) {
-      Alert.alert(
-        'Tarih aralığı ayarlandı',
-        `GİB en fazla ${EN_FAZLA_GUN} günlük aralıkta sorgulamaya izin veriyor; ` +
-          (hedef === 'baslangic' ? 'bitiş' : 'başlangıç') +
-          ' tarihi buna göre değiştirildi.',
-      );
-    }
+  // TarihAraligiFiltresi seçilen tarihi 7 günlük sınıra göre düzeltip
+  // (gerekirse uyarı göstererek) iki ucu birlikte bildirir.
+  const handleTarihDegisti = (baslangic: Date, bitis: Date) => {
+    setBaslangicTarih(baslangic);
+    setBitisTarih(bitis);
   };
 
   // Adım 1: "GİB İmza" tıklanınca dialog açılır ve kayıtlı cep telefonu
@@ -535,588 +536,517 @@ export default function TaslaklarScreen({ navigation }: Props) {
 
     // İptal talebi kabul edilmiş fatura GİB'de hâlâ 'Onaylandı' görünür ama
     // geçersizdir: yeşil 'Onaylı' yerine kırmızı 'İptal' (kullanıcı isteği).
-    const durumGorseli =
+    const durumGorseli: { rozet: StatusBadgeDurum; etiket: string; icon?: IconName } =
       durum === 'onaylandi' && iptalKabulEdildiMi(item)
-        ? { icon: 'cancel', stil: styles.chipIptal, etiket: 'İptal', yazi: styles.chipIptalYazi }
+        ? { rozet: 'cancelAccepted', etiket: 'İptal' }
         : durum === 'onaylandi'
-        ? { icon: 'check-circle', stil: styles.chipOnayli, etiket: 'Onaylı' }
-        : durum === 'silinmis'
-          ? { icon: 'close-circle', stil: styles.chipSilinmis, etiket: 'Silinmiş' }
-          : durum === 'onaylanmadi'
-            ? { icon: 'clock-outline', stil: styles.chipTaslak, etiket: 'Taslak' }
-            : { icon: 'help-circle-outline', stil: styles.chipBilinmiyor, etiket: 'Bilinmiyor' };
+          ? { rozet: 'approved', etiket: 'Onaylı' }
+          : durum === 'silinmis'
+            ? { rozet: 'deleted', etiket: 'Silinmiş' }
+            : durum === 'onaylanmadi'
+              ? { rozet: 'draft', etiket: 'Taslak' }
+              : { rozet: 'info', etiket: 'Bilinmiyor', icon: 'help-circle-outline' };
+
+    // Taslakta ana eylem GİB İmza; diğer durumlarda Görüntüle öne çıkar.
+    const GoruntuleDugmesi = duzenlenebilir ? SecondaryButton : PrimaryButton;
 
     return (
-      <Card mode="elevated" style={styles.card}>
-        <Card.Content style={styles.cardContent}>
-          <View style={styles.cardHeader}>
-            <Text variant="titleMedium" style={styles.flexShrink} numberOfLines={2}>
-              {baslik}
-            </Text>
-            <Chip
-              compact
-              icon={durumGorseli.icon}
-              style={durumGorseli.stil}
-              textStyle={'yazi' in durumGorseli ? durumGorseli.yazi : undefined}
-            >
-              {durumGorseli.etiket}
-            </Chip>
+      <AppCard style={styles.kart}>
+        <View style={styles.kartBaslik}>
+          <Text style={[typography.cardTitle, styles.kartBaslikMetni]} numberOfLines={2}>
+            {baslik}
+          </Text>
+          <StatusBadge status={durumGorseli.rozet} label={durumGorseli.etiket} icon={durumGorseli.icon} />
+        </View>
+
+        {itirazIptalMetni !== undefined ? (
+          <View style={styles.talepSatiri}>
+            <Text style={typography.caption}>İtiraz/İptal Durumu</Text>
+            <StatusBadge status={talepRozeti(itirazIptalMetni)} label={itirazIptalMetni} />
           </View>
+        ) : null}
 
-          <Text variant="bodySmall" style={styles.mutedText}>
-            {tarih}
-            {vknTckn ? ` · ${vknTckn}` : ''}
-          </Text>
+        <View style={styles.detaylar}>
+          <DetailRow label="Tarih" value={tarih} />
+          <DetailRow label="VKN/TCKN" value={vknTckn} />
+          <DetailRow label="Belge No" value={belgeNo} />
+          <DetailRow label="Belge Türü" value={belgeTuru} />
+          {item.genelToplam !== undefined ? (
+            <DetailRow label="Tutar" value={`${paraFormatla(item.genelToplam)} ₺`} numeric />
+          ) : null}
+        </View>
 
-          <Text variant="bodySmall" style={styles.mutedText}>
-            Belge No: {belgeNo}
-            {belgeTuru ? ` · ${belgeTuru}` : ''}
-          </Text>
-
-          {item.genelToplam !== undefined && (
-            <Text variant="titleMedium" style={styles.tutar}>
-              {paraFormatla(item.genelToplam)} ₺
-            </Text>
-          )}
-
-          {itirazIptalMetni && (
-            <Text variant="bodySmall" style={styles.uyariMetni}>
-              İtiraz/İptal Durumu: {itirazIptalMetni}
-            </Text>
-          )}
-        </Card.Content>
-
-        <Card.Actions>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.aksiyonlarScroll}
-          >
-            <Button compact mode="text" icon="eye-outline" onPress={() => handleGoruntule(item)}>
-              Görüntüle
-            </Button>
-            {duzenlenebilir && (
-              <Button compact mode="text" icon="pencil-outline" onPress={() => handleAksiyon('Düzenle', item)}>
-                Düzenle
-              </Button>
-            )}
-            {duzenlenebilir && (
-              <Button compact mode="text" icon="delete-outline" onPress={() => handleSilBaslat(item)}>
-                Sil
-              </Button>
-            )}
-            {duzenlenebilir && (
-              <Button
-                compact
-                mode="text"
-                icon="message-text-outline"
-                loading={buItemIcinTelefonYukleniyor}
-                disabled={buItemIcinTelefonYukleniyor}
-                onPress={() => handleGibImzaBaslat(item)}
-              >
-                GİB İmza
-              </Button>
-            )}
-            <Button
+        <View style={styles.aksiyonlar}>
+          {duzenlenebilir && (
+            <PrimaryButton
               compact
-              mode="text"
-              icon="tray-arrow-down"
-              loading={indirilenEttn === item.ettn}
-              disabled={indirilenEttn === item.ettn}
-              onPress={() => handleListedenIndir(item)}
+              icon="cellphone-message"
+              loading={buItemIcinTelefonYukleniyor}
+              disabled={buItemIcinTelefonYukleniyor}
+              onPress={() => handleGibImzaBaslat(item)}
             >
-              İndir
-            </Button>
-            {itirazUygun && (
-              <Button
-                compact
-                mode="text"
-                icon="alert-circle-outline"
-                onPress={() => handleItirazBaslat(item)}
-              >
-                İtiraz
-              </Button>
-            )}
-            {iptalUygun && (
-              <Button
-                compact
-                mode="text"
-                icon="close-circle-outline"
-                onPress={() => handleIptalBaslat(item)}
-              >
-                İptal
-              </Button>
-            )}
-          </ScrollView>
-        </Card.Actions>
-      </Card>
+              GİB İmza
+            </PrimaryButton>
+          )}
+          <GoruntuleDugmesi compact icon="eye-outline" onPress={() => handleGoruntule(item)}>
+            Görüntüle
+          </GoruntuleDugmesi>
+          <SecondaryButton
+            compact
+            icon="tray-arrow-down"
+            loading={indirilenEttn === item.ettn}
+            disabled={indirilenEttn === item.ettn}
+            onPress={() => handleListedenIndir(item)}
+          >
+            İndir
+          </SecondaryButton>
+          {duzenlenebilir && (
+            <SecondaryButton compact icon="pencil-outline" onPress={() => handleAksiyon('Düzenle', item)}>
+              Düzenle
+            </SecondaryButton>
+          )}
+          {itirazUygun && (
+            <SecondaryButton compact icon="alert-circle-outline" onPress={() => handleItirazBaslat(item)}>
+              İtiraz
+            </SecondaryButton>
+          )}
+          {duzenlenebilir && (
+            <DangerSoftButton compact icon="delete-outline" onPress={() => handleSilBaslat(item)}>
+              Sil
+            </DangerSoftButton>
+          )}
+          {iptalUygun && (
+            <DangerSoftButton compact icon="close-circle-outline" onPress={() => handleIptalBaslat(item)}>
+              İptal
+            </DangerSoftButton>
+          )}
+        </View>
+      </AppCard>
     );
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom', 'left', 'right']}>
-      <Appbar.Header elevated>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title="Taslak / Kesilen Faturalar" />
-      </Appbar.Header>
+    <AppScreen>
+      <AppHeader title="Taslak / Kesilen Faturalar" onBack={() => navigation.goBack()} />
 
-      <View style={styles.filtreBar}>
-        <View style={styles.tarihRow}>
-          <Pressable
-            onPress={() => setAcikPicker('baslangic')}
-            style={[styles.tarihButon, { borderColor: theme.colors.outline }]}
-          >
-            <Text variant="labelSmall" style={styles.mutedText}>
-              Başlangıç
-            </Text>
-            <Text variant="bodyMedium">{tarihFormatla(baslangicTarih)}</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setAcikPicker('bitis')}
-            style={[styles.tarihButon, { borderColor: theme.colors.outline }]}
-          >
-            <Text variant="labelSmall" style={styles.mutedText}>
-              Bitiş
-            </Text>
-            <Text variant="bodyMedium">{tarihFormatla(bitisTarih)}</Text>
-          </Pressable>
-        </View>
-        <Text variant="labelSmall" style={styles.mutedText}>
-          En fazla {EN_FAZLA_GUN} günlük aralık sorgulanabilir (GİB sınırı).
-        </Text>
-        <Button mode="contained" onPress={handleSorgula} loading={yukleniyor} disabled={yukleniyor}>
-          Sorgula
-        </Button>
-      </View>
-
-      {acikPicker && (
-        <DateTimePicker
-          value={acikPicker === 'baslangic' ? baslangicTarih : bitisTarih}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          maximumDate={new Date()}
-          onValueChange={handleTarihSecildi}
-          onDismiss={() => setAcikPicker(null)}
-        />
-      )}
+      <TarihAraligiFiltresi
+        baslangic={baslangicTarih}
+        bitis={bitisTarih}
+        onDegisti={handleTarihDegisti}
+        onSorgula={handleSorgula}
+        yukleniyor={yukleniyor}
+      />
 
       {yukleniyor ? (
         <View style={styles.merkezi}>
-          <ActivityIndicator size="large" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <FlatList
           data={taslaklar}
           keyExtractor={(item) => item.ettn}
           renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={styles.listeIcerik}
           refreshing={yenileniyor}
           onRefresh={handlePullYenile}
           ListEmptyComponent={
-            <View style={styles.merkezi}>
-              <Text variant="bodyMedium" style={styles.mutedText}>
-                Seçili tarih aralığında fatura bulunmuyor.
-              </Text>
-            </View>
+            <EmptyState
+              icon="file-document-outline"
+              title="Bu tarih aralığında fatura yok"
+              description="Başlangıç ve bitiş tarihlerini değiştirip yeniden sorgulayabilirsiniz."
+            />
           }
         />
       )}
 
-      <Portal>
-        <Dialog visible={silHedefi !== null && !silAciklamaAcik} onDismiss={handleSilVazgec}>
-          <Dialog.Title>Uyarı</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.dialogText}>
-              Bu belgeyi silmek üzeresiniz.
-            </Text>
-            <Checkbox.Item
-              label="Uyarıyı okudum."
-              status={silUyariOkundu ? 'checked' : 'unchecked'}
-              onPress={() => setSilUyariOkundu((v) => !v)}
-              style={styles.silCheckbox}
-              labelStyle={styles.silCheckboxLabel}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handleSilVazgec}>Vazgeç</Button>
-            <Button onPress={handleSilUyariOnayla} disabled={!silUyariOkundu}>
-              Sil
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-
-        <Dialog visible={silAciklamaAcik} onDismiss={handleSilVazgec}>
-          <Dialog.Title>Açıklama</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.dialogText}>
-              Silme gerekçenizi giriniz:
-            </Text>
-            <TextInput mode="outlined" value={silAciklama} onChangeText={setSilAciklama} autoFocus />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handleSilVazgec} disabled={silSurecinde}>
+      {/* Taslak silme — 1. adım: uyarı + "Uyarıyı okudum." */}
+      <AppDialog
+        visible={silHedefi !== null && !silAciklamaAcik}
+        onDismiss={handleSilVazgec}
+        title="Uyarı"
+        icon="alert-outline"
+        tone="danger"
+        actions={
+          <>
+            <TextButton compact onPress={handleSilVazgec}>
               Vazgeç
-            </Button>
-            <Button
+            </TextButton>
+            <DangerButton compact onPress={handleSilUyariOnayla} disabled={!silUyariOkundu}>
+              Sil
+            </DangerButton>
+          </>
+        }
+      >
+        <DialogText>Bu belgeyi silmek üzeresiniz.</DialogText>
+        <CheckRow label="Uyarıyı okudum." checked={silUyariOkundu} onChange={() => setSilUyariOkundu((v) => !v)} />
+      </AppDialog>
+
+      {/* Taslak silme — 2. adım: silme gerekçesi */}
+      <AppDialog
+        visible={silAciklamaAcik}
+        onDismiss={handleSilVazgec}
+        title="Açıklama"
+        icon="delete-outline"
+        tone="danger"
+        actions={
+          <>
+            <TextButton compact onPress={handleSilVazgec} disabled={silSurecinde}>
+              Vazgeç
+            </TextButton>
+            <DangerButton
+              compact
               onPress={handleSilOnayla}
               loading={silSurecinde}
               disabled={silSurecinde || silAciklama.trim().length === 0}
             >
               Sil
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
+            </DangerButton>
+          </>
+        }
+      >
+        <DialogText>Silme gerekçenizi giriniz:</DialogText>
+        <AppInput value={silAciklama} onChangeText={setSilAciklama} autoFocus />
+      </AppDialog>
 
-        <Dialog visible={iptalHedefi !== null} onDismiss={handleIptalVazgec}>
-          <Dialog.Title>İptal Talebi Oluştur</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="labelSmall" style={styles.mutedText}>
-              İptal Gerekçenizi Giriniz
-            </Text>
-            <TextInput
-              mode="outlined"
-              value={iptalGerekce}
-              onChangeText={(v) => setIptalGerekce(v.slice(0, 255))}
-              maxLength={255}
-              multiline
-              numberOfLines={3}
-              autoFocus
-            />
-            <Text variant="labelSmall" style={styles.karakterSayaci}>
-              {iptalGerekce.length}/255
-            </Text>
-            <Text variant="labelSmall" style={[styles.mutedText, styles.dialogUyariBaslik]}>
-              UYARI
-            </Text>
-            <Text variant="bodyMedium" style={styles.dialogText}>
-              Düzenlemiş olduğunuz belge için iptal talebi oluşturmak
-              istiyorsunuz. İptal talebi oluşturduğunuzda bu talep geri
-              çekilemeyecek ve alıcıya iletilecektir.
-            </Text>
-            <Checkbox.Item
-              label="Uyarıyı Okudum"
-              status={iptalUyariOkundu ? 'checked' : 'unchecked'}
-              onPress={() => setIptalUyariOkundu((v) => !v)}
-              style={styles.silCheckbox}
-              labelStyle={styles.silCheckboxLabel}
-            />
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handleIptalVazgec} disabled={iptalSurecinde}>
+      <AppDialog
+        visible={iptalHedefi !== null}
+        onDismiss={handleIptalVazgec}
+        title="İptal Talebi Oluştur"
+        icon="close-circle-outline"
+        tone="danger"
+        actions={
+          <>
+            <TextButton compact onPress={handleIptalVazgec} disabled={iptalSurecinde}>
               Vazgeç
-            </Button>
-            <Button
+            </TextButton>
+            <DangerButton
+              compact
               onPress={handleIptalOnayla}
               loading={iptalSurecinde}
               disabled={iptalSurecinde || !iptalUyariOkundu || iptalGerekce.trim().length === 0}
             >
               İptal Talebi Oluştur
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
+            </DangerButton>
+          </>
+        }
+      >
+        <AppInput
+          label="İptal Gerekçenizi Giriniz"
+          value={iptalGerekce}
+          onChangeText={(v) => setIptalGerekce(v.slice(0, 255))}
+          maxLength={255}
+          multiline
+          numberOfLines={3}
+          autoFocus
+        />
+        <Text style={styles.karakterSayaci}>{iptalGerekce.length} / 255</Text>
+        <InfoBox tone="warning" title="Uyarı">
+          {'Düzenlemiş olduğunuz belge için iptal talebi oluşturmak istiyorsunuz. İptal talebi oluşturduğunuzda ' +
+            'bu talep geri çekilemeyecek ve alıcıya iletilecektir.'}
+        </InfoBox>
+        <CheckRow label="Uyarıyı Okudum" checked={iptalUyariOkundu} onChange={() => setIptalUyariOkundu((v) => !v)} />
+      </AppDialog>
 
-        {/* İtiraz Talebi Oluştur — GİB portalındaki pencerenin birebir
-            karşılığı: alan sırası, etiketler, 4 yöntem ve uyarı metni aynı. */}
-        <Dialog visible={itirazHedefi !== null} onDismiss={handleItirazVazgec}>
-          <Dialog.Title>İtiraz Talebi Oluştur</Dialog.Title>
-          <Dialog.ScrollArea>
-            <ScrollView contentContainerStyle={styles.itirazIcerik} keyboardShouldPersistTaps="handled">
-              <TextInput
-                mode="outlined"
-                label="İtiraz Belge Numarası *"
-                value={itirazFormu.belgeNumarasi}
-                onChangeText={(v) => itirazAlaniniGuncelle({ belgeNumarasi: v })}
-                maxLength={ITIRAZ_BELGE_NO_EN_FAZLA}
-                autoCapitalize="characters"
-                autoCorrect={false}
-              />
-              <Text variant="labelSmall" style={styles.mutedText}>
-                Türk Ticaret Kanununda yer alan itiraz yöntemlerinin belge numarası yazılmalıdır
-              </Text>
-
-              <Pressable
-                onPress={() => setItirazTarihSeciliyor(true)}
-                style={[styles.tarihButon, styles.itirazTarih, { borderColor: theme.colors.outline }]}
-              >
-                <Text variant="labelSmall" style={styles.mutedText}>
-                  İtiraz Belge Tarihi *
-                </Text>
-                <Text variant="bodyMedium">
-                  {itirazFormu.belgeTarihi ? itirazTarihiBicimle(itirazFormu.belgeTarihi) : '__/__/____'}
-                </Text>
-              </Pressable>
-              <Text variant="labelSmall" style={styles.mutedText}>
-                Türk Ticaret Kanununda yer alan itiraz yöntemlerinin belge tarihi yazılmalıdır
-              </Text>
-              {itirazTarihSeciliyor && (
-                <DateTimePicker
-                  value={itirazFormu.belgeTarihi ?? new Date()}
-                  mode="date"
-                  display="default"
-                  maximumDate={new Date()}
-                  onValueChange={(_e: DateTimePickerChangeEvent, secilen: Date) => {
-                    setItirazTarihSeciliyor(false);
-                    itirazAlaniniGuncelle({ belgeTarihi: secilen });
-                  }}
-                  onDismiss={() => setItirazTarihSeciliyor(false)}
-                />
-              )}
-
-              <Text variant="labelSmall" style={[styles.mutedText, styles.itirazEtiket]}>
-                İtiraz Yöntemi *
-              </Text>
-              <RadioButton.Group
-                value={itirazFormu.yontem}
-                onValueChange={(v) => itirazAlaniniGuncelle({ yontem: v as ItirazYontemi })}
-              >
-                {ITIRAZ_YONTEMLERI.map((y) => (
-                  <RadioButton.Item key={y.deger} label={y.etiket} value={y.deger} style={styles.itirazSecenek} />
-                ))}
-              </RadioButton.Group>
-
-              <TextInput
-                mode="outlined"
-                label="Açıklama"
-                value={itirazFormu.aciklama}
-                onChangeText={(v) => itirazAlaniniGuncelle({ aciklama: v.slice(0, ITIRAZ_ACIKLAMA_EN_FAZLA) })}
-                maxLength={ITIRAZ_ACIKLAMA_EN_FAZLA}
-                multiline
-                numberOfLines={3}
-              />
-              <Text variant="labelSmall" style={styles.karakterSayaci}>
-                {itirazFormu.aciklama.length}/{ITIRAZ_ACIKLAMA_EN_FAZLA}
-              </Text>
-
-              <Text variant="labelSmall" style={[styles.mutedText, styles.dialogUyariBaslik]}>
-                UYARI
-              </Text>
-              <Text variant="bodyMedium" style={styles.dialogText}>
-                {ITIRAZ_UYARI_METNI}
-              </Text>
-              <Checkbox.Item
-                label="Uyarıyı Okudum"
-                status={itirazFormu.uyariOkundu ? 'checked' : 'unchecked'}
-                onPress={() => itirazAlaniniGuncelle({ uyariOkundu: !itirazFormu.uyariOkundu })}
-                style={styles.silCheckbox}
-                labelStyle={styles.silCheckboxLabel}
-              />
-            </ScrollView>
-          </Dialog.ScrollArea>
-          <Dialog.Actions>
-            <Button onPress={handleItirazVazgec} disabled={itirazSurecinde}>
+      {/* İtiraz Talebi Oluştur — GİB portalındaki pencerenin birebir
+          karşılığı: alan sırası, etiketler, 4 yöntem ve uyarı metni aynı. */}
+      <AppDialog
+        visible={itirazHedefi !== null}
+        onDismiss={handleItirazVazgec}
+        title="İtiraz Talebi Oluştur"
+        icon="alert-circle-outline"
+        tone="warning"
+        actions={
+          <>
+            <TextButton compact onPress={handleItirazVazgec} disabled={itirazSurecinde}>
               Vazgeç
-            </Button>
-            <Button
+            </TextButton>
+            <PrimaryButton
+              compact
               onPress={handleItirazOlustur}
               loading={itirazSurecinde}
               disabled={itirazSurecinde || itirazFormHatasi(itirazFormu) !== null}
             >
               İtiraz Talebi Oluştur
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
+            </PrimaryButton>
+          </>
+        }
+      >
+        <AppInput
+          label="İtiraz Belge Numarası *"
+          value={itirazFormu.belgeNumarasi}
+          onChangeText={(v) => itirazAlaniniGuncelle({ belgeNumarasi: v })}
+          maxLength={ITIRAZ_BELGE_NO_EN_FAZLA}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          helperText="Türk Ticaret Kanununda yer alan itiraz yöntemlerinin belge numarası yazılmalıdır"
+        />
 
-        {/* Kullanıcı isteği (2026-09-21): gönderim doğrulanana kadar son adımda
-            kapatılabilir bilgi kutusu. GİB'e hiçbir istek gitmez. */}
-        <Dialog visible={itirazBilgiGorunur} onDismiss={() => setItirazBilgiGorunur(false)}>
-          <Dialog.Title>Bilgi</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.dialogText}>
-              Bu bölümden sonrası test edilemediği için geliştirilememiştir.
-            </Text>
-            <Text variant="bodySmall" style={styles.mutedText}>
-              İtiraz talebiniz GİB'e gönderilmedi. Talebi GİB e-Arşiv Portalı üzerinden oluşturabilirsiniz.
-            </Text>
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={() => setItirazBilgiGorunur(false)}>Kapat</Button>
-          </Dialog.Actions>
-        </Dialog>
+        <View style={styles.alanGrubu}>
+          <DateField
+            label="İtiraz Belge Tarihi"
+            required
+            value={itirazFormu.belgeTarihi ? itirazTarihiBicimle(itirazFormu.belgeTarihi) : undefined}
+            placeholder="__/__/____"
+            onPress={() => setItirazTarihSeciliyor(true)}
+          />
+          <Text style={styles.alanNotu}>
+            Türk Ticaret Kanununda yer alan itiraz yöntemlerinin belge tarihi yazılmalıdır
+          </Text>
+        </View>
+        {itirazTarihSeciliyor && (
+          <DateTimePicker
+            value={itirazFormu.belgeTarihi ?? new Date()}
+            mode="date"
+            display="default"
+            maximumDate={new Date()}
+            onValueChange={(_e: DateTimePickerChangeEvent, secilen: Date) => {
+              setItirazTarihSeciliyor(false);
+              itirazAlaniniGuncelle({ belgeTarihi: secilen });
+            }}
+            onDismiss={() => setItirazTarihSeciliyor(false)}
+          />
+        )}
 
-        <Dialog visible={smsHedefi !== null && smsAsama === 1} onDismiss={handleSmsVazgec}>
-          <Dialog.Title>SMS Onay — 1. Adım</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodyMedium" style={styles.dialogText}>
-              Bu belge imzalandığında geçerlilik kazanacak olup, imzalandıktan
-              sonra düzeltilmesi mümkün değildir.
-            </Text>
-            <Checkbox.Item
-              label="Uyarıyı Okudum"
-              status={smsUyariOkundu ? 'checked' : 'unchecked'}
-              onPress={() => setSmsUyariOkundu((v) => !v)}
-              style={styles.silCheckbox}
-              labelStyle={styles.silCheckboxLabel}
-            />
-            <Text variant="labelSmall" style={styles.mutedText}>
-              Cep Telefonu
-            </Text>
-            {smsTelefonYukleniyor ? (
-              <ActivityIndicator size="small" style={styles.telefonSpinner} />
-            ) : (
-              <Text variant="bodyMedium">{smsTelefon ? telefonMaskele(smsTelefon) : '-'}</Text>
-            )}
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handleSmsVazgec}>Vazgeç</Button>
-            <Button
+        <AppSelect
+          label="İtiraz Yöntemi"
+          zorunlu
+          value={itirazFormu.yontem}
+          secenekler={ITIRAZ_YONTEMI_SECENEKLERI}
+          onSelect={(v) => itirazAlaniniGuncelle({ yontem: v as ItirazYontemi })}
+        />
+
+        <View>
+          <AppInput
+            label="Açıklama"
+            value={itirazFormu.aciklama}
+            onChangeText={(v) => itirazAlaniniGuncelle({ aciklama: v.slice(0, ITIRAZ_ACIKLAMA_EN_FAZLA) })}
+            maxLength={ITIRAZ_ACIKLAMA_EN_FAZLA}
+            multiline
+            numberOfLines={3}
+          />
+          <Text style={styles.karakterSayaci}>
+            {itirazFormu.aciklama.length} / {ITIRAZ_ACIKLAMA_EN_FAZLA}
+          </Text>
+        </View>
+
+        <InfoBox tone="warning" title="Uyarı">
+          {ITIRAZ_UYARI_METNI}
+        </InfoBox>
+        <CheckRow
+          label="Uyarıyı Okudum"
+          checked={itirazFormu.uyariOkundu}
+          onChange={() => itirazAlaniniGuncelle({ uyariOkundu: !itirazFormu.uyariOkundu })}
+        />
+      </AppDialog>
+
+      {/* Kullanıcı isteği (2026-09-21): gönderim doğrulanana kadar son adımda
+          kapatılabilir bilgi kutusu. GİB'e hiçbir istek gitmez. */}
+      <AppDialog
+        visible={itirazBilgiGorunur}
+        onDismiss={() => setItirazBilgiGorunur(false)}
+        title="Bilgi"
+        icon="information-outline"
+        actions={
+          <PrimaryButton compact onPress={() => setItirazBilgiGorunur(false)}>
+            Kapat
+          </PrimaryButton>
+        }
+      >
+        <DialogText>Bu bölümden sonrası test edilemediği için geliştirilememiştir.</DialogText>
+        <InfoBox tone="neutral">
+          İtiraz talebiniz GİB'e gönderilmedi. Talebi GİB e-Arşiv Portalı üzerinden oluşturabilirsiniz.
+        </InfoBox>
+      </AppDialog>
+
+      <AppDialog
+        visible={smsHedefi !== null && smsAsama === 1}
+        onDismiss={handleSmsVazgec}
+        title="SMS Onay — 1. Adım"
+        icon="cellphone-message"
+        actions={
+          <>
+            <TextButton compact onPress={handleSmsVazgec}>
+              Vazgeç
+            </TextButton>
+            <PrimaryButton
+              compact
               onPress={handleSifreGonder}
               loading={smsGonderiliyor}
               disabled={!smsUyariOkundu || !smsTelefon || smsGonderiliyor}
             >
               Şifre Gönder
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
+            </PrimaryButton>
+          </>
+        }
+      >
+        <InfoBox tone="warning">
+          Bu belge imzalandığında geçerlilik kazanacak olup, imzalandıktan sonra düzeltilmesi mümkün değildir.
+        </InfoBox>
+        <CheckRow label="Uyarıyı Okudum" checked={smsUyariOkundu} onChange={() => setSmsUyariOkundu((v) => !v)} />
+        <View style={styles.telefonKutusu}>
+          <Text style={typography.label}>Cep Telefonu</Text>
+          {smsTelefonYukleniyor ? (
+            <ActivityIndicator size="small" color={colors.primary} style={styles.telefonSpinner} />
+          ) : (
+            <Text style={typography.body}>{smsTelefon ? telefonMaskele(smsTelefon) : '-'}</Text>
+          )}
+        </View>
+      </AppDialog>
 
-        <Dialog visible={smsHedefi !== null && smsAsama === 2} onDismiss={handleSmsVazgec}>
-          <Dialog.Title>SMS Onay — 2. Adım</Dialog.Title>
-          <Dialog.Content>
-            <Text variant="bodySmall" style={styles.mutedText}>
-              Kalan süre: {smsKalanSure} sn
-            </Text>
-            <Text variant="bodyMedium" style={styles.dialogText}>
-              Lütfen cep telefonunuza gelen SMS şifrenizi giriniz.
-            </Text>
-            <TextInput
-              mode="outlined"
-              label="Şifre"
-              value={smsKodu}
-              // GİB'in SMS şifresi yalnızca rakam değil, harf+rakam karışık
-              // gelebiliyor (ör. "0IC017") — bu yüzden number-pad DEĞİL,
-              // varsayılan klavye kullanılıyor; GİB'in kendi mesajındaki gibi
-              // büyük harfe otomatik çevriliyor.
-              onChangeText={(v) => setSmsKodu(v.toUpperCase())}
-              autoCapitalize="characters"
-              autoCorrect={false}
-              maxLength={6}
-              // iOS'ta sistem, gelen SMS'teki kodu klavye üstünde otomatik
-              // öneriyor (textContentType); Android'de de aynı işlevi gören
-              // autoComplete="sms-otp" ipucu veriliyor — ikisi de uygulamanın
-              // SMS okuma izni istemesini GEREKTİRMİYOR, işletim sistemi/
-              // klavye kendi mekanizmasıyla dolduruyor.
-              textContentType="oneTimeCode"
-              autoComplete="sms-otp"
-              autoFocus
-            />
-            {smsKalanSure <= 0 && (
-              <Text variant="bodySmall" style={styles.uyariMetni}>
-                SMS şifresinin süresi doldu. Vazgeçip tekrar deneyin.
-              </Text>
-            )}
-          </Dialog.Content>
-          <Dialog.Actions>
-            <Button onPress={handleSmsVazgec} disabled={smsOnaylaniyor}>
+      <AppDialog
+        visible={smsHedefi !== null && smsAsama === 2}
+        onDismiss={handleSmsVazgec}
+        title="SMS Onay — 2. Adım"
+        icon="cellphone-message"
+        actions={
+          <>
+            <TextButton compact onPress={handleSmsVazgec} disabled={smsOnaylaniyor}>
               Vazgeç
-            </Button>
-            <Button
+            </TextButton>
+            <PrimaryButton
+              compact
               onPress={handleSmsOnayla}
               loading={smsOnaylaniyor}
               disabled={smsOnaylaniyor || smsKodu.trim().length === 0 || smsKalanSure <= 0}
             >
               Onayla
-            </Button>
-          </Dialog.Actions>
-        </Dialog>
-      </Portal>
+            </PrimaryButton>
+          </>
+        }
+      >
+        <StatusBadge
+          status={smsKalanSure > 0 ? 'pending' : 'rejected'}
+          icon="timer-outline"
+          label={`Kalan süre: ${smsKalanSure} sn`}
+        />
+        <DialogText>Lütfen cep telefonunuza gelen SMS şifrenizi giriniz.</DialogText>
+        <AppInput
+          label="Şifre"
+          value={smsKodu}
+          // GİB'in SMS şifresi yalnızca rakam değil, harf+rakam karışık
+          // gelebiliyor (ör. "0IC017") — bu yüzden number-pad DEĞİL,
+          // varsayılan klavye kullanılıyor; GİB'in kendi mesajındaki gibi
+          // büyük harfe otomatik çevriliyor.
+          onChangeText={(v) => setSmsKodu(v.toUpperCase())}
+          autoCapitalize="characters"
+          autoCorrect={false}
+          maxLength={6}
+          // iOS'ta sistem, gelen SMS'teki kodu klavye üstünde otomatik
+          // öneriyor (textContentType); Android'de de aynı işlevi gören
+          // autoComplete="sms-otp" ipucu veriliyor — ikisi de uygulamanın
+          // SMS okuma izni istemesini GEREKTİRMİYOR, işletim sistemi/
+          // klavye kendi mekanizmasıyla dolduruyor.
+          textContentType="oneTimeCode"
+          autoComplete="sms-otp"
+          autoFocus
+        />
+        {smsKalanSure <= 0 && (
+          <InfoBox tone="danger">SMS şifresinin süresi doldu. Vazgeçip tekrar deneyin.</InfoBox>
+        )}
+      </AppDialog>
 
       <Modal
         visible={htmlModalGorunur}
         animationType="slide"
         onRequestClose={() => setHtmlModalGorunur(false)}
       >
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.colors.background }]} edges={['top', 'bottom', 'left', 'right']}>
-          <Appbar.Header elevated>
-            <Appbar.Content title="Fatura Görüntüle" />
-            <Appbar.Action
-              icon="download"
-              accessibilityLabel="PDF İndir"
-              disabled={!htmlIcerik || pdfIsleniyor}
-              onPress={handlePdfIndir}
-            />
-            <Appbar.Action
-              icon="share-variant"
-              accessibilityLabel="Paylaş"
-              disabled={!htmlIcerik || pdfIsleniyor}
-              onPress={handlePdfPaylas}
-            />
-          </Appbar.Header>
+        <AppScreen glow={false}>
+          <AppHeader
+            title="Fatura Görüntüle"
+            onBack={() => setHtmlModalGorunur(false)}
+            right={
+              <>
+                <AppIconButton
+                  icon="tray-arrow-down"
+                  accessibilityLabel="PDF İndir"
+                  disabled={!htmlIcerik || pdfIsleniyor}
+                  onPress={handlePdfIndir}
+                />
+                <AppIconButton
+                  icon="share-variant"
+                  accessibilityLabel="Paylaş"
+                  disabled={!htmlIcerik || pdfIsleniyor}
+                  onPress={handlePdfPaylas}
+                />
+              </>
+            }
+          />
 
-          <View style={styles.kapatBar}>
-            <Button mode="contained-tonal" icon="close" onPress={() => setHtmlModalGorunur(false)}>
-              Kapat
-            </Button>
-            {pdfIsleniyor && <ActivityIndicator size="small" style={styles.pdfSpinner} />}
-            {htmlIcerik && !faturaJsAcik && (
-              <Button compact onPress={handleGelismisGorunum}>
-                Fatura boş mu görünüyor?
-              </Button>
-            )}
-          </View>
+          {pdfIsleniyor || (!!htmlIcerik && !faturaJsAcik) ? (
+            <View style={styles.aracCubugu}>
+              {pdfIsleniyor && (
+                <View style={styles.pdfDurumu}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={typography.caption}>PDF hazırlanıyor…</Text>
+                </View>
+              )}
+              {!!htmlIcerik && !faturaJsAcik && (
+                <TextButton compact icon="help-circle-outline" onPress={handleGelismisGorunum}>
+                  Fatura boş mu görünüyor?
+                </TextButton>
+              )}
+            </View>
+          ) : null}
 
           {htmlYukleniyor ? (
             <View style={styles.merkezi}>
-              <ActivityIndicator size="large" />
+              <ActivityIndicator size="large" color={colors.primary} />
             </View>
           ) : htmlIcerik ? (
-            <FaturaWebView html={htmlIcerik} javaScriptAcik={faturaJsAcik} />
-          ) : (
-            <View style={styles.merkezi}>
-              <Text variant="bodyMedium" style={styles.mutedText}>
-                İçerik yüklenemedi.
-              </Text>
+            <View style={styles.faturaCercevesi}>
+              <FaturaWebView html={htmlIcerik} javaScriptAcik={faturaJsAcik} />
             </View>
+          ) : (
+            <EmptyState icon="file-alert-outline" title="İçerik yüklenemedi." />
           )}
-        </SafeAreaView>
+        </AppScreen>
       </Modal>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1 },
-  flex: { flex: 1 },
-  kapatBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+  merkezi: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xxl },
+  listeIcerik: { paddingHorizontal: spacing.screen, paddingBottom: spacing.xxl, gap: spacing.card },
+  kart: { gap: spacing.sm },
+  kartBaslik: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.xs },
+  kartBaslikMetni: { flex: 1, minWidth: 0 },
+  talepSatiri: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.xs },
+  detaylar: {
+    gap: spacing.xxs,
+    paddingTop: spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
-  pdfSpinner: { marginLeft: 4 },
-  filtreBar: { padding: 16, gap: 12 },
-  tarihRow: { flexDirection: 'row', gap: 12 },
-  tarihButon: {
-    flex: 1,
+  aksiyonlar: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, paddingTop: spacing.xxs },
+  karakterSayaci: { ...typography.caption, alignSelf: 'flex-end', marginTop: spacing.xxs },
+  alanGrubu: { gap: spacing.xxs },
+  alanNotu: { ...typography.caption, paddingHorizontal: spacing.xxs },
+  telefonKutusu: {
+    gap: 2,
+    padding: spacing.sm,
+    borderRadius: radius.medium,
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderColor: colors.border,
+    backgroundColor: colors.backgroundSecondary,
   },
-  merkezi: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  listContent: { padding: 16, paddingTop: 0, gap: 12 },
-  card: { borderRadius: 16, marginBottom: 12 },
-  cardContent: { gap: 6 },
-  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 },
-  flexShrink: { flex: 1 },
-  chipOnayli: { backgroundColor: '#1b4332' },
-  chipTaslak: { backgroundColor: '#4a3b00' },
-  chipSilinmis: { backgroundColor: '#5c1a1a' },
-  // Silinmiş'ten (koyu bordo) ayrışsın diye daha parlak kırmızı.
-  chipIptal: { backgroundColor: '#b3261e' },
-  chipIptalYazi: { color: '#ffffff', fontWeight: '700' },
-  chipBilinmiyor: { backgroundColor: '#3a3a3a' },
-  mutedText: { opacity: 0.7 },
-  uyariMetni: { color: '#f2b8b5' },
-  tutar: { marginTop: 2 },
-  aksiyonlarScroll: { gap: 4, paddingHorizontal: 8 },
-  dialogText: { marginBottom: 12 },
-  silCheckbox: { paddingHorizontal: 0 },
-  silCheckboxLabel: { fontSize: 14 },
-  telefonSpinner: { alignSelf: 'flex-start', marginTop: 4 },
-  karakterSayaci: { alignSelf: 'flex-end', opacity: 0.6, marginTop: 2, marginBottom: 8 },
-  itirazIcerik: { paddingHorizontal: 24, paddingVertical: 8, gap: 4 },
-  itirazTarih: { marginTop: 12 },
-  itirazEtiket: { marginTop: 12 },
-  itirazSecenek: { paddingVertical: 2 },
-  dialogUyariBaslik: { fontWeight: '700', marginBottom: 4 },
+  telefonSpinner: { alignSelf: 'flex-start', marginTop: spacing.xxs },
+  aracCubugu: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.screen,
+    paddingBottom: spacing.xs,
+  },
+  pdfDurumu: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  faturaCercevesi: {
+    flex: 1,
+    marginHorizontal: spacing.xs,
+    borderRadius: radius.medium,
+    borderWidth: 1,
+    borderColor: colors.border,
+    overflow: 'hidden',
+  },
 });

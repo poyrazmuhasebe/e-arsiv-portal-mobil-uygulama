@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { Card, Text, TextInput, useTheme } from 'react-native-paper';
+import { Platform } from 'react-native';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 
 import SecimAlani from '../../components/SecimAlani';
+import { Alert, AppInput, DateField, FormRow, SectionCard } from '../../components/ui';
 import { PARA_BIRIMLERI, FATURA_TIPLERI } from '../../constants/faturaConstants';
 
 const YEDI_GUN_MS = 7 * 24 * 60 * 60 * 1000;
@@ -77,7 +77,6 @@ export default function FaturaBilgileriKarti({
   onDovizKuruChange,
   onFaturaTipiChange,
 }: Props) {
-  const theme = useTheme();
   const [acikPicker, setAcikPicker] = useState<'tarih' | 'saat' | null>(null);
 
   // `onChange` bu paket sürümünde deprecated: onValueChange/onDismiss ile
@@ -93,81 +92,51 @@ export default function FaturaBilgileriKarti({
   };
 
   return (
-    <Card mode="elevated" style={styles.card}>
-      <Card.Title title="Fatura Bilgileri" />
-      <Card.Content style={styles.icerik}>
-        <View style={styles.satir}>
-          <Pressable
-            onPress={() => setAcikPicker('tarih')}
-            style={[styles.alan, styles.flexEsit, { borderColor: theme.colors.outline }]}
-          >
-            <Text variant="labelSmall" style={styles.mutedText}>
-              Düzenlenme Tarihi
-            </Text>
-            <Text variant="bodyMedium">{tarihFormatla(faturaTarihi)}</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setAcikPicker('saat')}
-            style={[styles.alan, styles.flexEsit, { borderColor: theme.colors.outline }]}
-          >
-            <Text variant="labelSmall" style={styles.mutedText}>
-              Düzenlenme Saati
-            </Text>
-            <Text variant="bodyMedium">{saatFormatla(faturaSaati)}</Text>
-          </Pressable>
-        </View>
-
-        {acikPicker === 'tarih' && (
-          <DateTimePicker
-            value={faturaTarihi}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            maximumDate={new Date()}
-            onValueChange={handleTarihSecildi}
-            onDismiss={() => setAcikPicker(null)}
-          />
-        )}
-        {acikPicker === 'saat' && (
-          <DateTimePicker
-            value={faturaSaati}
-            mode="time"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onValueChange={handleSaatSecildi}
-            onDismiss={() => setAcikPicker(null)}
-          />
-        )}
-
-        <SecimAlani
-          label="Doküman Para Birimi"
-          value={paraBirimi}
-          secenekler={PARA_BIRIMLERI}
-          onSelect={onParaBirimiChange}
+    <SectionCard title="Fatura Bilgileri" icon="file-document-outline">
+      <FormRow>
+        <DateField
+          label="Düzenlenme Tarihi"
+          value={tarihFormatla(faturaTarihi)}
+          onPress={() => setAcikPicker('tarih')}
         />
-
-        <TextInput
-          mode="outlined"
-          label="Döviz Kuru"
-          value={dovizKuru}
-          onChangeText={onDovizKuruChange}
-          keyboardType="decimal-pad"
+        <DateField
+          label="Düzenlenme Saati"
+          value={saatFormatla(faturaSaati)}
+          icon="clock-outline"
+          onPress={() => setAcikPicker('saat')}
         />
+      </FormRow>
 
-        <SecimAlani
-          label="Fatura Tipi"
-          value={faturaTipi}
-          secenekler={FATURA_TIPLERI}
-          onSelect={onFaturaTipiChange}
+      {acikPicker === 'tarih' && (
+        <DateTimePicker
+          value={faturaTarihi}
+          mode="date"
+          display={Platform.OS === 'ios' ? 'inline' : 'default'}
+          maximumDate={new Date()}
+          onValueChange={handleTarihSecildi}
+          onDismiss={() => setAcikPicker(null)}
         />
-      </Card.Content>
-    </Card>
+      )}
+      {acikPicker === 'saat' && (
+        <DateTimePicker
+          value={faturaSaati}
+          mode="time"
+          display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+          onValueChange={handleSaatSecildi}
+          onDismiss={() => setAcikPicker(null)}
+        />
+      )}
+
+      <SecimAlani
+        label="Doküman Para Birimi"
+        value={paraBirimi}
+        secenekler={PARA_BIRIMLERI}
+        onSelect={onParaBirimiChange}
+      />
+
+      <AppInput label="Döviz Kuru" value={dovizKuru} onChangeText={onDovizKuruChange} keyboardType="decimal-pad" />
+
+      <SecimAlani label="Fatura Tipi" value={faturaTipi} secenekler={FATURA_TIPLERI} onSelect={onFaturaTipiChange} />
+    </SectionCard>
   );
 }
-
-const styles = StyleSheet.create({
-  card: { borderRadius: 16 },
-  icerik: { gap: 12 },
-  satir: { flexDirection: 'row', gap: 12 },
-  flexEsit: { flex: 1 },
-  alan: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
-  mutedText: { opacity: 0.7 },
-});
