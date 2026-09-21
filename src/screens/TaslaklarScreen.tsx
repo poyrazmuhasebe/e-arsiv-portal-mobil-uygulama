@@ -35,8 +35,10 @@ import type { TaslakFatura } from '../types/gib';
 type TaslakDurum = 'onaylandi' | 'onaylanmadi' | 'silinmis' | 'bilinmiyor';
 
 // GİB'in canlı yanıtında doğrulanan kesin değerler: "Onaylandı" | "Onaylanmadı" | "Silinmiş".
-function taslakDurumu(item: TaslakFatura, onaylananlar: Set<string>): TaslakDurum {
-  if (onaylananlar.has(item.ettn)) return 'onaylandi';
+// Durum YALNIZCA GİB'in kendi 'onayDurumu' alanından okunur. Eskiden SMS ile
+// 'onaylanan' belgeler burada yerel olarak da işaretleniyordu; GİB onayı
+// reddettiğinde bile liste 'Onaylı' gösteriyordu (2026-09-21 hatası).
+function taslakDurumu(item: TaslakFatura): TaslakDurum {
   const ham = item.onayDurumu ?? item.durum;
   if (ham === 'Onaylandı') return 'onaylandi';
   if (ham === 'Silinmiş') return 'silinmis';
@@ -121,9 +123,6 @@ export default function TaslaklarScreen({ navigation }: Props) {
   const [bitisTarih, setBitisTarih] = useState<Date>(() => new Date());
   const [acikPicker, setAcikPicker] = useState<'baslangic' | 'bitis' | null>(null);
 
-  // GİB'in gerçek onay durumunu tekrar sorgulamak yerine, SMS ile başarıyla
-  // onaylanan belgeleri burada yerel olarak işaretliyoruz.
-  const [onaylananlar, setOnaylananlar] = useState<Set<string>>(new Set());
 
   // SMS ile imzalama (GİB İmza) — GİB'in kendi arayüzündeki gerçek iki
   // adımlı sihirbazın birebir taklidi: 1) uyarı onayı + kayıtlı cep telefonu
@@ -176,17 +175,19 @@ export default function TaslaklarScreen({ navigation }: Props) {
   const [iptalSurecinde, setIptalSurecinde] = useState(false);
 
   const veriYukle = useCallback(
-    async (baslangic: Date, bitis: Date) => {
-      if (!token) return;
+    async (baslangic: Date, bitis: Date): Promise<TaslakFatura[] | null> => {
+      if (!token) return null;
       try {
         const sonuc = await taslakGetir(token, {
           baslangicTarihi: tarihFormatla(baslangic),
           bitisTarihi: tarihFormatla(bitis),
         });
         setTaslaklar(sonuc);
+        return sonuc;
       } catch (err) {
         const message = err instanceof Error && err.message ? err.message : 'Faturalar yüklenemedi.';
         Alert.alert('Hata', message);
+        return null;
       }
     },
     [token],
@@ -274,11 +275,28 @@ export default function TaslaklarScreen({ navigation }: Props) {
     if (!token || !smsHedefi || !smsOid || smsKodu.trim().length === 0) return;
     setSmsOnaylaniyor(true);
     try {
-      await smsSifreOnayla(token, smsHedefi, smsKodu.trim(), smsOid);
-      setOnaylananlar((prev) => new Set(prev).add(smsHedefi.ettn));
+      const ettn = smsHedefi.ettn;
+      const yanit = await smsSifreOnayla(token, smsHedefi, smsKodu.trim(), smsOid);
       handleSmsVazgec();
-      await veriYukle(baslangicTarih, bitisTarih);
-      Alert.alert('Onaylandı', 'SMS şifreniz doğrulandı, işlem başarılı.');
+
+      // Sonuç GİB'in KENDİ LİSTESİNDEN doğrulanır. Başarı mesajı yalnızca
+      // fatura orada gerçekten 'Onaylandı' görünüyorsa gösterilir; aksi hâlde
+      // (ret, belirsiz yanıt, gecikme) kullanıcıya açıkça söylenir. Yanlış bir
+      // 'onaylandı' mesajı, yanlış bir 'doğrulanamadı' mesajından çok daha
+      // tehlikelidir: kullanıcı imzalanmamış bir faturayı imzalı sanır.
+      const liste = await veriYukle(baslangicTarih, bitisTarih);
+      const guncel = liste?.find((t) => t.ettn === ettn);
+      if (guncel && taslakDurumu(guncel) === 'onaylandi') {
+        Alert.alert('Onaylandı', yanit.mesaj ?? 'Fatura GİB tarafından onaylandı.');
+      } else {
+        const gibDurumu = guncel?.onayDurumu ?? 'bilinmiyor';
+        Alert.alert(
+          'Onay doğrulanamadı',
+          'GİB listesinde bu fatura "' + gibDurumu + '" görünüyor; imza gerçekleşmemiş olabilir. ' +
+            'SMS şifresini ve süresini kontrol edip yeniden deneyin ya da GİB portalından kontrol edin.' +
+            (yanit.mesaj ? '\n\nGİB yanıtı: ' + yanit.mesaj : ''),
+        );
+      }
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'SMS kodu onaylanamadı.';
       Alert.alert('Onay Başarısız', message);
@@ -441,7 +459,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
   };
 
   const renderItem = ({ item }: { item: TaslakFatura }) => {
-    const durum = taslakDurumu(item, onaylananlar);
+    const durum = taslakDurumu(item);
     const buItemIcinTelefonYukleniyor = smsHedefi?.ettn === item.ettn && smsTelefonYukleniyor;
     // GİB İmza/Düzenle/Sil yalnızca "Onaylanmadı" (henüz taslak) durumunda
     // anlamlı — onaylanmış veya silinmiş bir belgede gösterilmiyor.

@@ -1108,15 +1108,69 @@ export async function smsSifreGonder(token: string, cepTel: string): Promise<str
  */
 const SMS_ONAYLA_CMD = '0lhozfib5410mp';
 
+export interface SmsOnayYaniti {
+  /**
+   * - `basarili`: GİB'in metni açıkça başarıyı söylüyor ("…doğrulandı, işlem
+   *   başarılı.").
+   * - `belirsiz`: metin yok ya da tanınmıyor. Bu, başarı SAYILMAZ; çağıran
+   *   taraf sonucu GİB'in taslak listesinden doğrulamalıdır.
+   * (Açık başarısızlık metninde fonksiyon hata fırlatır, bu değer dönmez.)
+   */
+  durum: 'basarili' | 'belirsiz';
+  /** GİB'in kendi mesajı (varsa), değiştirilmeden. */
+  mesaj: string | null;
+}
+
+/**
+ * `smsSifreOnayla` yanıtını yorumlar. SAF fonksiyon; testlidir.
+ *
+ * NEDEN VAR: önceki sürüm yanıta hiç bakmıyordu. `dispatch` yalnızca HTTP
+ * ≥400 ya da `error` alanı gelince hata fırlatıyor; GİB ise reddi çoğu zaman
+ * HTTP 200 ve gövdede düz bir mesajla döndürüyor. Sonuç: SMS kodu kabul
+ * edilmediği hâlde uygulama "Onaylandı" diyordu (2026-09-21, kullanıcı
+ * bildirimi — GİB portalında fatura "Onaylanmadı" kaldı).
+ *
+ * Yalnızca GÖZLENMİŞ başarı metni ("SMS şifreniz doğrulandı, işlem
+ * başarılı.") başarı sayılır. Başarısız yanıtın gerçek biçimi henüz
+ * YAKALANMADI; bu yüzden reddi tanımak için yaygın ret kelimelerine
+ * bakılıyor ve tanınmayan her yanıt `belirsiz` döner — asla başarı değil.
+ */
+export function smsOnayYanitiniYorumla(yanit: unknown): {
+  durum: 'basarili' | 'basarisiz' | 'belirsiz';
+  mesaj: string | null;
+} {
+  let mesaj: string | null = null;
+  if (typeof yanit === 'string') {
+    mesaj = yanit.trim() || null;
+  } else if (yanit && typeof yanit === 'object') {
+    const nesne = yanit as Record<string, unknown>;
+    for (const alan of ['msg', 'mesaj', 'message', 'sonucMesaji', 'data']) {
+      const deger = nesne[alan];
+      if (typeof deger === 'string' && deger.trim()) {
+        mesaj = deger.trim();
+        break;
+      }
+    }
+  }
+  if (mesaj === null) return { durum: 'belirsiz', mesaj: null };
+
+  // Türkçe büyük/küçük harf (İ/ı) doğru çevrilsin diye 'tr' yerel ayarı.
+  const kucuk = mesaj.toLocaleLowerCase('tr');
+  const retMi = /hatal|geçersiz|yanlış|başarısız|süresi dol|süresi geç|bulunamad|reddedil|hata/.test(kucuk);
+  if (retMi) return { durum: 'basarisiz', mesaj };
+  if (/başarılı|doğrulandı/.test(kucuk)) return { durum: 'basarili', mesaj };
+  return { durum: 'belirsiz', mesaj };
+}
+
 export async function smsSifreOnayla(
   token: string,
   taslak: TaslakFatura,
   smsKodu: string,
   oid: string,
-): Promise<void> {
+): Promise<SmsOnayYaniti> {
   if (IS_TEST_MODE) {
-    if (__DEV__) console.log('MOCK SMS ONAYLA:', { ettn: taslak.ettn, smsKodu, oid });
-    return Promise.resolve();
+    if (__DEV__) console.log('MOCK SMS ONAYLA:', { ettn: taslak.ettn, oid });
+    return Promise.resolve({ durum: 'basarili', mesaj: 'SMS şifreniz doğrulandı, işlem başarılı.' });
   }
 
   const veri = {
@@ -1136,12 +1190,22 @@ export async function smsSifreOnayla(
     talepDurum: taslak.talepDurum ?? '-99',
   };
 
-  await dispatch(
+  const yanit = await dispatch<unknown>(
     SMS_ONAYLA_CMD,
     'RG_SMSONAY',
     { SIFRE: smsKodu, OID: oid, OPR: 1, DATA: [veri] },
     token,
   );
+
+  // Başarısız yanıtın gerçek biçimi henüz yakalanmadı; geliştirmede ham yanıt
+  // zaten `dispatch` tarafından loglanıyor, burada yorumlanmış hâli de yazılır.
+  const yorum = smsOnayYanitiniYorumla(yanit);
+  if (__DEV__) console.log('GİB SMS ONAY YORUMU:', yorum.durum);
+
+  if (yorum.durum === 'basarisiz') {
+    throw new GibApiError(gibMesajiniAnlasilirYap(yorum.mesaj ?? 'GİB SMS onayını reddetti.'), yanit);
+  }
+  return { durum: yorum.durum, mesaj: yorum.mesaj };
 }
 
 // ---------------------------------------------------------------------------

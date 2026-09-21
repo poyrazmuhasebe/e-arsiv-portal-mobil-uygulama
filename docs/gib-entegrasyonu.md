@@ -507,8 +507,13 @@ birebir uygulandı:
    numarası (maskeli) + "Şifre Gönder".
 2. **2. Adım** — SMS'in 180 saniyelik geçerlilik süresi için geri sayım +
    6 haneli şifre girişi + "Onayla". Süre dolarsa "Onayla" devre dışı kalır.
-3. Başarılı onaydan sonra GİB'in kendi mesajı ("SMS şifreniz doğrulandı,
-   işlem başarılı.") aynen gösterilir ve taslak listesi yenilenir.
+3. Onaydan sonra taslak listesi yenilenir ve sonuç **GİB'in kendi listesinden
+   doğrulanır**. Başarı mesajı yalnızca fatura orada gerçekten "Onaylandı"
+   görünüyorsa gösterilir; GİB'in kendi mesajı (varsa) aynen eklenir. Ret
+   metni ("hatalı", "geçersiz", "süresi doldu" vb.) doğrudan hata olarak
+   gösterilir. (2026-09-21 öncesi: yanıta hiç bakılmıyor ve fatura listede
+   yerel olarak "Onaylı" işaretleniyordu. Bu yüzden GİB onayı reddettiğinde
+   bile uygulama "Onaylandı" diyordu.)
 
 ## Portalın kendi menü ağacından öğrenilenler
 
