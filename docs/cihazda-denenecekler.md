@@ -90,6 +90,18 @@ Hazırlık: `worker/.dev.vars.example` dosyasını `.dev.vars` adıyla kopyalay�
 - [ ] Uygulamayı tamamen kapatıp açınca Karşılama ekranı geliyor ve GİB
   oturumu **hatırlanmıyor** (hatırlanan GİB kullanıcı kodu formda duruyor).
 
+### Filigran ve tarih sınırı (2026-09-21) — GİB gerekir
+
+- [ ] **Silinmiş** bir faturayı aç: ortada "FATURA SİLİNDİ" var, "iptal
+  edilmiş" filigranı **yok**. (Hâlâ görünüyorsa GİB'in filigranı görseldir;
+  Metro'daki "GİB SİLİNMİŞ FATURA … GEÇEN YERLER" satırını gönderin.)
+- [ ] **İptal Kabul Edildi** bir faturayı aç: görüntüleme ekranında ve PDF'te
+  "İPTAL KABUL EDİLDİ".
+- [ ] **İptal Reddedildi** bir faturayı aç: "İPTAL REDDEDİLDİ".
+- [ ] Talebi **olmayan** normal bir faturada filigran **yok**.
+- [ ] Başlangıç tarihini 1 aydan eskiye çekince bitiş kendiliğinden 7 gün
+  sonrasına geliyor ve bilgi mesajı çıkıyor; tersi de aynı.
+
 ### Deploy edilmiş Worker gerekir
 
 Worker **2026-09-20'de canlıya alındı**: `https://earsivfatura.poyrazmuhasebe.com`

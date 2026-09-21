@@ -285,7 +285,11 @@ uyarıyı tetiklemez (onları zorunlu-alan kontrolü yakalar).
 
 ## Taslak / Kesilen Faturalar (`src/screens/TaslaklarScreen.tsx`)
 
-- Üstte başlangıç/bitiş tarih seçiciler (varsayılan: son 7 gün) + "Sorgula"
+- Üstte başlangıç/bitiş tarih seçiciler (varsayılan: son 7 gün) + "Sorgula".
+  **Aralık en fazla 7 gün** (GİB artık 1 haftadan uzun aralığa izin vermiyor,
+  2026-09-21): bir uç seçilince aralık 7 günü aşarsa DİĞER uç otomatik
+  kaydırılır ve kullanıcıya bildirilir; hiçbir uç bugünü geçemez
+  (`src/utils/tarihAraligi.ts`)
   butonu; liste yalnızca butona basınca (veya aşağı çekip yenilemeyle)
   güncellenir, tarih değiştirmek otomatik sorgu tetiklemez.
 - Her kart: alıcı, tarih, belge no/türü, tutar, durum rozeti:
@@ -339,17 +343,29 @@ uyarıyı tetiklemez (onları zorunlu-alan kontrolü yakalar).
     "İptal Aşamasında") her iki buton da kartta hiç gösterilmiyor; yeni bir
     talep oluşturmanın anlamı yok.
 
-**PDF filigranı (canlı doğrulandı):** Bir belgede İptal/İtiraz Durumu
-"Aşamasında" veya "Kabul Edildi" ise, "İndir"/"Paylaş" ile üretilen PDF'in
-tam ortasına çapraz, yarı saydam kırmızı bir filigran eklenir — metni,
-karttaki "İptal/İtiraz Durumu: ..." ile birebir aynı (ör. "İPTAL KABUL
-EDİLDİ"). Bkz. `src/utils/pdf.ts`'teki `filigranEkle`.
+**Filigran (2026-09-21'de yenilendi):** faturanın ortasına çapraz, yarı
+saydam kırmızı bir metin. Artık **hem görüntüleme ekranında hem PDF'te**
+görünür (önceden yalnızca PDF'teydi). Kurallar tek yerde:
+`src/utils/faturaFiligran.ts`.
 
-**"Reddedildi" durumunda filigran EKLENMİYOR** (`filigranMetni()`,
-`TaslaklarScreen.tsx`) — reddedilen bir iptal/itiraz talebi faturayı
-geçersiz kılmaz, belge normal geçerliliğini sürdürür; kart üzerinde
-"İptal/İtiraz Durumu: ... Reddedildi" metni yine de gösterilmeye devam
-eder, yalnızca PDF çıktısı işaretlenmez.
+| Durum | Filigran |
+|---|---|
+| Silinmiş | **FATURA SİLİNDİ** |
+| İptal/İtiraz Aşamasında (`talepDurum` "0") | İPTAL AŞAMASINDA |
+| İptal/İtiraz Kabul Edildi ("1") | İPTAL KABUL EDİLDİ |
+| İptal/İtiraz Reddedildi ("2") | İPTAL REDDEDİLDİ (kullanıcı isteği; önceden eklenmiyordu) |
+| Talep yok (`talepDurum` "-99" / boş) | yok |
+
+**Talebi olmayan fatura:** GİB bu durumda `talepDurum: "-99"` gönderiyor.
+Önceki kod bunu tanımadığı için talebi olmayan faturaları "İptal/İtiraz
+Aşamasında" sayıyordu; artık yalnızca "0"/"1"/"2" bir talep sayılıyor.
+
+**Silinmiş fatura:** GİB, silinmiş belgenin HTML'ine kendi "iptal edilmiş"
+filigranını çiziyor. Metin olarak geliyorsa "FATURA SİLİNDİ" ile
+değiştiriliyor. ⚠️ GİB'in bu filigranı metin olarak mı görsel olarak mı
+çizdiği henüz görülmedi. Görselse değiştirilemez ve bizim filigranımız onun
+üstüne eklenir. Geliştirme modunda silinmiş bir fatura açılınca Metro'da
+"GİB SİLİNMİŞ FATURA \"iptal\" GEÇEN YERLER" satırı bunu gösterir.
 
 ## İptal / İtiraz Talepleri (`src/screens/IptalItirazTalepleriScreen.tsx`)
 

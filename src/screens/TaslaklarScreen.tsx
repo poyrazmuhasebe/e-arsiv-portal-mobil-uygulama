@@ -31,6 +31,8 @@ import {
 import { useAuthStore } from '../store/useAuthStore';
 import { pdfIndir, pdfPaylas } from '../utils/pdf';
 import type { TaslakFatura } from '../types/gib';
+import { filigranliFaturaHtml, iptalItirazDurumMetni } from '../utils/faturaFiligran';
+import { EN_FAZLA_GUN, aralikGecerliMi, araligiSinirla } from '../utils/tarihAraligi';
 
 type TaslakDurum = 'onaylandi' | 'onaylanmadi' | 'silinmis' | 'bilinmiyor';
 
@@ -46,39 +48,7 @@ function taslakDurumu(item: TaslakFatura): TaslakDurum {
   return 'bilinmiyor';
 }
 
-/**
- * Gerçek konsol yakalamasıyla DOĞRULANDI: bir belgede iptal/itiraz talebi
- * hiç yoksa `iptalItiraz`/`talepDurum` alanları taslak listesi yanıtında hiç
- * gelmiyor (ör. "Silinmiş" durumundaki kayıtlarda bu alanlar yok). Bir talep
- * varsa ikisi de geliyor. `talepDurum`'un üç değeri de artık doğrulandı —
- * bu, `EARSIV_PORTAL_IPTAL_ITIRAZ_TALEP_DURUM_GUNCELLE`'ye gönderilen
- * `talepCevabi` ile AYNI kod şeması (kullanıcı tarafından teyit edildi):
- *   0 = İptal/İtiraz Aşamasında (henüz cevaplanmamış)
- *   1 = Kabul Edildi
- *   2 = Reddedildi
- * `iptalItiraz` alanı talebin TÜRÜNÜ taşıyor gibi görünüyor ("0" = İptal,
- * canlı doğrulanmış tek örnekten; "1" = İtiraz hâlâ tahmindir).
- */
-function iptalItirazDurumMetni(item: TaslakFatura): string | undefined {
-  const talepDurum = asString(item.talepDurum);
-  if (!talepDurum) return undefined;
-
-  const tur = item.iptalItiraz === '1' ? 'İtiraz' : 'İptal'; // "0"=İptal doğrulandı, "1"=İtiraz tahmin
-
-  if (talepDurum === '1') return `${tur} Kabul Edildi`;
-  if (talepDurum === '2') return `${tur} Reddedildi`;
-  return `${tur}/İtiraz Aşamasında`; // "0" ve gözlemlenmemiş diğer değerler
-}
-
-// PDF filigranı için: reddedilen bir iptal/itiraz talebi faturayı geçersiz
-// KILMAZ — belge normal geçerliliğini sürdürür. Bu yüzden filigran yalnızca
-// "Aşamasında" (belirsizlik var) ve "Kabul Edildi" (belge artık geçersiz)
-// durumlarında ekleniyor; "Reddedildi" durumunda hiç eklenmiyor (kart
-// üzerindeki "İptal/İtiraz Durumu" metni yine de gösterilmeye devam ediyor).
-function filigranMetni(item: TaslakFatura): string | undefined {
-  if (item.talepDurum === '2') return undefined;
-  return iptalItirazDurumMetni(item);
-}
+// İptal/itiraz durum metni ve filigran kuralları: src/utils/faturaFiligran.ts
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Taslaklar'>;
 
@@ -143,9 +113,6 @@ export default function TaslaklarScreen({ navigation }: Props) {
   const [htmlModalGorunur, setHtmlModalGorunur] = useState(false);
   const [htmlYukleniyor, setHtmlYukleniyor] = useState(false);
   const [htmlIcerik, setHtmlIcerik] = useState<string | null>(null);
-  // Görüntüle modalındayken PDF İndir/Paylaş'ın filigran olarak kullanacağı
-  // metin — "İptal/İtiraz Durumu" varsa (bkz. iptalItirazDurumMetni).
-  const [goruntulenenFiligran, setGoruntulenenFiligran] = useState<string | undefined>(undefined);
   // Fatura HTML'i varsayılan olarak JavaScript kapalı gösterilir; yalnızca fatura
   // boş/bozuk göründüğünde kullanıcı bilinçli olarak açar (bkz. FaturaWebView).
   const [faturaJsAcik, setFaturaJsAcik] = useState(false);
@@ -203,6 +170,12 @@ export default function TaslaklarScreen({ navigation }: Props) {
   }, [veriYukle]);
 
   const handleSorgula = async () => {
+    // GİB 1 haftadan uzun aralığı reddediyor; tarih seçimi zaten sınırlıyor,
+    // bu son bir güvence.
+    if (!aralikGecerliMi(baslangicTarih, bitisTarih)) {
+      Alert.alert('Tarih aralığı çok uzun', `GİB en fazla ${EN_FAZLA_GUN} günlük aralıkta sorgulamaya izin veriyor.`);
+      return;
+    }
     setYukleniyor(true);
     await veriYukle(baslangicTarih, bitisTarih);
     setYukleniyor(false);
@@ -217,8 +190,24 @@ export default function TaslaklarScreen({ navigation }: Props) {
   const handleTarihSecildi = (_event: DateTimePickerChangeEvent, secilen: Date) => {
     const hedef = acikPicker;
     setAcikPicker(null); // Android'de picker modal olarak açılır, seçim sonrası kapanır
-    if (hedef === 'baslangic') setBaslangicTarih(secilen);
-    else if (hedef === 'bitis') setBitisTarih(secilen);
+    if (hedef !== 'baslangic' && hedef !== 'bitis') return;
+    // GİB 1 haftadan uzun aralığa izin vermiyor: seçilen uca dokunulmaz,
+    // DİĞER uç gerekirse kaydırılır (bkz. utils/tarihAraligi.ts).
+    const sonuc = araligiSinirla(
+      hedef === 'baslangic' ? secilen : baslangicTarih,
+      hedef === 'bitis' ? secilen : bitisTarih,
+      hedef,
+    );
+    setBaslangicTarih(sonuc.baslangic);
+    setBitisTarih(sonuc.bitis);
+    if (sonuc.duzeltildi) {
+      Alert.alert(
+        'Tarih aralığı ayarlandı',
+        `GİB en fazla ${EN_FAZLA_GUN} günlük aralıkta sorgulamaya izin veriyor; ` +
+          (hedef === 'baslangic' ? 'bitiş' : 'başlangıç') +
+          ' tarihi buna göre değiştirildi.',
+      );
+    }
   };
 
   // Adım 1: "GİB İmza" tıklanınca dialog açılır ve kayıtlı cep telefonu
@@ -400,10 +389,11 @@ export default function TaslaklarScreen({ navigation }: Props) {
     setHtmlYukleniyor(true);
     setHtmlIcerik(null);
     setFaturaJsAcik(false);
-    setGoruntulenenFiligran(filigranMetni(item));
     try {
       const html = await faturaHTMLGetir(token, item.ettn, item.onayDurumu);
-      setHtmlIcerik(html);
+      // Filigran artık görüntülemede de var (önceden yalnızca PDF'teydi).
+      // PDF bu HTML'den üretildiği için ikisi her zaman aynı.
+      setHtmlIcerik(filigranliFaturaHtml(html, item));
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'Fatura görüntülenemedi.';
       Alert.alert('Hata', message);
@@ -417,7 +407,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
     if (!htmlIcerik) return;
     setPdfIsleniyor(true);
     try {
-      await pdfIndir(htmlIcerik, goruntulenenFiligran);
+      await pdfIndir(htmlIcerik);
       // Artık paylaşım penceresi açılmıyor (doğrudan indiriliyor), bu yüzden
       // başarı geri bildirimi yalnızca bu Alert.
       Alert.alert('İndirildi', 'Fatura PDF olarak cihazınıza kaydedildi.');
@@ -433,7 +423,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
     if (!htmlIcerik) return;
     setPdfIsleniyor(true);
     try {
-      await pdfPaylas(htmlIcerik, undefined, goruntulenenFiligran);
+      await pdfPaylas(htmlIcerik);
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'PDF paylaşılamadı.';
       Alert.alert('Hata', message);
@@ -448,7 +438,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
     setIndirilenEttn(item.ettn);
     try {
       const html = await faturaHTMLGetir(token, item.ettn, item.onayDurumu);
-      await pdfIndir(html, filigranMetni(item));
+      await pdfIndir(filigranliFaturaHtml(html, item));
       Alert.alert('İndirildi', 'Fatura PDF olarak cihazınıza kaydedildi.');
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'Fatura indirilemedi.';
@@ -620,6 +610,9 @@ export default function TaslaklarScreen({ navigation }: Props) {
             <Text variant="bodyMedium">{tarihFormatla(bitisTarih)}</Text>
           </Pressable>
         </View>
+        <Text variant="labelSmall" style={styles.mutedText}>
+          En fazla {EN_FAZLA_GUN} günlük aralık sorgulanabilir (GİB sınırı).
+        </Text>
         <Button mode="contained" onPress={handleSorgula} loading={yukleniyor} disabled={yukleniyor}>
           Sorgula
         </Button>

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import { filigranEkle } from './faturaFiligran';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 // "/legacy" burada kasıtlı olarak korundu: aşağıdaki writeAsStringAsync/
@@ -22,25 +23,7 @@ function utf8MetaEkle(html: string): string {
   return `<meta charset="utf-8">${html}`;
 }
 
-// Sayfanın tam ortasına, çapraz (-35°), yarı saydam kırmızı bir filigran
-// metni ekler — ör. "İPTAL AŞAMASINDA" / "İPTAL KABUL EDİLDİ". `position:
-// fixed` her sayfada tekrar eder (expo-print/Chromium PDF motoru bunu
-// destekliyor); `pointer-events:none` metnin altındaki fatura içeriğinin
-// tıklanabilirliğini/seçilebilirliğini etkilemiyor (PDF çıktısında zaten
-// anlamsız ama HTML önizlemesinde bozulmasın diye).
-function filigranEkle(html: string, metin?: string): string {
-  if (!metin) return html;
-  const guvenliMetin = metin.toLocaleUpperCase('tr-TR');
-  const filigranDiv = `<div style="position:fixed;top:50%;left:50%;` +
-    `transform:translate(-50%,-50%) rotate(-35deg);` +
-    `font-size:54px;font-weight:800;color:rgba(200,0,0,0.32);` +
-    `white-space:nowrap;z-index:99999;pointer-events:none;` +
-    `font-family:Arial,sans-serif;letter-spacing:2px;">${guvenliMetin}</div>`;
-  if (/<body[^>]*>/i.test(html)) {
-    return html.replace(/<body([^>]*)>/i, `<body$1>${filigranDiv}`);
-  }
-  return filigranDiv + html;
-}
+// Filigran ekleme ortak modülde (görüntüleme ekranı da aynısını kullanır).
 
 /**
  * GİB'den gelen fatura HTML'ini PDF'e çevirip Base64 olarak döndürür.
