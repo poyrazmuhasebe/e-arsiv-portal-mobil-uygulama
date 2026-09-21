@@ -256,24 +256,32 @@ export default function AliciDefteriScreen({ navigation }: Props) {
                       </>
                     )}
                   </Card.Content>
+                  {/* Card.Actions her çocuğuna style ekliyor (Paper cloneElement);
+                      <></> verilirse "Invalid prop `style` supplied to
+                      `React.Fragment`" hatası çıkar. Düğmeler anahtarlı dizi. */}
                   <Card.Actions>
-                    {duzenleniyor ? (
-                      <>
-                        <Button onPress={() => setDuzenlenen(null)}>Vazgeç</Button>
-                        <Button mode="contained" onPress={duzenlemeyiKaydet}>
-                          Kaydet
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <Button icon="delete-outline" textColor={theme.colors.error} onPress={() => silmeyiOnayla(kayit)}>
-                          Sil
-                        </Button>
-                        <Button icon="pencil-outline" onPress={() => duzenlemeyiBaslat(kayit)}>
-                          Adresi Düzenle
-                        </Button>
-                      </>
-                    )}
+                    {duzenleniyor
+                      ? [
+                          <Button key="vazgec" onPress={() => setDuzenlenen(null)}>
+                            Vazgeç
+                          </Button>,
+                          <Button key="kaydet" mode="contained" onPress={duzenlemeyiKaydet}>
+                            Kaydet
+                          </Button>,
+                        ]
+                      : [
+                          <Button
+                            key="sil"
+                            icon="delete-outline"
+                            textColor={theme.colors.error}
+                            onPress={() => silmeyiOnayla(kayit)}
+                          >
+                            Sil
+                          </Button>,
+                          <Button key="duzenle" icon="pencil-outline" onPress={() => duzenlemeyiBaslat(kayit)}>
+                            Adresi Düzenle
+                          </Button>,
+                        ]}
                   </Card.Actions>
                 </Card>
               );

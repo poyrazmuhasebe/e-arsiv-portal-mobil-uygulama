@@ -264,12 +264,24 @@ export default function YedekleScreen({ navigation }: Props) {
       </ScrollView>
 
       <Portal>
+        {/* Dialog'un DOĞRUDAN çocukları yalnızca Title/Content/Actions olmalı:
+            Paper, ilk çocuğa `style` ekliyor (Dialog.tsx cloneElement); ilk
+            çocuk bir <></> olursa "Invalid prop `style` supplied to
+            `React.Fragment`" hatası çıkar. Duruma göre değişen kısımlar bu
+            üç bileşenin İÇİNDE seçiliyor. */}
         <Dialog visible={durum.tur !== 'bosta'} dismissable={false}>
-          {durum.tur === 'suruyor' && (
-            <>
-              <Dialog.Title>Yedekleme devam ediyor</Dialog.Title>
-              <Dialog.Content style={styles.dialogIcerik}>
-                {durum.ilerleme ? (
+          <Dialog.Title>
+            {durum.tur === 'suruyor'
+              ? 'Yedekleme devam ediyor'
+              : durum.tur === 'hata'
+                ? 'Yedekleme yarıda kaldı'
+                : durum.tur === 'bitti' && durum.sonuc.durduruldu
+                  ? 'Yedekleme durduruldu'
+                  : 'Yedekleme tamamlanmıştır'}
+          </Dialog.Title>
+          <Dialog.Content style={styles.dialogIcerik}>
+            {durum.tur === 'suruyor' &&
+              (durum.ilerleme ? (
                   <>
                     <Text variant="bodyMedium">
                       {noktaliTarih(durum.ilerleme.parca.baslangic)} – {noktaliTarih(durum.ilerleme.parca.bitis)} arası
@@ -287,22 +299,12 @@ export default function YedekleScreen({ navigation }: Props) {
                       {durum.ilerleme.hatali > 0 ? ` · Hatalı: ${durum.ilerleme.hatali}` : ''}
                     </Text>
                   </>
-                ) : (
-                  <Text variant="bodyMedium">Hazırlanıyor…</Text>
-                )}
-              </Dialog.Content>
-              <Dialog.Actions>
-                <Button onPress={() => (durdurIstendi.current = true)}>Durdur</Button>
-              </Dialog.Actions>
-            </>
-          )}
+              ) : (
+                <Text variant="bodyMedium">Hazırlanıyor…</Text>
+              ))}
 
-          {durum.tur === 'bitti' && (
-            <>
-              <Dialog.Title>
-                {durum.sonuc.durduruldu ? 'Yedekleme durduruldu' : 'Yedekleme tamamlanmıştır'}
-              </Dialog.Title>
-              <Dialog.Content style={styles.dialogIcerik}>
+            {durum.tur === 'bitti' && (
+              <>
                 <Text variant="bodyMedium">
                   Kaydedilen: {durum.sonuc.kaydedilen} · Zaten yedekli: {durum.sonuc.atlanan}
                   {durum.sonuc.hatali > 0 ? ` · Hatalı: ${durum.sonuc.hatali}` : ''}
@@ -317,18 +319,11 @@ export default function YedekleScreen({ navigation }: Props) {
                     Yedeklenen faturalara yönlendiriliyorsunuz…
                   </Text>
                 )}
-              </Dialog.Content>
-              <Dialog.Actions>
-                <Button onPress={kutuyuKapat}>Kapat</Button>
-                <Button onPress={yedeklereGit}>Yedekleri Görüntüle</Button>
-              </Dialog.Actions>
-            </>
-          )}
+              </>
+            )}
 
-          {durum.tur === 'hata' && (
-            <>
-              <Dialog.Title>Yedekleme yarıda kaldı</Dialog.Title>
-              <Dialog.Content style={styles.dialogIcerik}>
+            {durum.tur === 'hata' && (
+              <>
                 <Text variant="bodyMedium">{durum.mesaj}</Text>
                 {durum.sonuc && (
                   <Text variant="bodySmall" style={styles.mutedText}>
@@ -336,12 +331,32 @@ export default function YedekleScreen({ navigation }: Props) {
                     kaldığı yerden devam eder.
                   </Text>
                 )}
-              </Dialog.Content>
-              <Dialog.Actions>
-                <Button onPress={kutuyuKapat}>Kapat</Button>
-              </Dialog.Actions>
-            </>
-          )}
+              </>
+            )}
+          </Dialog.Content>
+          {/* Dialog.Actions da her çocuğuna style ekliyor ve aralığı çocuk
+              sırasına göre veriyor: düğmeler Fragment'sız ve `false`suz,
+              süzülmüş bir dizi olarak verilir. */}
+          <Dialog.Actions>
+            {durum.tur === 'suruyor'
+              ? [
+                  <Button key="durdur" onPress={() => (durdurIstendi.current = true)}>
+                    Durdur
+                  </Button>,
+                ]
+              : [
+                  <Button key="kapat" onPress={kutuyuKapat}>
+                    Kapat
+                  </Button>,
+                  ...(durum.tur === 'bitti'
+                    ? [
+                        <Button key="gor" onPress={yedeklereGit}>
+                          Yedekleri Görüntüle
+                        </Button>,
+                      ]
+                    : []),
+                ]}
+          </Dialog.Actions>
         </Dialog>
       </Portal>
     </SafeAreaView>
