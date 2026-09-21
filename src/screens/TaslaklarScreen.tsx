@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, Modal, StyleSheet, Text, View } from 'react-native';
-import { ActivityIndicator } from 'react-native-paper';
+import { ActivityIndicator, Portal } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import FaturaWebView from '../components/FaturaWebView';
 import TarihAraligiFiltresi from '../components/TarihAraligiFiltresi';
 import {
   Alert,
+  AlertHost,
   AppCard,
   AppDialog,
   AppHeader,
@@ -150,6 +152,10 @@ export default function TaslaklarScreen({ navigation }: Props) {
   const [htmlModalGorunur, setHtmlModalGorunur] = useState(false);
   const [htmlYukleniyor, setHtmlYukleniyor] = useState(false);
   const [htmlIcerik, setHtmlIcerik] = useState<string | null>(null);
+  // Ön işlemeden ÖNCEKİ (betikli) HTML: yalnızca "Gelişmiş görünüm"
+  // (JavaScript açık) seçilirse gösterilir. Ön işlenmiş HTML'de betik
+  // kalmadığı için JavaScript'i açmak orada hiçbir şeyi değiştirmezdi.
+  const [htmlOzgun, setHtmlOzgun] = useState<string | null>(null);
   // Fatura HTML'i varsayılan olarak JavaScript kapalı gösterilir; yalnızca fatura
   // boş/bozuk göründüğünde kullanıcı bilinçli olarak açar (bkz. FaturaWebView).
   const [faturaJsAcik, setFaturaJsAcik] = useState(false);
@@ -451,6 +457,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
     setHtmlModalGorunur(true);
     setHtmlYukleniyor(true);
     setHtmlIcerik(null);
+    setHtmlOzgun(null);
     setFaturaJsAcik(false);
     try {
       const html = await faturaHTMLGetir(token, item.ettn, item.onayDurumu);
@@ -459,7 +466,9 @@ export default function TaslaklarScreen({ navigation }: Props) {
       // kapalı; HTML önce kısıtlı ön işlemeden geçer (karekod resme çevrilir,
       // bkz. utils/htmlOnIsleme.ts). PDF bu HTML'den üretildiği için ikisi
       // her zaman aynı. Ön işleme olmazsa özgün HTML gösterilir.
-      setHtmlIcerik(await betikliHtmlHazirla(filigranliFaturaHtml(html, item)));
+      const filigranli = filigranliFaturaHtml(html, item);
+      setHtmlOzgun(filigranli);
+      setHtmlIcerik(await betikliHtmlHazirla(filigranli));
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'Fatura görüntülenemedi.';
       Alert.alert('Hata', message);
@@ -954,6 +963,12 @@ export default function TaslaklarScreen({ navigation }: Props) {
         animationType="slide"
         onRequestClose={() => setHtmlModalGorunur(false)}
       >
+        {/* Modal ayrı bir yerel pencere: güvenli alan ve dialog katmanı
+            onun içinde yeniden kurulur. Aksi hâlde temalı Alert (ör.
+            "Gelişmiş görünüm" onayı, PDF hataları) görüntüleyicinin
+            ARKASINDA açılıp görünmüyordu. */}
+        <SafeAreaProvider>
+        <Portal.Host>
         <AppScreen glow={false}>
           <AppHeader
             title="Fatura Görüntüle"
@@ -998,12 +1013,15 @@ export default function TaslaklarScreen({ navigation }: Props) {
             </View>
           ) : htmlIcerik ? (
             <View style={styles.faturaCercevesi}>
-              <FaturaWebView html={htmlIcerik} javaScriptAcik={faturaJsAcik} />
+              <FaturaWebView html={faturaJsAcik && htmlOzgun ? htmlOzgun : htmlIcerik} javaScriptAcik={faturaJsAcik} />
             </View>
           ) : (
             <EmptyState icon="file-alert-outline" title="İçerik yüklenemedi." />
           )}
         </AppScreen>
+        <AlertHost yerel />
+        </Portal.Host>
+        </SafeAreaProvider>
       </Modal>
     </AppScreen>
   );
