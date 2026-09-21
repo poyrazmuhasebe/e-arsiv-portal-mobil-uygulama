@@ -37,12 +37,22 @@ bu sayfa onların tematik bir özetidir.
   Taslak/Kesilen Faturalar listesindeki tutar — GİB'in liste yanıtında belgenin
   para birimini taşıyan bir alan olup olmadığı doğrulanmadı.
   ([Issue #3](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/3))
-- **İtiraz Talebi Oluştur, Taslak Düzenle** — düğmeler görünür ama gerçek
-  işlevleri yok: `handleAksiyon` yalnızca geliştirme modunda (`__DEV__`) bir
-  `console.log` yazar, GİB'e istek atmaz. (Taslak **Sil** ve **İptal Talebi
-  Oluştur** artık gerçek isteklerle çalışıyor.)
-  ([Issue #7](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/7),
-  [Issue #11](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/11))
+- **İtiraz Talebi Oluştur — form hazır, GÖNDERİM KİLİTLİ** (2026-09-21):
+  pencere GİB portalındakiyle birebir (belge numarası, tarih, 4 yöntem,
+  açıklama, uyarı onayı) ve doğrulamalar çalışıyor. GİB'e giden isteğin
+  kendisi (cmd, pageName, açıklama alanı adı, tarih biçimi) henüz
+  YAKALANMADI; itiraz alıcıya iletildiği ve geri çekilemediği için tahmini
+  bir istek gönderilmiyor. Son adımda "Bu bölümden sonrası test edilemediği
+  için geliştirilememiştir" kutusu çıkıyor. Açmak için: portalda "İtiraz
+  Talebi Oluştur"a basıldığında DevTools > Network'te görülen isteğin
+  cmd/pageName/jp alanları → `gibApi.ts` (`ITIRAZ_TALEBI_CMD`,
+  `ITIRAZ_TALEBI_SAYFA`, `ITIRAZ_GONDERIMI_DOGRULANDI`) ve
+  `utils/itirazTalebi.ts` (`itirazIstekVerisi`). Silinmiş faturada İtiraz
+  düğmesi gösterilmiyor.
+  ([Issue #7](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/7))
+- **Taslak Düzenle** — düğme görünür ama gerçek işlevi yok: `handleAksiyon`
+  yalnızca geliştirme modunda bir `console.log` yazar, GİB'e istek atmaz.
+  ([Issue #11](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/11))
 - **"Adıma Düzenlenen Belgeler" ekranı henüz yok** — Dashboard'daki menü
   öğesi "Bu özellik henüz eklenmedi." uyarısı gösteriyor; gerekli cmd henüz
   yakalanmadı.

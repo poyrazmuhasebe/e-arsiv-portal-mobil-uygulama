@@ -10,6 +10,7 @@ import {
   Chip,
   Dialog,
   Portal,
+  RadioButton,
   Text,
   TextInput,
   useTheme,
@@ -23,6 +24,8 @@ import {
   faturaHTMLGetir,
   faturaSil,
   iptalTalebiOlustur,
+  itirazTalebiOlustur,
+  ITIRAZ_GONDERIMI_DOGRULANDI,
   smsSifreGonder,
   smsSifreOnayla,
   taslakGetir,
@@ -33,6 +36,18 @@ import { pdfIndir, pdfPaylas } from '../utils/pdf';
 import type { TaslakFatura } from '../types/gib';
 import { filigranliFaturaHtml, iptalItirazDurumMetni } from '../utils/faturaFiligran';
 import { EN_FAZLA_GUN, aralikGecerliMi, araligiSinirla } from '../utils/tarihAraligi';
+import {
+  ITIRAZ_ACIKLAMA_EN_FAZLA,
+  ITIRAZ_BELGE_NO_EN_FAZLA,
+  ITIRAZ_UYARI_METNI,
+  ITIRAZ_YONTEMLERI,
+  bosItirazFormu,
+  itirazFormHatasi,
+  itirazIstekVerisi,
+  itirazTarihiBicimle,
+  type ItirazFormu,
+  type ItirazYontemi,
+} from '../utils/itirazTalebi';
 
 type TaslakDurum = 'onaylandi' | 'onaylanmadi' | 'silinmis' | 'bilinmiyor';
 
@@ -140,6 +155,15 @@ export default function TaslaklarScreen({ navigation }: Props) {
   const [iptalUyariOkundu, setIptalUyariOkundu] = useState(false);
   const [iptalGerekce, setIptalGerekce] = useState('');
   const [iptalSurecinde, setIptalSurecinde] = useState(false);
+
+  // İtiraz Talebi Oluştur — GİB portalındaki pencerenin birebir karşılığı
+  // (bkz. utils/itirazTalebi.ts). GİB'e giden istek henüz yakalanmadığı için
+  // gönderim kilitli: son adımda kapatılabilir bir bilgi kutusu gösterilir.
+  const [itirazHedefi, setItirazHedefi] = useState<TaslakFatura | null>(null);
+  const [itirazFormu, setItirazFormu] = useState<ItirazFormu>(bosItirazFormu);
+  const [itirazTarihSeciliyor, setItirazTarihSeciliyor] = useState(false);
+  const [itirazSurecinde, setItirazSurecinde] = useState(false);
+  const [itirazBilgiGorunur, setItirazBilgiGorunur] = useState(false);
 
   const veriYukle = useCallback(
     async (baslangic: Date, bitis: Date): Promise<TaslakFatura[] | null> => {
@@ -301,13 +325,50 @@ export default function TaslaklarScreen({ navigation }: Props) {
     return () => clearTimeout(zamanlayici);
   }, [smsHedefi, smsAsama, smsKalanSure]);
 
-  // Düzenle/İtiraz: gerçek GİB komutları henüz doğrulanmadığından şimdilik
+  // Düzenle: gerçek GİB komutu henüz doğrulanmadığından şimdilik
   // yalnızca konsola yazan yer tutucular. Sil ve İptal Talebi Oluştur ayrıca
   // ele alınıyor (bkz. handleSilBaslat/handleSilOnayla,
   // handleIptalBaslat/handleIptalOnayla) — ikisi de gerçek DevTools
   // yakalamasıyla doğrulandı.
   const handleAksiyon = (aksiyonAdi: string, item: TaslakFatura) => {
     if (__DEV__) console.log(`${aksiyonAdi} tıklandı:`, item.ettn);
+  };
+
+  const handleItirazBaslat = (item: TaslakFatura) => {
+    setItirazHedefi(item);
+    setItirazFormu(bosItirazFormu());
+    setItirazTarihSeciliyor(false);
+  };
+
+  const handleItirazVazgec = () => {
+    setItirazHedefi(null);
+    setItirazFormu(bosItirazFormu());
+    setItirazTarihSeciliyor(false);
+  };
+
+  const itirazAlaniniGuncelle = (alan: Partial<ItirazFormu>) =>
+    setItirazFormu((onceki) => ({ ...onceki, ...alan }));
+
+  const handleItirazOlustur = async () => {
+    if (!token || !itirazHedefi || itirazFormHatasi(itirazFormu) !== null) return;
+    // Gönderim doğrulanana kadar GİB'e HİÇBİR İSTEK gitmez; yalnızca bilgi
+    // kutusu açılır. Form kapanmaz, kullanıcı 'Vazgeç' ile çıkar.
+    if (!ITIRAZ_GONDERIMI_DOGRULANDI) {
+      setItirazBilgiGorunur(true);
+      return;
+    }
+    setItirazSurecinde(true);
+    try {
+      await itirazTalebiOlustur(token, itirazIstekVerisi(itirazHedefi, itirazFormu));
+      handleItirazVazgec();
+      await veriYukle(baslangicTarih, bitisTarih);
+      Alert.alert('Talep Oluşturuldu', 'İtiraz talebiniz oluşturulmuştur.');
+    } catch (err) {
+      const message = err instanceof Error && err.message ? err.message : 'İtiraz talebi oluşturulamadı.';
+      Alert.alert('İşlem Başarısız', message);
+    } finally {
+      setItirazSurecinde(false);
+    }
   };
 
   const handleSilBaslat = (item: TaslakFatura) => {
@@ -463,7 +524,8 @@ export default function TaslaklarScreen({ navigation }: Props) {
     // bir belge için anlamlı — taslak bir fatura iptal edilmez, silinir
     // (gerçek yakalamayla doğrulandı: istek "onayDurumu":"Onaylandı" taşıyor).
     const iptalUygun = durum === 'onaylandi' && !talepVarMi;
-    const itirazUygun = !talepVarMi;
+    // Silinmiş bir belgeye itiraz edilmez (kullanıcı isteği, 2026-09-21).
+    const itirazUygun = durum !== 'silinmis' && !talepVarMi;
 
     const baslik = asString(item.aliciUnvanAdSoyad) ?? asString(item.aliciUnvan) ?? 'Bilinmeyen Alıcı';
     const tarih = asString(item.belgeTarihi) ?? asString(item.faturaTarihi) ?? '-';
@@ -561,7 +623,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
                 compact
                 mode="text"
                 icon="alert-circle-outline"
-                onPress={() => handleAksiyon('İtiraz Talebi Oluştur', item)}
+                onPress={() => handleItirazBaslat(item)}
               >
                 İtiraz
               </Button>
@@ -744,6 +806,124 @@ export default function TaslaklarScreen({ navigation }: Props) {
           </Dialog.Actions>
         </Dialog>
 
+        {/* İtiraz Talebi Oluştur — GİB portalındaki pencerenin birebir
+            karşılığı: alan sırası, etiketler, 4 yöntem ve uyarı metni aynı. */}
+        <Dialog visible={itirazHedefi !== null} onDismiss={handleItirazVazgec}>
+          <Dialog.Title>İtiraz Talebi Oluştur</Dialog.Title>
+          <Dialog.ScrollArea>
+            <ScrollView contentContainerStyle={styles.itirazIcerik} keyboardShouldPersistTaps="handled">
+              <TextInput
+                mode="outlined"
+                label="İtiraz Belge Numarası *"
+                value={itirazFormu.belgeNumarasi}
+                onChangeText={(v) => itirazAlaniniGuncelle({ belgeNumarasi: v })}
+                maxLength={ITIRAZ_BELGE_NO_EN_FAZLA}
+                autoCapitalize="characters"
+                autoCorrect={false}
+              />
+              <Text variant="labelSmall" style={styles.mutedText}>
+                Türk Ticaret Kanununda yer alan itiraz yöntemlerinin belge numarası yazılmalıdır
+              </Text>
+
+              <Pressable
+                onPress={() => setItirazTarihSeciliyor(true)}
+                style={[styles.tarihButon, styles.itirazTarih, { borderColor: theme.colors.outline }]}
+              >
+                <Text variant="labelSmall" style={styles.mutedText}>
+                  İtiraz Belge Tarihi *
+                </Text>
+                <Text variant="bodyMedium">
+                  {itirazFormu.belgeTarihi ? itirazTarihiBicimle(itirazFormu.belgeTarihi) : '__/__/____'}
+                </Text>
+              </Pressable>
+              <Text variant="labelSmall" style={styles.mutedText}>
+                Türk Ticaret Kanununda yer alan itiraz yöntemlerinin belge tarihi yazılmalıdır
+              </Text>
+              {itirazTarihSeciliyor && (
+                <DateTimePicker
+                  value={itirazFormu.belgeTarihi ?? new Date()}
+                  mode="date"
+                  display="default"
+                  maximumDate={new Date()}
+                  onValueChange={(_e: DateTimePickerChangeEvent, secilen: Date) => {
+                    setItirazTarihSeciliyor(false);
+                    itirazAlaniniGuncelle({ belgeTarihi: secilen });
+                  }}
+                  onDismiss={() => setItirazTarihSeciliyor(false)}
+                />
+              )}
+
+              <Text variant="labelSmall" style={[styles.mutedText, styles.itirazEtiket]}>
+                İtiraz Yöntemi *
+              </Text>
+              <RadioButton.Group
+                value={itirazFormu.yontem}
+                onValueChange={(v) => itirazAlaniniGuncelle({ yontem: v as ItirazYontemi })}
+              >
+                {ITIRAZ_YONTEMLERI.map((y) => (
+                  <RadioButton.Item key={y.deger} label={y.etiket} value={y.deger} style={styles.itirazSecenek} />
+                ))}
+              </RadioButton.Group>
+
+              <TextInput
+                mode="outlined"
+                label="Açıklama"
+                value={itirazFormu.aciklama}
+                onChangeText={(v) => itirazAlaniniGuncelle({ aciklama: v.slice(0, ITIRAZ_ACIKLAMA_EN_FAZLA) })}
+                maxLength={ITIRAZ_ACIKLAMA_EN_FAZLA}
+                multiline
+                numberOfLines={3}
+              />
+              <Text variant="labelSmall" style={styles.karakterSayaci}>
+                {itirazFormu.aciklama.length}/{ITIRAZ_ACIKLAMA_EN_FAZLA}
+              </Text>
+
+              <Text variant="labelSmall" style={[styles.mutedText, styles.dialogUyariBaslik]}>
+                UYARI
+              </Text>
+              <Text variant="bodyMedium" style={styles.dialogText}>
+                {ITIRAZ_UYARI_METNI}
+              </Text>
+              <Checkbox.Item
+                label="Uyarıyı Okudum"
+                status={itirazFormu.uyariOkundu ? 'checked' : 'unchecked'}
+                onPress={() => itirazAlaniniGuncelle({ uyariOkundu: !itirazFormu.uyariOkundu })}
+                style={styles.silCheckbox}
+                labelStyle={styles.silCheckboxLabel}
+              />
+            </ScrollView>
+          </Dialog.ScrollArea>
+          <Dialog.Actions>
+            <Button onPress={handleItirazVazgec} disabled={itirazSurecinde}>
+              Vazgeç
+            </Button>
+            <Button
+              onPress={handleItirazOlustur}
+              loading={itirazSurecinde}
+              disabled={itirazSurecinde || itirazFormHatasi(itirazFormu) !== null}
+            >
+              İtiraz Talebi Oluştur
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* Kullanıcı isteği (2026-09-21): gönderim doğrulanana kadar son adımda
+            kapatılabilir bilgi kutusu. GİB'e hiçbir istek gitmez. */}
+        <Dialog visible={itirazBilgiGorunur} onDismiss={() => setItirazBilgiGorunur(false)}>
+          <Dialog.Title>Bilgi</Dialog.Title>
+          <Dialog.Content>
+            <Text variant="bodyMedium" style={styles.dialogText}>
+              Bu bölümden sonrası test edilemediği için geliştirilememiştir.
+            </Text>
+            <Text variant="bodySmall" style={styles.mutedText}>
+              İtiraz talebiniz GİB'e gönderilmedi. Talebi GİB e-Arşiv Portalı üzerinden oluşturabilirsiniz.
+            </Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setItirazBilgiGorunur(false)}>Kapat</Button>
+          </Dialog.Actions>
+        </Dialog>
+
         <Dialog visible={smsHedefi !== null && smsAsama === 1} onDismiss={handleSmsVazgec}>
           <Dialog.Title>SMS Onay — 1. Adım</Dialog.Title>
           <Dialog.Content>
@@ -922,5 +1102,9 @@ const styles = StyleSheet.create({
   silCheckboxLabel: { fontSize: 14 },
   telefonSpinner: { alignSelf: 'flex-start', marginTop: 4 },
   karakterSayaci: { alignSelf: 'flex-end', opacity: 0.6, marginTop: 2, marginBottom: 8 },
+  itirazIcerik: { paddingHorizontal: 24, paddingVertical: 8, gap: 4 },
+  itirazTarih: { marginTop: 12 },
+  itirazEtiket: { marginTop: 12 },
+  itirazSecenek: { paddingVertical: 2 },
   dialogUyariBaslik: { fontWeight: '700', marginBottom: 4 },
 });

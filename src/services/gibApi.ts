@@ -901,6 +901,38 @@ export async function iptalTalebiOlustur(
 }
 
 // ---------------------------------------------------------------------------
+// İtiraz Talebi Oluştur — GÖNDERİM KİLİTLİ
+// ---------------------------------------------------------------------------
+
+/**
+ * ⚠️ GİB'e giden itiraz isteği HENÜZ YAKALANMADI (cmd, pageName, açıklama
+ * alanının adı, tarih biçimi bilinmiyor). İtiraz talebi alıcıya iletilir ve
+ * GİB'in kendi uyarısına göre GERİ ÇEKİLEMEZ; tahmini bir istekle gönderilmez.
+ *
+ * Portalda "İtiraz Talebi Oluştur"a basıldığında DevTools > Network'te
+ * görülen isteğin cmd/pageName/jp alanları gelince:
+ *   1. `ITIRAZ_TALEBI_CMD` ve `ITIRAZ_TALEBI_SAYFA` doldurulur,
+ *   2. `itirazIstekVerisi` (utils/itirazTalebi.ts) yakalamaya göre düzeltilir,
+ *   3. `ITIRAZ_GONDERIMI_DOGRULANDI` true yapılır.
+ * O zamana kadar ekran, son adımda "test edilemediği için geliştirilememiştir"
+ * bilgisini gösterir (kullanıcı isteği, 2026-09-21).
+ */
+export const ITIRAZ_GONDERIMI_DOGRULANDI = false;
+const ITIRAZ_TALEBI_CMD: string | null = null;
+const ITIRAZ_TALEBI_SAYFA: string | null = null;
+
+export async function itirazTalebiOlustur(
+  token: string,
+  jp: Record<string, unknown>,
+): Promise<void> {
+  if (!ITIRAZ_GONDERIMI_DOGRULANDI || ITIRAZ_TALEBI_CMD === null || ITIRAZ_TALEBI_SAYFA === null) {
+    // Ağa ÇIKMADAN reddedilir.
+    throw new GibApiError('İtiraz talebi gönderimi henüz doğrulanmadığı için kapalı.');
+  }
+  await dispatch(ITIRAZ_TALEBI_CMD, ITIRAZ_TALEBI_SAYFA, jp, token);
+}
+
+// ---------------------------------------------------------------------------
 // Kayıtlı cep telefonu sorgulama (SMS onay akışının 1. adımında gösterilir)
 // ---------------------------------------------------------------------------
 
@@ -1342,6 +1374,7 @@ export const gibApi = {
   taslakGetir,
   faturaSil,
   iptalTalebiOlustur,
+  itirazTalebiOlustur,
   telefonnoSorgula,
   kullaniciBilgileriDetayGetir,
   kullaniciBilgileriKaydet,

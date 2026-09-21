@@ -102,6 +102,19 @@ Hazırlık: `worker/.dev.vars.example` dosyasını `.dev.vars` adıyla kopyalay�
 - [ ] Başlangıç tarihini 1 aydan eskiye çekince bitiş kendiliğinden 7 gün
   sonrasına geliyor ve bilgi mesajı çıkıyor; tersi de aynı.
 
+### İtiraz Talebi Oluştur (2026-09-21) — GİB gerekir, GİB'e istek GİTMEZ
+
+- [ ] **Silinmiş** faturada "İtiraz" düğmesi **yok**.
+- [ ] Onaylı bir faturada "İtiraz" → pencere açılıyor: İtiraz Belge Numarası,
+  İtiraz Belge Tarihi (takvim, ileri tarih seçilemiyor), İtiraz Yöntemi
+  (Noter Aracılığıyla / Taahhütlü Mektup / Telgraf / KEP), Açıklama (0/255
+  sayacı), UYARI metni ve "Uyarıyı Okudum".
+- [ ] Zorunlu alanlar ve "Uyarıyı Okudum" dolmadan "İtiraz Talebi Oluştur"
+  pasif.
+- [ ] Hepsi dolunca "İtiraz Talebi Oluştur"a basınca "Bu bölümden sonrası test
+  edilemediği için geliştirilememiştir" kutusu çıkıyor, "Kapat" ile kapanıyor;
+  GİB'de talep **oluşmuyor**.
+
 ### Deploy edilmiş Worker gerekir
 
 Worker **2026-09-20'de canlıya alındı**: `https://earsivfatura.poyrazmuhasebe.com`
