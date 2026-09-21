@@ -305,3 +305,19 @@ Seç"te kaç kayıt olduğunu ve ilk birkaçının sırasını not edin.
 - [ ] **Paylaşım kopyası temizliği** — bir yedeği paylaşın, sonra "GİB
   oturumunu kapat": (geliştirici) uygulama önbelleğinde `yedek-paylasim`
   klasörü kalmıyor.
+
+## Mal/Hizmet Defteri ekranı (2026-09-21)
+
+### GİB gerekir (oturum açık olmalı; GİB'e istek atılmaz)
+
+- [ ] **Menü** — ana menü → Kullanıcı İşlemleri → Alıcı Defteri'nin altında
+  "Mal/Hizmet Defteri" var.
+- [ ] **Ekle** — + → ad yaz → "Deftere Kaydet": en üstte görünüyor; fatura
+  formunda "Kayıtlı Mal/Hizmet Seç" listesinde de var.
+- [ ] **Aynı ad** — var olan bir adı (farklı büyük/küçük harfle) eklemeye
+  çalışınca "Zaten kayıtlı" çıkıyor, kopya oluşmuyor.
+- [ ] **Düzenle** — bir adı değiştir → Kaydet: aynı sırada yeni adla duruyor;
+  başka bir kaydın adını verince "Zaten kayıtlı" çıkıyor.
+- [ ] **Sil** — onaydan sonra kayıt gidiyor, uygulama yeniden açılınca geri
+  gelmiyor.
+- [ ] **Hesaba özel** — başka bir GİB koduyla girince bu kayıtlar görünmüyor.

@@ -14,6 +14,7 @@ import IptalItirazTalepleriScreen from './src/screens/IptalItirazTalepleriScreen
 import KullaniciBilgileriScreen from './src/screens/KullaniciBilgileriScreen';
 import KilitScreen from './src/screens/KilitScreen';
 import AliciDefteriScreen from './src/screens/AliciDefteriScreen';
+import MalHizmetDefteriScreen from './src/screens/MalHizmetDefteriScreen';
 import KarsilamaScreen from './src/screens/KarsilamaScreen';
 import HesapKayitScreen from './src/screens/HesapKayitScreen';
 import HesapGirisScreen from './src/screens/HesapGirisScreen';
@@ -46,6 +47,7 @@ export type RootStackParamList = {
   IptalItirazTalepleri: undefined;
   KullaniciBilgileri: undefined;
   AliciDefteri: undefined;
+  MalHizmetDefteri: undefined;
   AdimaDuzenlenen: undefined;
   Yedekle: undefined;
   YedekleriGoruntule: undefined;
@@ -187,6 +189,7 @@ export default function App() {
                       <Stack.Screen name="IptalItirazTalepleri" component={IptalItirazTalepleriScreen} />
                       <Stack.Screen name="KullaniciBilgileri" component={KullaniciBilgileriScreen} />
                       <Stack.Screen name="AliciDefteri" component={AliciDefteriScreen} />
+                      <Stack.Screen name="MalHizmetDefteri" component={MalHizmetDefteriScreen} />
                       <Stack.Screen name="AdimaDuzenlenen" component={AdimaDuzenlenenScreen} />
                       <Stack.Screen name="Yedekle" component={YedekleScreen} />
                       <Stack.Screen name="YedekleriGoruntule" component={YedekleriGoruntuleScreen} />

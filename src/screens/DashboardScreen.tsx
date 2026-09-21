@@ -172,8 +172,8 @@ export default function DashboardScreen({ navigation }: Props) {
   ];
 
   // GİB'in kendi ana menüsündeki ikinci bölüm: "Kullanıcı İşlemleri" (bkz.
-  // gerçek menü ağacı yakalaması). "Alıcı Defteri" GİB'de yok; uygulamanın
-  // cihazda tuttuğu, bu hesaba özel kayıtları yönetir.
+  // gerçek menü ağacı yakalaması). "Alıcı Defteri" ve "Mal/Hizmet Defteri"
+  // GİB'de yok; uygulamanın cihazda tuttuğu, bu hesaba özel kayıtları yönetir.
   const kullaniciIslemleri: MenuOgesi[] = [
     {
       icon: '👤',
@@ -186,6 +186,12 @@ export default function DashboardScreen({ navigation }: Props) {
       baslik: 'Alıcı Defteri',
       altBaslik: 'Bu hesaba kayıtlı alıcıları düzenleyin, silin veya ekleyin',
       onPress: () => navigation.navigate('AliciDefteri'),
+    },
+    {
+      icon: '📦',
+      baslik: 'Mal/Hizmet Defteri',
+      altBaslik: 'Bu hesaba kayıtlı mal/hizmet adlarını düzenleyin, silin veya ekleyin',
+      onPress: () => navigation.navigate('MalHizmetDefteri'),
     },
     // Hesap atlandıysa (DEMO) silinecek bir uygulama hesabı yok.
     ...(hesapVar

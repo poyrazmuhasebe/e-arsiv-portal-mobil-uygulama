@@ -118,7 +118,8 @@ istiyor). **Hepsi taslaktır ve hukuki inceleme bekler.**
 - **"Kullanıcı İşlemleri"** başlıklı ikinci bir bölüm, GİB'in kendi ana
   menüsünün ikinci dalıyla eşleşiyor: **Kullanıcı Bilgileri** →
   `KullaniciBilgileri` (bkz. aşağıda). Ayrıca GİB'de karşılığı olmayan,
-  cihazdaki kayıtlar için **Alıcı Defteri** → `AliciDefteri`.
+  cihazdaki kayıtlar için **Alıcı Defteri** → `AliciDefteri` ve **Mal/Hizmet
+  Defteri** → `MalHizmetDefteri`.
 - Sağ üstte "Güvenli Çıkış" ikonu; onay diyaloğundan sonra
   `useAuthStore.logout()` çağrılır (bkz. aşağıdaki "Oturum Yönetimi").
 
@@ -147,6 +148,25 @@ GİB'e kayıtlı mükellef/firma bilgilerini görüntüleme ve düzenleme ekran�
   `EARSIV_PORTAL_KULLANICI_BILGILERI_KAYDET` isteğini gönderir.
 - **Bu ekran, "GİB İmza" akışındaki kayıtlı telefon numarasının da tek
   güvenilir kaynağı** — bkz. [gib-entegrasyonu.md](gib-entegrasyonu.md).
+
+## Mal/Hizmet Defteri (`src/screens/MalHizmetDefteriScreen.tsx`)
+
+"Kullanıcı İşlemleri"nde Alıcı Defteri'nin altında. Açık GİB hesabına
+(kullanıcı koduna) özel kayıtlı mal/hizmet adları (en fazla 50; yalnızca ad,
+tutar/miktar yok):
+
+- **Ekle** (sağ üstte +): ad en üste eklenir. Aynı ad (büyük/küçük harf
+  farkı gözetmeksizin) zaten varsa eklenmez, "Zaten kayıtlı" denir. Defter
+  doluysa onay sorulur, en alttaki kayıt düşer.
+- **Düzenle**: adı değiştirir, kaydın sıradaki yeri korunur. Yeni ad başka
+  bir kayıtla aynıysa kayıtlar birleştirilmez, uyarı verilir.
+- **Sil**: onaylı silme.
+- Arama. Ad en fazla 500 karakter (`MAL_HIZMET_AD_EN_UZUN`; uygulamanın
+  depolama sınırı, GİB kuralı değil).
+- Fatura başarıyla oluşturulunca kalem adları yine otomatik eklenir; fatura
+  formundaki "Kayıtlı Mal/Hizmet Seç" aynı defteri kullanır.
+- İşlemler: `malHizmetEkle`, `malHizmetAdiniDegistir`, `malHizmetSil`
+  (`src/utils/malHizmetDefteri.ts`, testli).
 
 ## Alıcı Defteri (`src/screens/AliciDefteriScreen.tsx`)
 

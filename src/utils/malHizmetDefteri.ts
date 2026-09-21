@@ -50,6 +50,78 @@ export async function malHizmetKaydet(adlar: string[]): Promise<boolean> {
   });
 }
 
+/**
+ * Bir adın en fazla uzunluğu. GİB kuralı DEĞİL, uygulamanın kendi sınırı:
+ * her ad ayrı bir SecureStore değerinde durur ve iOS'ta bir değer ~2 KB'ı
+ * geçmemeli (Türkçe karakterler 2 bayt).
+ */
+export const MAL_HIZMET_AD_EN_UZUN = 500;
+
+export type DefterIslemSonucu = 'tamam' | 'bos' | 'uzun' | 'var' | 'yok' | 'hata';
+
+function adHatasi(ad: string): 'bos' | 'uzun' | null {
+  if (!ad) return 'bos';
+  if (ad.length > MAL_HIZMET_AD_EN_UZUN) return 'uzun';
+  return null;
+}
+
+/**
+ * "Mal/Hizmet Defteri" ekranından elle ekleme: en üste eklenir. Aynı ad
+ * (büyük/küçük harf farkı gözetmeksizin) zaten varsa EKLENMEZ, 'var' döner
+ * (fatura sonrası otomatik kaydın aksine sessizce taşımaz; kullanıcı
+ * bilgilendirilir). Defter doluysa en eski kayıt düşer.
+ */
+export async function malHizmetEkle(hamAd: string): Promise<DefterIslemSonucu> {
+  const ad = hamAd.trim();
+  const hata = adHatasi(ad);
+  if (hata) return hata;
+  const k = karsilastirmaAnahtari(ad);
+  let zatenVar = false;
+  const basarili = await defterGuncelle(MAL_HIZMET_DEFTERI, (mevcut) => {
+    if (mevcut.some((a) => karsilastirmaAnahtari(a) === k)) {
+      zatenVar = true;
+      return null;
+    }
+    return [ad, ...mevcut].slice(0, MAX_MAL_HIZMET_KAYDI);
+  });
+  if (zatenVar) return 'var';
+  return basarili ? 'tamam' : 'hata';
+}
+
+/**
+ * Bir adı değiştirir; kaydın sıradaki yeri korunur. Yeni ad BAŞKA bir
+ * kayıtla aynıysa 'var' (iki kayıt birleşmez; kullanıcı önce diğerini
+ * silmeli). Yalnızca büyük/küçük harf ya da boşluk değişikliği serbesttir.
+ * Eski ad bulunamazsa 'yok'.
+ */
+export async function malHizmetAdiniDegistir(eskiAd: string, hamYeniAd: string): Promise<DefterIslemSonucu> {
+  const yeniAd = hamYeniAd.trim();
+  const hata = adHatasi(yeniAd);
+  if (hata) return hata;
+  const eskiK = karsilastirmaAnahtari(eskiAd);
+  const yeniK = karsilastirmaAnahtari(yeniAd);
+  // `as`: kapanış içinde atandığı için TS'nin 'tamam'a daraltmasını önler.
+  let sonuc = 'tamam' as DefterIslemSonucu;
+  const basarili = await defterGuncelle(MAL_HIZMET_DEFTERI, (mevcut) => {
+    const sira = mevcut.findIndex((a) => karsilastirmaAnahtari(a) === eskiK);
+    if (sira < 0) {
+      sonuc = 'yok';
+      return null;
+    }
+    if (yeniK !== eskiK && mevcut.some((a) => karsilastirmaAnahtari(a) === yeniK)) {
+      sonuc = 'var';
+      return null;
+    }
+    if (mevcut[sira] === yeniAd) return null; // değişiklik yok
+    const yeni = [...mevcut];
+    yeni[sira] = yeniAd;
+    return yeni;
+  });
+  if (sonuc !== 'tamam') return sonuc;
+  // Değişiklik yoksa defterGuncelle false döner ama bu bir hata değil.
+  return basarili || (await malHizmetListesiGetir()).includes(yeniAd) ? 'tamam' : 'hata';
+}
+
 /** Adı defterden siler. Kayıt yoksa ya da yazma başarısızsa false. */
 export async function malHizmetSil(ad: string): Promise<boolean> {
   const hedef = karsilastirmaAnahtari(ad);

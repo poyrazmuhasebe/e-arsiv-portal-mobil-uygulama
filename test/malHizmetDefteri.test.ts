@@ -3,7 +3,10 @@ import assert from 'node:assert/strict';
 
 import { sahteDepo, sahteleriSifirla } from './sahte/kurulum';
 import {
+  MAL_HIZMET_AD_EN_UZUN,
   MAX_MAL_HIZMET_KAYDI,
+  malHizmetAdiniDegistir,
+  malHizmetEkle,
   malHizmetKaydet,
   malHizmetListesiGetir,
   malHizmetSil,
@@ -75,4 +78,77 @@ test('bozuk içerik ve yazma reddi', async () => {
   assert.deepEqual(await malHizmetListesiGetir(), ['B']);
   sahteDepo.yazmaHatasi = new Error('çok büyük');
   assert.equal(await malHizmetKaydet(['C']), false);
+});
+
+// ---------------------------------------------------------------------------
+// Mal/Hizmet Defteri ekranı: elle ekleme ve adını değiştirme
+// ---------------------------------------------------------------------------
+
+test('malHizmetEkle: en üste ekler; aynı ad varsa eklemez, var döner', async () => {
+  oturumAc('A');
+  await malHizmetKaydet(['Kira', 'Danışmanlık']);
+  assert.equal(await malHizmetEkle('  Nakliye  '), 'tamam');
+  assert.deepEqual(await malHizmetListesiGetir(), ['Nakliye', 'Kira', 'Danışmanlık']);
+  assert.equal(await malHizmetEkle('KİRA'), 'var');
+  assert.deepEqual(await malHizmetListesiGetir(), ['Nakliye', 'Kira', 'Danışmanlık']);
+});
+
+test('malHizmetEkle: boş, çok uzun ve oturumsuz durumlar', async () => {
+  assert.equal(await malHizmetEkle('X'), 'hata'); // oturum yok
+  oturumAc('A');
+  assert.equal(await malHizmetEkle('   '), 'bos');
+  assert.equal(await malHizmetEkle('x'.repeat(MAL_HIZMET_AD_EN_UZUN + 1)), 'uzun');
+  assert.equal(await malHizmetEkle('x'.repeat(MAL_HIZMET_AD_EN_UZUN)), 'tamam');
+});
+
+test('malHizmetEkle: defter doluysa en alttaki düşer', async () => {
+  oturumAc('A');
+  const adlar = Array.from({ length: MAX_MAL_HIZMET_KAYDI }, (_, i) => `Ad ${i}`);
+  await malHizmetKaydet(adlar);
+  assert.equal(await malHizmetEkle('Yeni'), 'tamam');
+  const liste = await malHizmetListesiGetir();
+  assert.equal(liste.length, MAX_MAL_HIZMET_KAYDI);
+  assert.equal(liste[0], 'Yeni');
+  assert.ok(!liste.includes(`Ad ${MAX_MAL_HIZMET_KAYDI - 1}`));
+});
+
+test('malHizmetAdiniDegistir: yerini koruyarak değiştirir', async () => {
+  oturumAc('A');
+  await malHizmetKaydet(['A1', 'B1', 'C1']);
+  assert.equal(await malHizmetAdiniDegistir('B1', ' B2 '), 'tamam');
+  assert.deepEqual(await malHizmetListesiGetir(), ['A1', 'B2', 'C1']);
+});
+
+test('malHizmetAdiniDegistir: başka bir kayıtla çakışırsa birleştirmez', async () => {
+  oturumAc('A');
+  await malHizmetKaydet(['Kira', 'Nakliye']);
+  assert.equal(await malHizmetAdiniDegistir('Nakliye', 'kira'), 'var');
+  assert.deepEqual(await malHizmetListesiGetir(), ['Kira', 'Nakliye']);
+});
+
+test('malHizmetAdiniDegistir: yalnızca büyük/küçük harf değişikliği serbest; aynı ad tamam', async () => {
+  oturumAc('A');
+  await malHizmetKaydet(['kira']);
+  assert.equal(await malHizmetAdiniDegistir('kira', 'Kira'), 'tamam');
+  assert.deepEqual(await malHizmetListesiGetir(), ['Kira']);
+  assert.equal(await malHizmetAdiniDegistir('Kira', 'Kira'), 'tamam');
+});
+
+test('malHizmetAdiniDegistir: olmayan kayıt, boş ve uzun ad', async () => {
+  oturumAc('A');
+  await malHizmetKaydet(['Kira']);
+  assert.equal(await malHizmetAdiniDegistir('Yok', 'X'), 'yok');
+  assert.equal(await malHizmetAdiniDegistir('Kira', '  '), 'bos');
+  assert.equal(await malHizmetAdiniDegistir('Kira', 'x'.repeat(MAL_HIZMET_AD_EN_UZUN + 1)), 'uzun');
+  assert.deepEqual(await malHizmetListesiGetir(), ['Kira']);
+});
+
+test('düzenleme yalnızca açık hesabın defterini etkiler', async () => {
+  oturumAc('A');
+  await malHizmetKaydet(['Kira']);
+  oturumAc('B');
+  await malHizmetKaydet(['Kira']);
+  assert.equal(await malHizmetAdiniDegistir('Kira', 'Depo Kirası'), 'tamam');
+  oturumAc('A');
+  assert.deepEqual(await malHizmetListesiGetir(), ['Kira']);
 });
