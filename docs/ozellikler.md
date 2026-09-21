@@ -500,7 +500,9 @@ klasöründeki PDF'ler mükellef klasörlerine göre listelenir.
 - Satır: belge no, alıcı unvanı, alıcı VKN/TCKN, tarih, durum rozetleri
   (Silinmiş / Onaylanmamış / İptal Kabul Edildi / İptal Reddedildi /
   Aşamasında), boyut.
-- **Sırala:** tarih (yeni→eski, eski→yeni), belge numarası, alıcı unvanı.
+- **Sırala:** tarih (yeni→eski, eski→yeni), belge numarası (yeni→eski,
+  eski→yeni; GİB biçimi GIB + 4 haneli yıl + 9 haneli sıra, önce yıl sonra
+  sıra karşılaştırılır, biçime uymayanlar sonda), alıcı unvanı.
 - **Filtrele:** alıcı unvanı, alıcı VKN/TCKN (yedeklerden çıkan listeden),
   tarih aralığı (7 gün sınırı yok — yedekler telefonda). Etkin filtre özet
   kartında gösterilir, tek dokunuşla temizlenir.

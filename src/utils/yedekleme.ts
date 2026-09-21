@@ -282,12 +282,13 @@ export function siralanabilirTarihiGoster(t: string | undefined): string | undef
   return m ? `${m[3]}.${m[2]}.${m[1]}` : undefined;
 }
 
-export type YedekSiralama = 'tarihYeni' | 'tarihEski' | 'belgeNo' | 'unvan';
+export type YedekSiralama = 'tarihYeni' | 'tarihEski' | 'belgeNo' | 'belgeNoEski' | 'unvan';
 
 export const YEDEK_SIRALAMALARI: { value: YedekSiralama; label: string }[] = [
   { value: 'tarihYeni', label: 'Tarih (yeniden eskiye)' },
   { value: 'tarihEski', label: 'Tarih (eskiden yeniye)' },
-  { value: 'belgeNo', label: 'Belge numarası' },
+  { value: 'belgeNo', label: 'Belge numarası (yeniden eskiye)' },
+  { value: 'belgeNoEski', label: 'Belge numarası (eskiden yeniye)' },
   { value: 'unvan', label: 'Alıcı unvanı (A → Z)' },
 ];
 
@@ -305,6 +306,30 @@ function belgeNosu(o: Siralanabilir): string {
 }
 
 /**
+ * GİB e-Arşiv belge numarası: "GIB" + 4 haneli yıl + 9 haneli sıra
+ * (ör. GIB2026000000001; kullanıcının tarifi, 2026-09-21). Yıl ve sıra
+ * sayı olarak döner; biçime uymuyorsa null.
+ */
+export function gibBelgeNoCoz(no: string): { yil: number; sira: number } | null {
+  const m = /^GIB(\d{4})(\d{9})$/i.exec(no.trim());
+  return m ? { yil: Number(m[1]), sira: Number(m[2]) } : null;
+}
+
+/**
+ * Belge numarası karşılaştırması: önce yıl, sonra sıra numarası; `yon` 1
+ * eskiden yeniye, -1 yeniden eskiye. GİB biçimine uymayan numaralar İKİ
+ * YÖNDE DE sonda kalır ve kendi aralarında sayı duyarlı sıralanır.
+ */
+function belgeNoKarsilastir(a: string, b: string, yon: 1 | -1): number {
+  const ca = gibBelgeNoCoz(a);
+  const cb = gibBelgeNoCoz(b);
+  if (ca && cb) return yon * (ca.yil - cb.yil || ca.sira - cb.sira);
+  if (ca && !cb) return -1;
+  if (!ca && cb) return 1;
+  return yon * a.localeCompare(b, 'tr', { numeric: true });
+}
+
+/**
  * Yedekleri sıralar (yeni dizi döner). Unvanı bilinmeyenler unvan
  * sıralamasında sona gider. Eşitlikte tarih yeniden eskiye, sonra belge no.
  */
@@ -315,7 +340,9 @@ export function yedekleriSirala<T extends Siralanabilir>(liste: T[], olcut: Yede
       case 'tarihEski':
         return tarihi(a).localeCompare(tarihi(b)) || belgeNosu(a).localeCompare(belgeNosu(b));
       case 'belgeNo':
-        return belgeNosu(a).localeCompare(belgeNosu(b), 'tr', { numeric: true });
+        return belgeNoKarsilastir(belgeNosu(a), belgeNosu(b), -1);
+      case 'belgeNoEski':
+        return belgeNoKarsilastir(belgeNosu(a), belgeNosu(b), 1);
       case 'unvan': {
         const ua = a.bilgi?.aliciUnvan;
         const ub = b.bilgi?.aliciUnvan;

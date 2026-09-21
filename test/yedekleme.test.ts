@@ -14,6 +14,7 @@ import {
   oturumdakiMukellef,
   yedekBaslangici,
   yedekDosyaAdi,
+  gibBelgeNoCoz,
   siralanabilirTarihiGoster,
   yedekAramayaUyarMi,
   yedekBilgisi,
@@ -386,11 +387,12 @@ test('yedekleriSirala: tarih, belge no (sayısal), unvan (Türkçe, bilinmeyen s
     '2026-09-10_GIB10.pdf',
   ]);
   assert.deepEqual(adlar(yedekleriSirala(YEDEKLER, 'tarihEski'))[0], '2026-09-10_GIB10.pdf');
+  // GİB biçimine uymayan kısa numaralar: kendi aralarında yeniden eskiye.
   assert.deepEqual(adlar(yedekleriSirala(YEDEKLER, 'belgeNo')), [
-    '2026-09-15_GIB1.pdf',
-    '2026-09-15_GIB2.pdf',
-    '2026-09-12_GIB3.pdf',
     '2026-09-10_GIB10.pdf',
+    '2026-09-12_GIB3.pdf',
+    '2026-09-15_GIB2.pdf',
+    '2026-09-15_GIB1.pdf',
   ]);
   assert.deepEqual(adlar(yedekleriSirala(YEDEKLER, 'unvan')), [
     '2026-09-15_GIB1.pdf', // ahmet
@@ -437,4 +439,39 @@ test('yedekle: bilgiKaydet hem yeni yazılan hem zaten yedekli fatura için ça�
   yazilanlar.set('2026-09-19_A2.pdf', 'eski');
   await yedekle(haftalikParcalar(gun(14, 9), gun(21, 9)), ortam, SECENEK, () => {});
   assert.deepEqual(kayitlar, ['2026-09-20_A1.pdf', '2026-09-19_A2.pdf']);
+});
+
+test('belge no sıralaması: GIB + yıl + 9 haneli sıra, yeniden eskiye; biçimsizler sonda', () => {
+  assert.deepEqual(gibBelgeNoCoz('GIB2026000000012'), { yil: 2026, sira: 12 });
+  assert.equal(gibBelgeNoCoz('GIB202600000012'), null); // 8 haneli sıra
+  assert.equal(gibBelgeNoCoz('ABC2026000000012'), null);
+  const liste = [
+    { ad: '2025-12-30_GIB2025000000950.pdf' },
+    { ad: '2026-01-02_GIB2026000000001.pdf' },
+    { ad: 'tarihsiz_ettn-1.pdf' },
+    { ad: '2026-09-20_GIB2026000000012.pdf' },
+    { ad: '2026-09-01_GIB2026000000009.pdf' },
+  ];
+  assert.deepEqual(adlar(yedekleriSirala(liste, 'belgeNo')), [
+    '2026-09-20_GIB2026000000012.pdf',
+    '2026-09-01_GIB2026000000009.pdf',
+    '2026-01-02_GIB2026000000001.pdf',
+    '2025-12-30_GIB2025000000950.pdf', // önceki yıl, sırası büyük olsa da sonra
+    'tarihsiz_ettn-1.pdf',
+  ]);
+});
+
+test('belge no sıralaması eskiden yeniye: biçimsizler yine sonda', () => {
+  const liste = [
+    { ad: 'tarihsiz_ettn-1.pdf' },
+    { ad: '2026-09-20_GIB2026000000012.pdf' },
+    { ad: '2025-12-30_GIB2025000000950.pdf' },
+    { ad: '2026-01-02_GIB2026000000001.pdf' },
+  ];
+  assert.deepEqual(adlar(yedekleriSirala(liste, 'belgeNoEski')), [
+    '2025-12-30_GIB2025000000950.pdf',
+    '2026-01-02_GIB2026000000001.pdf',
+    '2026-09-20_GIB2026000000012.pdf',
+    'tarihsiz_ettn-1.pdf',
+  ]);
 });
