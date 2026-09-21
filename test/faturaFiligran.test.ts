@@ -12,6 +12,7 @@ import {
   filigranliFaturaHtml,
   gibIptalMetniniDegistir,
   iptalItirazDurumMetni,
+  iptalKabulEdildiMi,
 } from '../src/utils/faturaFiligran';
 import type { TaslakFatura } from '../src/types/gib';
 
@@ -104,4 +105,20 @@ test('uzun bir metnin İÇİNDE geçen "iptal edildi" değiştirilmez (ör. fatu
 test('GİB filigranı bulunamazsa (biçim değişirse) bizim filigranımız eklenir', () => {
   const sonuc = filigranliFaturaHtml('<html><body><p>fatura</p></body></html>', t({ onayDurumu: 'Silinmiş' }));
   assert.match(sonuc, /data-earsiv-filigran="1"[^>]*>FATURA SİLİNDİ</);
+});
+
+// ---------------------------------------------------------------------------
+// Liste rozeti: iptali kabul edilmiş fatura "Onaylı" değil "İptal"
+// ---------------------------------------------------------------------------
+
+test('iptal talebi KABUL EDİLMİŞ fatura iptal sayılır', () => {
+  assert.equal(iptalKabulEdildiMi(t({ iptalItiraz: '0', talepDurum: '1' })), true);
+});
+
+test('aşamada, reddedilmiş, talepsiz ya da İTİRAZ kabulü iptal sayılmaz', () => {
+  assert.equal(iptalKabulEdildiMi(t({ iptalItiraz: '0', talepDurum: '0' })), false);
+  assert.equal(iptalKabulEdildiMi(t({ iptalItiraz: '0', talepDurum: '2' })), false);
+  assert.equal(iptalKabulEdildiMi(t({ iptalItiraz: '-99', talepDurum: '-99' })), false);
+  assert.equal(iptalKabulEdildiMi(t({})), false);
+  assert.equal(iptalKabulEdildiMi(t({ iptalItiraz: '1', talepDurum: '1' })), false);
 });

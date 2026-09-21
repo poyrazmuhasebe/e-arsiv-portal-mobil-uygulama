@@ -34,7 +34,7 @@ import {
 import { useAuthStore } from '../store/useAuthStore';
 import { pdfIndir, pdfPaylas } from '../utils/pdf';
 import type { TaslakFatura } from '../types/gib';
-import { filigranliFaturaHtml, iptalItirazDurumMetni } from '../utils/faturaFiligran';
+import { filigranliFaturaHtml, iptalItirazDurumMetni, iptalKabulEdildiMi } from '../utils/faturaFiligran';
 import { EN_FAZLA_GUN, aralikGecerliMi, araligiSinirla } from '../utils/tarihAraligi';
 import {
   ITIRAZ_ACIKLAMA_EN_FAZLA,
@@ -533,8 +533,12 @@ export default function TaslaklarScreen({ navigation }: Props) {
     const belgeNo = asString(item.belgeNumarasi) ?? item.ettn;
     const belgeTuru = asString(item.belgeTuru);
 
+    // İptal talebi kabul edilmiş fatura GİB'de hâlâ 'Onaylandı' görünür ama
+    // geçersizdir: yeşil 'Onaylı' yerine kırmızı 'İptal' (kullanıcı isteği).
     const durumGorseli =
-      durum === 'onaylandi'
+      durum === 'onaylandi' && iptalKabulEdildiMi(item)
+        ? { icon: 'cancel', stil: styles.chipIptal, etiket: 'İptal', yazi: styles.chipIptalYazi }
+        : durum === 'onaylandi'
         ? { icon: 'check-circle', stil: styles.chipOnayli, etiket: 'Onaylı' }
         : durum === 'silinmis'
           ? { icon: 'close-circle', stil: styles.chipSilinmis, etiket: 'Silinmiş' }
@@ -549,7 +553,12 @@ export default function TaslaklarScreen({ navigation }: Props) {
             <Text variant="titleMedium" style={styles.flexShrink} numberOfLines={2}>
               {baslik}
             </Text>
-            <Chip compact icon={durumGorseli.icon} style={durumGorseli.stil}>
+            <Chip
+              compact
+              icon={durumGorseli.icon}
+              style={durumGorseli.stil}
+              textStyle={'yazi' in durumGorseli ? durumGorseli.yazi : undefined}
+            >
               {durumGorseli.etiket}
             </Chip>
           </View>
@@ -1092,6 +1101,9 @@ const styles = StyleSheet.create({
   chipOnayli: { backgroundColor: '#1b4332' },
   chipTaslak: { backgroundColor: '#4a3b00' },
   chipSilinmis: { backgroundColor: '#5c1a1a' },
+  // Silinmiş'ten (koyu bordo) ayrışsın diye daha parlak kırmızı.
+  chipIptal: { backgroundColor: '#b3261e' },
+  chipIptalYazi: { color: '#ffffff', fontWeight: '700' },
   chipBilinmiyor: { backgroundColor: '#3a3a3a' },
   mutedText: { opacity: 0.7 },
   uyariMetni: { color: '#f2b8b5' },

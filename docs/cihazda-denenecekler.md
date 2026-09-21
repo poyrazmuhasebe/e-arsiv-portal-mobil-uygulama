@@ -98,6 +98,8 @@ Hazırlık: `worker/.dev.vars.example` dosyasını `.dev.vars` adıyla kopyalay�
 - [ ] **İptal Kabul Edildi** bir faturayı aç: görüntüleme ekranında ve PDF'te
   "İPTAL KABUL EDİLDİ".
 - [ ] **İptal Reddedildi** bir faturayı aç: "İPTAL REDDEDİLDİ".
+- [ ] Listede iptali **kabul edilmiş** fatura yeşil "Onaylı" değil, **kırmızı
+  "İptal"** rozetiyle görünüyor.
 - [ ] Talebi **olmayan** normal bir faturada filigran **yok**.
 - [ ] Başlangıç tarihini 1 aydan eskiye çekince bitiş kendiliğinden 7 gün
   sonrasına geliyor ve bilgi mesajı çıkıyor; tersi de aynı.

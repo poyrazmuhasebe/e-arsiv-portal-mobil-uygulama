@@ -34,6 +34,16 @@ export function iptalItirazDurumMetni(item: TaslakFatura): string | undefined {
 }
 
 /**
+ * İptal talebi KABUL EDİLMİŞ mi? Böyle bir fatura GİB'de hâlâ "Onaylandı"
+ * görünür ama artık geçersizdir; listede yeşil "Onaylı" yerine kırmızı
+ * "İptal" rozeti gösterilir (kullanıcı isteği, 2026-09-21).
+ * Tür kuralı iptalItirazDurumMetni ile aynı: iptalItiraz "1" değilse İptal.
+ */
+export function iptalKabulEdildiMi(item: TaslakFatura): boolean {
+  return item.iptalItiraz !== '1' && item.talepDurum === '1';
+}
+
+/**
  * Faturanın üzerine basılacak filigran metni; filigran yoksa `undefined`.
  *
  * Öncelik: silinmiş belge → "Fatura Silindi". Silinmiş bir belgede

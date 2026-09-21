@@ -343,6 +343,11 @@ uyarıyı tetiklemez (onları zorunlu-alan kontrolü yakalar).
     "İptal Aşamasında") her iki buton da kartta hiç gösterilmiyor; yeni bir
     talep oluşturmanın anlamı yok.
 
+**Liste rozeti:** İptal talebi **kabul edilmiş** fatura GİB'de hâlâ
+"Onaylandı" görünür ama artık geçersizdir; listede yeşil "Onaylı" yerine
+**kırmızı "İptal"** rozeti gösterilir (2026-09-21). Aşamadaki ya da
+reddedilen iptal talebinde ve itiraz kabulünde rozet "Onaylı" kalır.
+
 **Filigran (2026-09-21'de yenilendi):** faturanın ortasına çapraz, yarı
 saydam kırmızı bir metin. Artık **hem görüntüleme ekranında hem PDF'te**
 görünür (önceden yalnızca PDF'teydi). Kurallar tek yerde:
