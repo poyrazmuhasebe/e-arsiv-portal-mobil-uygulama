@@ -174,7 +174,7 @@ export default function AdimaDuzenlenenScreen({ navigation }: Props) {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <FlatList
+        <FlatList persistentScrollbar indicatorStyle="white"
           data={belgeler}
           keyExtractor={(item, index) => asString(item.ettn) ?? asString(item.belgeNumarasi) ?? String(index)}
           renderItem={renderItem}

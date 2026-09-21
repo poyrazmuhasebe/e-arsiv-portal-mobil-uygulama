@@ -42,7 +42,7 @@ export default function HesapGirisScreen({ navigation }: Props) {
         style={styles.kapsayici}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
+        <ScrollView persistentScrollbar indicatorStyle="white" contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
           <Text style={styles.aciklama}>
             Uygulama hesabınızla giriş yapın. Bu, GİB hesabınız değildir.
           </Text>

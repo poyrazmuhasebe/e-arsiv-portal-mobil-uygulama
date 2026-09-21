@@ -1,7 +1,7 @@
 import React from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
-import { TOUCH_MIN, colors, radius } from '../../theme';
+import { TOUCH_MIN, colors, ikonRengi, radius } from '../../theme';
 import Icon, { type IconName } from './Icon';
 
 type Varyant = 'ghost' | 'filled' | 'danger';
@@ -12,6 +12,8 @@ interface Props {
   /** Zorunlu: ikon düğmelerinin görünür yazısı yok. */
   accessibilityLabel: string;
   variant?: Varyant;
+  /** İkon rengi; verilmezse ikonun anlamından seçilir (geri oku gibi gezinme ikonları beyaz kalır). */
+  iconColor?: string;
   disabled?: boolean;
   loading?: boolean;
   size?: number;
@@ -27,12 +29,13 @@ export default function AppIconButton({
   onPress,
   accessibilityLabel,
   variant = 'ghost',
+  iconColor,
   disabled,
   loading,
   size = 22,
   style,
 }: Props) {
-  const renk = variant === 'danger' ? colors.danger : colors.textPrimary;
+  const renk = variant === 'danger' ? colors.danger : (iconColor ?? ikonRengi(icon) ?? colors.textPrimary);
   return (
     <Pressable
       onPress={onPress}

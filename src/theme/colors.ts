@@ -39,6 +39,10 @@ export const colors = {
   successBorder: 'rgba(80, 214, 154, 0.35)',
   infoBorder: 'rgba(130, 175, 255, 0.32)',
   info: '#82AFFF',
+  /** Ek vurgu (defterler, belge listeleri): turkuaz. */
+  teal: '#5ED3C6',
+  tealBackground: 'rgba(94, 211, 198, 0.14)',
+  tealBorder: 'rgba(94, 211, 198, 0.32)',
   infoBackground: 'rgba(130, 175, 255, 0.14)',
 
   /** Modal arkasındaki karartma. */

@@ -69,7 +69,7 @@ export default function AppDialog({
               </Text>
             </View>
             {children ? (
-              <ScrollView
+              <ScrollView persistentScrollbar indicatorStyle="white"
                 style={styles.govde}
                 contentContainerStyle={styles.govdeIcerik}
                 keyboardShouldPersistTaps="handled"

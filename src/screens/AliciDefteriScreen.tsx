@@ -189,7 +189,7 @@ export default function AliciDefteriScreen({ navigation }: Props) {
       <AppScreen>
         <AppHeader title="Alıcı Ekle" onBack={() => setYeniAlici(null)} />
         <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
+          <ScrollView persistentScrollbar indicatorStyle="white" contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
             <InfoBox tone="info">
               VKN/TCKN girin; Unvan/Ad/Soyad/Vergi Dairesi GİB'den otomatik gelir ve elle değiştirilemez. Adres
               zorunludur.
@@ -290,7 +290,7 @@ export default function AliciDefteriScreen({ navigation }: Props) {
           KeyboardAvoidingView içinde; removeClippedSubviews={false} odaklı
           alanın ekran dışına kayınca sökülüp odağın kaybolmasını önler. */}
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <FlatList
+        <FlatList persistentScrollbar indicatorStyle="white"
           data={yukleniyor ? [] : gorunenler}
           keyExtractor={(kayit) => kayit.vknTckn}
           renderItem={aliciKartiCiz}

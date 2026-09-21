@@ -215,7 +215,7 @@ export default function YedekleScreen({ navigation }: Props) {
     <AppScreen>
       <AppHeader title="Faturaları Şimdi Yedekle" onBack={() => navigation.goBack()} backDisabled={suruyor} />
 
-      <ScrollView contentContainerStyle={styles.icerik}>
+      <ScrollView persistentScrollbar indicatorStyle="white" contentContainerStyle={styles.icerik}>
         <SectionCard title="Yedek klasörü" icon="folder-outline">
           <View style={styles.klasorSatiri}>
             <Icon

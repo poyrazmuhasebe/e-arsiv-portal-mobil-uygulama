@@ -76,7 +76,7 @@ export default function HesapSilScreen({ navigation }: Props) {
         style={styles.kapsayici}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
+        <ScrollView persistentScrollbar indicatorStyle="white" contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
           <InfoBox tone="danger" icon="alert-outline" title="Bu işlem geri alınamaz">
             <Text style={styles.uyariMetni}>
               {kullanici?.eposta ?? 'Hesabınız'} adresine ait uygulama hesabı,

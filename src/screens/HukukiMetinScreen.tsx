@@ -22,7 +22,7 @@ export default function HukukiMetinScreen({ route, navigation }: Props) {
     <AppScreen edges={['top', 'left', 'right']}>
       <AppHeader title={metin.baslik} onBack={() => navigation.goBack()} />
 
-      <ScrollView contentContainerStyle={styles.icerik}>
+      <ScrollView persistentScrollbar indicatorStyle="white" contentContainerStyle={styles.icerik}>
         <AppCard style={styles.kart}>
           {metin.bolumler.map((bolum) => (
             <View key={bolum.baslik} style={styles.bolum}>

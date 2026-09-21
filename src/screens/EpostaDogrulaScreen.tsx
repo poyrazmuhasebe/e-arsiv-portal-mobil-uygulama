@@ -94,7 +94,7 @@ export default function EpostaDogrulaScreen() {
   return (
     <AppScreen>
       <KeyboardAvoidingView style={styles.kapsayici} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
+        <ScrollView persistentScrollbar indicatorStyle="white" contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
           <View style={styles.govde}>
             <View style={styles.baslikGrubu}>
               <View style={styles.karo}>

@@ -1,14 +1,23 @@
 import React from 'react';
-import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
-import { Button } from 'react-native-paper';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
-import { TOUCH_MIN, colors, radius, typography } from '../../theme';
-import type { IconName } from './Icon';
+import { TOUCH_MIN, colors, ikonRengi, radius, spacing, typography } from '../../theme';
+import Icon, { type IconName } from './Icon';
 
 interface Props {
   children: React.ReactNode;
   onPress?: () => void;
   icon?: IconName;
+  /** İkonun rengi; verilmezse ikonun anlamından (theme/ikonRenkleri) seçilir. */
+  iconColor?: string;
   loading?: boolean;
   disabled?: boolean;
   /** Kart içi küçük eylemler için daha alçak düğme (yine ≥ 44dp). */
@@ -20,24 +29,32 @@ interface Props {
   testID?: string;
 }
 
+interface Gorunum {
+  zemin: string;
+  yazi: string;
+  kenar?: string;
+  /** Bu varyantta ikon anlamına göre renklendirilsin mi (dolu zeminlerde hayır). */
+  renkliIkon: boolean;
+}
+
 /**
- * Tek tip düğme ailesi. Paper Button üstüne kurulu (erişilebilirlik rolü,
- * ripple, yükleniyor durumu ondan gelir). Pasif durum yalnızca saydamlıkla
- * değil, gri zemin + gri yazıyla da belli olur.
+ * Tek tip düğme ailesi. Kendi bileşenimiz (Paper Button değil): ikon ile
+ * yazı arasında sabit boşluk, dikeyde ortalı; Paper'ın iç kenar boşlukları
+ * ikonun kaymasına yol açıyordu. Pasif durum yalnızca saydamlıkla değil,
+ * gri zemin + gri yazıyla da belli olur.
  *
  *  - PrimaryButton   : lavanta dolu — ekranın ana eylemi
  *  - SecondaryButton : koyu, kenarlıklı — ikincil eylemler ("Satır Ekle")
- *  - DangerButton    : yıkıcı eylemler; `soft` ile kart içi küçük hali
+ *  - DangerButton    : yıkıcı eylemler; DangerSoftButton kart içi küçük hali
+ *  - SuccessSoftButton: olumlu onay ("Talep Kabul Et")
  *  - TextButton      : üçüncül ("Vazgeç", "Şimdilik atla")
  */
-function temel(
-  mod: 'contained' | 'outlined' | 'text',
-  renkler: { zemin?: string; yazi: string; kenar?: string },
-) {
+function temel(g: Gorunum) {
   return function Dugme({
     children,
     onPress,
     icon,
+    iconColor,
     loading,
     disabled,
     compact,
@@ -46,58 +63,91 @@ function temel(
     style,
     testID,
   }: Props) {
+    const pasif = !!disabled || !!loading;
+    const yaziRengi = disabled ? colors.textMuted : g.yazi;
+    const ikonRengiSon = disabled
+      ? colors.textMuted
+      : (iconColor ?? (g.renkliIkon ? ikonRengi(icon) : undefined) ?? g.yazi);
+    const metin = typeof children === 'string' ? children : undefined;
+
     return (
-      <Button
-        mode={mod}
+      <Pressable
         onPress={onPress}
-        icon={icon}
-        loading={loading}
-        disabled={disabled || loading}
-        buttonColor={mod === 'contained' && !disabled ? renkler.zemin : undefined}
-        textColor={disabled ? undefined : renkler.yazi}
-        accessibilityLabel={accessibilityLabel}
+        disabled={pasif}
         testID={testID}
-        style={[
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? metin}
+        accessibilityState={{ disabled: pasif, busy: !!loading }}
+        android_ripple={{ color: colors.primarySoft }}
+        style={({ pressed }) => [
           styles.dugme,
-          renkler.kenar && !disabled ? { borderColor: renkler.kenar } : null,
-          mod === 'outlined' && !disabled && renkler.zemin ? { backgroundColor: renkler.zemin } : null,
+          compact ? styles.kucuk : styles.normal,
+          { backgroundColor: disabled ? colors.surfaceSoft : g.zemin },
+          g.kenar ? { borderWidth: 1, borderColor: disabled ? colors.border : g.kenar } : null,
           fullWidth && styles.tam,
+          pressed && styles.basili,
           style,
         ]}
-        contentStyle={compact ? styles.icerikKucuk : styles.icerik}
-        labelStyle={[typography.button, compact && styles.etiketKucuk]}
       >
-        {children}
-      </Button>
+        <View style={styles.icerik}>
+          {loading ? (
+            <ActivityIndicator size="small" color={yaziRengi} />
+          ) : icon ? (
+            <Icon name={icon} size={compact ? 18 : 20} color={ikonRengiSon} />
+          ) : null}
+          <Text
+            style={[typography.button, styles.yazi, compact && styles.kucukYazi, { color: yaziRengi }]}
+            numberOfLines={2}
+            allowFontScaling
+          >
+            {children}
+          </Text>
+        </View>
+      </Pressable>
     );
   };
 }
 
-export const PrimaryButton = temel('contained', { zemin: colors.primary, yazi: colors.onPrimary });
-export const SecondaryButton = temel('outlined', {
+export const PrimaryButton = temel({ zemin: colors.primary, yazi: colors.onPrimary, renkliIkon: false });
+export const SecondaryButton = temel({
   zemin: colors.surfaceElevated,
   yazi: colors.textPrimary,
   kenar: colors.borderStrong,
+  renkliIkon: true,
 });
-export const DangerButton = temel('contained', { zemin: colors.danger, yazi: colors.onPrimary });
+export const DangerButton = temel({ zemin: colors.danger, yazi: colors.onPrimary, renkliIkon: false });
 /** Kart içindeki "Sil" gibi küçük yıkıcı eylemler: yumuşak kırmızı zemin. */
-export const DangerSoftButton = temel('outlined', {
+export const DangerSoftButton = temel({
   zemin: colors.dangerBackground,
   yazi: colors.danger,
   kenar: colors.dangerBorder,
+  renkliIkon: false,
 });
 /** Olumlu onay ("Talep Kabul Et"): yumuşak yeşil. */
-export const SuccessSoftButton = temel('outlined', {
+export const SuccessSoftButton = temel({
   zemin: colors.successBackground,
   yazi: colors.success,
   kenar: colors.successBorder,
+  renkliIkon: false,
 });
-export const TextButton = temel('text', { yazi: colors.primary });
+export const TextButton = temel({ zemin: colors.transparent, yazi: colors.primary, renkliIkon: true });
 
 const styles = StyleSheet.create({
-  dugme: { borderRadius: radius.medium },
+  dugme: {
+    borderRadius: radius.medium,
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  normal: { minHeight: 50, paddingHorizontal: spacing.lg, paddingVertical: spacing.xs },
+  kucuk: { minHeight: TOUCH_MIN, paddingHorizontal: spacing.md, paddingVertical: spacing.xxs },
   tam: { alignSelf: 'stretch' },
-  icerik: { minHeight: 50, paddingHorizontal: 8 },
-  icerikKucuk: { minHeight: TOUCH_MIN, paddingHorizontal: 4 },
-  etiketKucuk: { fontSize: 14, marginVertical: 0, marginHorizontal: 12 },
+  basili: { opacity: 0.85 },
+  icerik: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  kucukYazi: { fontSize: 14, lineHeight: 18 },
+  yazi: { flexShrink: 1, textAlign: 'center' },
 });

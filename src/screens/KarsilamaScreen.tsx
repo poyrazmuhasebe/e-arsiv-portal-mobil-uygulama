@@ -18,7 +18,7 @@ export default function KarsilamaScreen({ navigation }: Props) {
 
   return (
     <AppScreen>
-      <ScrollView contentContainerStyle={styles.icerik}>
+      <ScrollView persistentScrollbar indicatorStyle="white" contentContainerStyle={styles.icerik}>
         <View style={styles.govde}>
           <View style={styles.baslikGrubu}>
             <View style={styles.logo}>

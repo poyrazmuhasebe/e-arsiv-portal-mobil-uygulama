@@ -105,7 +105,7 @@ export default function KullaniciBilgileriScreen({ navigation }: Props) {
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
-          <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
+          <ScrollView persistentScrollbar indicatorStyle="white" contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
             {/* VKN/TCKN GİB'de <span>: salt okunur. */}
             <SectionCard title="Kimlik Bilgileri" icon="card-account-details-outline">
               <AppInput label="VKN/TCKN" value={bilgi.vknTckn} editable={false} />

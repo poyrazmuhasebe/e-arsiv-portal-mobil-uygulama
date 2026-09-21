@@ -36,7 +36,7 @@ interface MenuOgesi {
   baslik: string;
   altBaslik: string;
   onPress: () => void;
-  accent?: 'primary' | 'danger';
+  accent?: 'primary' | 'danger' | 'info' | 'success' | 'warning' | 'teal';
 }
 
 export default function DashboardScreen({ navigation }: Props) {
@@ -133,24 +133,28 @@ export default function DashboardScreen({ navigation }: Props) {
   const belgeIslemleri: MenuOgesi[] = [
     {
       icon: 'file-document-plus-outline',
+      accent: 'primary',
       baslik: 'e-Arşiv Fatura (İnteraktif) Oluştur',
       altBaslik: 'Alıcı bilgilerini girip e-Arşiv faturası oluşturun',
       onPress: () => navigation.navigate('FaturaKesim'),
     },
     {
       icon: 'file-document-multiple-outline',
+      accent: 'info',
       baslik: 'Taslak / Kesilen Faturalar',
       altBaslik: 'Daha önce oluşturduğunuz faturaları görüntüleyin',
       onPress: () => navigation.navigate('Taslaklar'),
     },
     {
       icon: 'file-undo-outline',
+      accent: 'warning',
       baslik: 'İptal / İtiraz Talepleri',
       altBaslik: 'Gelen iptal/itiraz taleplerini kabul edin veya reddedin',
       onPress: () => navigation.navigate('IptalItirazTalepleri'),
     },
     {
       icon: 'inbox-arrow-down-outline',
+      accent: 'teal',
       baslik: 'Adıma Düzenlenen Belgeler',
       altBaslik: 'Başkalarının adınıza düzenlediği faturaları görüntüleyin',
       onPress: () => navigation.navigate('AdimaDuzenlenen'),
@@ -162,12 +166,14 @@ export default function DashboardScreen({ navigation }: Props) {
   const yedeklemeIslemleri: MenuOgesi[] = [
     {
       icon: 'folder-download-outline',
+      accent: 'success',
       baslik: 'Faturaları Şimdi Yedekle',
       altBaslik: 'Son 1 hafta – 1 yıl arasındaki faturaları PDF olarak telefona indirin',
       onPress: () => navigation.navigate('Yedekle'),
     },
     {
       icon: 'folder-open-outline',
+      accent: 'warning',
       baslik: 'Yedeklenen Faturaları Görüntüle',
       altBaslik: 'Telefondaki yedekleri açın veya paylaşın',
       onPress: () => navigation.navigate('YedekleriGoruntule'),
@@ -180,18 +186,21 @@ export default function DashboardScreen({ navigation }: Props) {
   const kullaniciIslemleri: MenuOgesi[] = [
     {
       icon: 'account-outline',
+      accent: 'primary',
       baslik: 'Kullanıcı Bilgileri',
       altBaslik: 'Firma/mükellef bilgilerinizi görüntüleyin ve güncelleyin',
       onPress: () => navigation.navigate('KullaniciBilgileri'),
     },
     {
       icon: 'card-account-details-outline',
+      accent: 'info',
       baslik: 'Alıcı Defteri',
       altBaslik: 'Bu hesaba kayıtlı alıcıları düzenleyin, silin veya ekleyin',
       onPress: () => navigation.navigate('AliciDefteri'),
     },
     {
       icon: 'package-variant-closed',
+      accent: 'teal',
       baslik: 'Mal/Hizmet Defteri',
       altBaslik: 'Bu hesaba kayıtlı mal/hizmet adlarını düzenleyin, silin veya ekleyin',
       onPress: () => navigation.navigate('MalHizmetDefteri'),
@@ -247,7 +256,7 @@ export default function DashboardScreen({ navigation }: Props) {
         }
       />
 
-      <ScrollView contentContainerStyle={styles.icerik}>
+      <ScrollView persistentScrollbar indicatorStyle="white" contentContainerStyle={styles.icerik}>
         <View style={styles.bolum}>
           <SectionHeader variant="overline" title="Belge İşlemleri" />
           {menuyuCiz(belgeIslemleri)}
@@ -265,7 +274,7 @@ export default function DashboardScreen({ navigation }: Props) {
             icon="lock-outline"
             title="Uygulama Kilidi"
             description={kilitAciklamasi}
-            accent={cihazKilidiVar ? 'primary' : 'warning'}
+            accent={cihazKilidiVar ? 'success' : 'warning'}
             rightElement={
               <Switch
                 value={kilitAcik && cihazKilidiVar}

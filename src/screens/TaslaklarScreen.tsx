@@ -642,7 +642,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <FlatList
+        <FlatList persistentScrollbar indicatorStyle="white"
           data={taslaklar}
           keyExtractor={(item) => item.ettn}
           renderItem={renderItem}

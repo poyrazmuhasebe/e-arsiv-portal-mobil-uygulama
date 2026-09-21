@@ -1,12 +1,14 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing, typography } from '../../theme';
+import { colors, ikonRengi, spacing, typography } from '../../theme';
 import Icon, { type IconName } from './Icon';
 
 interface Props {
   title: string;
   icon?: IconName;
+  /** İkon rengi; verilmezse ikonun anlamından, o da yoksa lavanta. */
+  iconColor?: string;
   /** 'overline': ana sayfadaki küçük büyük-harf başlık; 'section': normal bölüm başlığı. */
   variant?: 'overline' | 'section';
   /** Başlığın yanında küçük not (ör. "İsteğe bağlı"). */
@@ -16,11 +18,11 @@ interface Props {
   divider?: boolean;
 }
 
-export default function SectionHeader({ title, icon, variant = 'section', hint, right, divider }: Props) {
+export default function SectionHeader({ title, icon, iconColor, variant = 'section', hint, right, divider }: Props) {
   const overline = variant === 'overline';
   return (
     <View style={[styles.kap, divider && styles.cizgili]} accessibilityRole="header">
-      {icon ? <Icon name={icon} size={overline ? 16 : 20} color={overline ? colors.textMuted : colors.primary} /> : null}
+      {icon ? <Icon name={icon} size={overline ? 16 : 20} color={overline ? colors.textMuted : (iconColor ?? ikonRengi(icon) ?? colors.primary)} /> : null}
       <Text style={[overline ? typography.overline : typography.sectionTitle, styles.baslik]} numberOfLines={2}>
         {title}
       </Text>

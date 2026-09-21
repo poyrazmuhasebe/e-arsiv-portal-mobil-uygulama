@@ -103,7 +103,7 @@ export default function SifremiUnuttumScreen({ route, navigation }: Props) {
         style={styles.kapsayici}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
+        <ScrollView persistentScrollbar indicatorStyle="white" contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
           {adim === 'eposta' ? (
             <>
               <Text style={styles.aciklama}>

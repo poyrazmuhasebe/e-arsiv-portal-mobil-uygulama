@@ -37,6 +37,7 @@ export const radius = {
 /** En küçük dokunma alanı (dp). */
 export const TOUCH_MIN = 44;
 
+export { ikonRengi } from './ikonRenkleri';
 export { typography } from './typography';
 export { shadows } from './shadows';
 export { paperTheme, navigationTheme } from './paperTheme';

@@ -223,7 +223,7 @@ export default function MalHizmetDefteriScreen({ navigation }: Props) {
           içinde; removeClippedSubviews={false} odaklı alanın sökülüp odağın
           kaybolmasını önler. */}
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <FlatList
+        <FlatList persistentScrollbar indicatorStyle="white"
           data={yukleniyor ? [] : gorunenler}
           keyExtractor={(ad) => ad}
           renderItem={kalemKartiCiz}

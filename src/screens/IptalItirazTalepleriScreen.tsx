@@ -226,7 +226,7 @@ export default function IptalItirazTalepleriScreen({ navigation }: Props) {
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
-        <FlatList
+        <FlatList persistentScrollbar indicatorStyle="white"
           data={talepler}
           keyExtractor={(item, index) => item.iptalItirazOid || String(index)}
           renderItem={renderItem}

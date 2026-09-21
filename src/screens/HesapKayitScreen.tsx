@@ -80,7 +80,7 @@ export default function HesapKayitScreen({ navigation }: Props) {
         style={styles.kapsayici}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
+        <ScrollView persistentScrollbar indicatorStyle="white" contentContainerStyle={styles.icerik} keyboardShouldPersistTaps="handled">
           <View style={styles.form}>
             <AppInput
               label="E-posta"

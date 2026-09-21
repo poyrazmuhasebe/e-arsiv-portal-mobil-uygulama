@@ -5,7 +5,7 @@ import { colors, radius, spacing, typography } from '../../theme';
 import AppCard from './AppCard';
 import Icon, { type IconName } from './Icon';
 
-type Vurgu = 'primary' | 'danger' | 'info' | 'success' | 'warning';
+type Vurgu = 'primary' | 'danger' | 'info' | 'success' | 'warning' | 'teal';
 
 interface Props {
   icon: IconName;
@@ -24,6 +24,7 @@ const VURGU: Record<Vurgu, { zemin: string; renk: string }> = {
   info: { zemin: colors.infoBackground, renk: colors.info },
   success: { zemin: colors.successBackground, renk: colors.success },
   warning: { zemin: colors.warningBackground, renk: colors.warning },
+  teal: { zemin: colors.tealBackground, renk: colors.teal },
 };
 
 /** Ana sayfadaki gezinme kartları: ikon karosu + başlık + açıklama + ok. */

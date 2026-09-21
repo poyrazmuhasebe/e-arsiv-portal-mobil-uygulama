@@ -153,7 +153,7 @@ export default function YedekleriGoruntuleScreen({ navigation }: Props) {
           />
         </View>
       ) : (
-        <SectionList
+        <SectionList persistentScrollbar indicatorStyle="white"
           sections={bolumler}
           keyExtractor={(item) => item.dosya.uri}
           contentContainerStyle={styles.liste}

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SegmentedButtons } from 'react-native-paper';
 
 import SecimAlani from '../../components/SecimAlani';
 import {
@@ -16,6 +15,7 @@ import {
   InfoBox,
   SecondaryButton,
   SectionCard,
+  SegmentedChoice,
   TextButton,
 } from '../../components/ui';
 import { BIRIMLER, KDV_ORANLARI, TEVKIFAT_KODLARI, VERGI_TURLERI } from '../../constants/faturaConstants';
@@ -146,10 +146,11 @@ export default function MalHizmetKarti({
 
             <View style={styles.kdvAlani}>
               <Text style={typography.label}>KDV Oranı</Text>
-              <SegmentedButtons
+              <SegmentedChoice
+                accessibilityLabel="KDV Oranı"
                 value={String(kalem.kdvOrani)}
-                onValueChange={(v) => onKalemGuncelle(kalem.id, { kdvOrani: Number(v) as KdvOrani })}
-                buttons={KDV_ORANLARI.map((oran) => ({ value: String(oran), label: `%${oran}` }))}
+                onChange={(v) => onKalemGuncelle(kalem.id, { kdvOrani: Number(v) as KdvOrani })}
+                options={KDV_ORANLARI.map((oran) => ({ value: String(oran), label: `%${oran}` }))}
               />
             </View>
 

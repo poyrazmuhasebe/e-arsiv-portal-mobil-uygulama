@@ -16,6 +16,7 @@ export { default as AppInput } from './AppInput';
 export { default as SearchBar } from './SearchBar';
 export { default as DateField } from './DateField';
 export { default as ToggleRow } from './ToggleRow';
+export { default as SegmentedChoice } from './SegmentedChoice';
 export { default as CheckRow } from './CheckRow';
 export { default as EmptyState } from './EmptyState';
 export { default as InfoBox } from './InfoBox';
