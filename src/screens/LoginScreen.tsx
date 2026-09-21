@@ -78,6 +78,12 @@ export default function LoginScreen() {
   // "Hesaptan çık" ile "GİB oturumunu kapat" AYRI eylemlerdir. Burada GİB
   // oturumu zaten yok; yalnızca uygulama hesabı kapatılır.
   const handleHesaptanCik = () => {
+    // DEMO "Şimdilik atla" modunda kapatılacak bir hesap yok: onay sormadan
+    // Karşılama ekranına dön (hesaptanCik atlama bayrağını da sıfırlar).
+    if (hesapKullanicisi === null) {
+      void hesaptanCik();
+      return;
+    }
     Alert.alert('Hesaptan çık', 'Uygulama hesabınızdan çıkmak istediğinize emin misiniz?', [
       { text: 'İptal', style: 'cancel' },
       { text: 'Çık', style: 'destructive', onPress: () => void hesaptanCik() },
@@ -182,7 +188,7 @@ export default function LoginScreen() {
               style={styles.hesapCikis}
             >
               {hesapKullanicisi === null
-                ? 'Hesaptan çık'
+                ? 'Kayıt ol / giriş yap'
                 : `Hesaptan çık (${hesapKullanicisi.kullaniciAdi})`}
             </Button>
           </View>

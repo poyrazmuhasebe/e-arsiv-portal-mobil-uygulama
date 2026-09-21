@@ -8,7 +8,15 @@ gerekçeler: [hesap-sistemi.md](hesap-sistemi.md).
 
 ### Karşılama (`src/screens/KarsilamaScreen.tsx`)
 
-"Kayıt Ol" ve "Giriş Yap". GİB girişi burada **yoktur**. Altta, GİB
+"Kayıt Ol" ve "Giriş Yap". GİB girişi burada **yoktur**.
+
+**"Şimdilik atla" (DEMO, 2026-09-21):** hesap oluşturmadan doğrudan GİB giriş
+ekranına geçer. Seçim cihaza yazılmaz — uygulama kapatılıp açılınca Karşılama
+ekranı tekrar gelir ve bu modda açılan GİB oturumu hatırlanmaz (hiçbir uygulama
+hesabına bağlı olmadığı için `hesap_gib_sahibi` kuralı onu geri yüklemez).
+Bu modda GİB giriş ekranındaki düğme "Kayıt ol / giriş yap" olur ve Karşılama
+ekranına döner; Dashboard'da "Hesabımı Sil" görünmez, çıkış seçeneği
+"Tamamen çık" olur. Altta, GİB
 verisinin hesap sunucusuna gitmediğini söyleyen kısa bir bilgi kutusu var.
 
 ### Kayıt Ol (`src/screens/HesapKayitScreen.tsx`)

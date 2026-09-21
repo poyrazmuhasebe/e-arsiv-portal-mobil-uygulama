@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button, Text, useTheme } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
+import { useHesapStore } from '../store/useHesapStore';
 import type { RootStackParamList } from '../../App';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Karsilama'>;
@@ -14,6 +15,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Karsilama'>;
  */
 export default function KarsilamaScreen({ navigation }: Props) {
   const theme = useTheme();
+  const hesabiAtla = useHesapStore((s) => s.hesabiAtla);
 
   return (
     <SafeAreaView style={styles.kapsayici} edges={['top', 'bottom', 'left', 'right']}>
@@ -46,6 +48,16 @@ export default function KarsilamaScreen({ navigation }: Props) {
           >
             Giriş Yap
           </Button>
+          {/* DEMO: hesap oluşturmadan GİB girişine geçiş. Bu seçim cihaza
+              YAZILMAZ; uygulama yeniden açılınca bu ekran tekrar gelir ve bu
+              modda açılan GİB oturumu geri yüklenmez (bkz. useHesapStore). */}
+          <Button mode="text" icon="arrow-right" onPress={hesabiAtla} contentStyle={styles.butonIc}>
+            Şimdilik atla
+          </Button>
+          <Text variant="bodySmall" style={styles.atlaNotu}>
+            Hesap oluşturmadan doğrudan GİB girişine geçer. Uygulamayı
+            kapatınca GİB oturumunuz hatırlanmaz.
+          </Text>
         </View>
 
         <View style={[styles.bilgi, { borderColor: theme.colors.outlineVariant }]}>
@@ -68,5 +80,6 @@ const styles = StyleSheet.create({
   altBaslik: { textAlign: 'center', opacity: 0.75 },
   butonlar: { gap: 12 },
   butonIc: { paddingVertical: 6 },
+  atlaNotu: { textAlign: 'center', opacity: 0.6, marginTop: -4 },
   bilgi: { borderWidth: 1, borderRadius: 12, padding: 14 },
 });

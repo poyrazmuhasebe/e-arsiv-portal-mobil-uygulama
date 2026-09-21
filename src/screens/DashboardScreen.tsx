@@ -31,6 +31,8 @@ export default function DashboardScreen({ navigation }: Props) {
   const logout = useAuthStore((s) => s.logout);
   const isLoggingOut = useAuthStore((s) => s.isLoggingOut);
   const hesaptanCik = useHesapStore((s) => s.hesaptanCik);
+  // DEMO "Şimdilik atla" modunda uygulama hesabı yoktur.
+  const hesapVar = useHesapStore((s) => s.kullanici !== null);
 
   const [localBusy, setLocalBusy] = useState(false);
 
@@ -102,7 +104,9 @@ export default function DashboardScreen({ navigation }: Props) {
           },
         },
         {
-          text: 'Hesaptan çık',
+          // Hesap atlandıysa (DEMO) kapatılacak hesap yok; bu seçenek her iki
+          // oturumu kapatıp Karşılama ekranına döner.
+          text: hesapVar ? 'Hesaptan çık' : 'Tamamen çık',
           style: 'destructive',
           onPress: async () => {
             setLocalBusy(true);
@@ -168,12 +172,17 @@ export default function DashboardScreen({ navigation }: Props) {
       altBaslik: 'Bu hesaba kayıtlı alıcıları düzenleyin, silin veya ekleyin',
       onPress: () => navigation.navigate('AliciDefteri'),
     },
-    {
-      icon: '🗑️',
-      baslik: 'Hesabımı Sil',
-      altBaslik: 'Uygulama hesabınızı kalıcı olarak silin (GİB hesabınız etkilenmez)',
-      onPress: () => navigation.navigate('HesapSil'),
-    },
+    // Hesap atlandıysa (DEMO) silinecek bir uygulama hesabı yok.
+    ...(hesapVar
+      ? [
+          {
+            icon: '🗑️',
+            baslik: 'Hesabımı Sil',
+            altBaslik: 'Uygulama hesabınızı kalıcı olarak silin (GİB hesabınız etkilenmez)',
+            onPress: () => navigation.navigate('HesapSil'),
+          },
+        ]
+      : []),
   ];
 
   return (

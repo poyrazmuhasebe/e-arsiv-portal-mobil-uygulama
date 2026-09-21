@@ -79,6 +79,17 @@ Hazırlık: `worker/.dev.vars.example` dosyasını `.dev.vars` adıyla kopyalay�
 - [ ] **Sahipsiz GİB oturumu siliniyor** — güncellemeden önce girilmiş bir
   cihazda ilk açılışta GİB oturumu geri yüklenmiyor, GİB kodu formda kalıyor.
 
+### DEMO: "Şimdilik atla" (2026-09-21) — GİB gerekir, Worker gerekmez
+
+- [ ] Karşılama ekranında "Şimdilik atla" görünüyor ve doğrudan GİB giriş
+  ekranına geçiyor (kayıt/doğrulama adımı yok).
+- [ ] GİB giriş ekranının altındaki düğme "Kayıt ol / giriş yap" yazıyor ve
+  Karşılama ekranına dönüyor.
+- [ ] GİB'e girince Dashboard açılıyor; menüde "Hesabımı Sil" **yok**; çıkış
+  diyaloğunda "Tamamen çık" var.
+- [ ] Uygulamayı tamamen kapatıp açınca Karşılama ekranı geliyor ve GİB
+  oturumu **hatırlanmıyor** (hatırlanan GİB kullanıcı kodu formda duruyor).
+
 ### Deploy edilmiş Worker gerekir
 
 Worker **2026-09-20'de canlıya alındı**: `https://earsivfatura.poyrazmuhasebe.com`

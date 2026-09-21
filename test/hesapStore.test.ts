@@ -41,7 +41,7 @@ function hesapYaniti(ustuneYaz: Record<string, unknown> = {}) {
 beforeEach(() => {
   sahteleriSifirla();
   process.env.EXPO_PUBLIC_HESAP_API_URL = 'https://hesap.ornek.test';
-  useHesapStore.setState({ kullanici: null, oturum: null, hazir: false, yukleniyor: false });
+  useHesapStore.setState({ kullanici: null, oturum: null, hazir: false, yukleniyor: false, atlandi: false });
   useAuthStore.setState({ token: null, kullaniciKodu: null, kullaniciBilgisi: null });
 });
 
@@ -318,4 +318,63 @@ test('silme isteğinde GİB verisi gönderilmez', async () => {
     const govde = (istek.govde ?? '').toLowerCase();
     assert.doesNotMatch(govde, /gibtoken|gibkullanicikodu|kullanicibilgisi|"vkn"|"tckn"/);
   }
+});
+
+// ---------------------------------------------------------------------------
+// DEMO: "ŞİMDİLİK ATLA"
+// ---------------------------------------------------------------------------
+
+test('hesabiAtla yalnızca bellekte işaret koyar, cihaza HİÇBİR ŞEY yazmaz ve ağa çıkmaz', () => {
+  useHesapStore.setState({ atlandi: false });
+  useHesapStore.getState().hesabiAtla();
+
+  assert.equal(useHesapStore.getState().atlandi, true);
+  assert.equal(useHesapStore.getState().kullanici, null);
+  assert.equal(sahteDepo.veriler.size, 0);
+  assert.equal(sahteFetch.istekler.length, 0);
+});
+
+test('atlama modu yeniden açılışta HATIRLANMAZ (Karşılama ekranı tekrar gelir)', async () => {
+  useHesapStore.getState().hesabiAtla();
+  // Uygulamanın yeniden başlatılması: store sıfırlanır, cihazdan geri yüklenir.
+  useHesapStore.setState({ kullanici: null, oturum: null, hazir: false, atlandi: false });
+  await useHesapStore.getState().oturumuGeriYukle();
+  assert.equal(useHesapStore.getState().atlandi, false);
+});
+
+test('atlama modunda açılan GİB oturumu hiçbir hesaba bağlanmaz ve yeniden açılışta GERİ YÜKLENMEZ', async () => {
+  useHesapStore.getState().hesabiAtla();
+
+  // LoginScreen, hesap yokken sahip olarak '' geçer.
+  sahteAxios.isleyici = (istek) => {
+    if (istek.url.includes('assos-login')) return { status: 200, data: { token: 'demo-gib-token' } };
+    return { status: 200, data: { data: JSON.stringify({ unvan: 'Örnek Ltd' }) } };
+  };
+  await useAuthStore.getState().login('34567890', 'gizli', '');
+  assert.equal(useAuthStore.getState().token, 'demo-gib-token');
+
+  // Yeniden açılış: hesap oturumu yok → GİB oturumu geri yüklenmez, silinir.
+  useAuthStore.setState({ token: null, kullaniciKodu: null, kullaniciBilgisi: null });
+  sahteAxios.isleyici = () => ({ status: 200, data: { data: 'ok' } });
+  await useAuthStore.getState().restoreSession(null);
+
+  assert.equal(useAuthStore.getState().token, null);
+  assert.equal(sahteDepo.veriler.has('gib_token'), false);
+});
+
+test('atlama modundan çıkış (hesaptanCik) işareti sıfırlar → Karşılama ekranı', async () => {
+  useHesapStore.getState().hesabiAtla();
+  await useHesapStore.getState().hesaptanCik();
+  assert.equal(useHesapStore.getState().atlandi, false);
+  // Hesap yoktu, sunucuya çıkış isteği gitmedi.
+  assert.equal(sahteFetch.istekler.length, 0);
+});
+
+test('atlama modundayken hesapla giriş yapılırsa işaret sıfırlanır', async () => {
+  useHesapStore.getState().hesabiAtla();
+  sahteFetch.isleyici = () => sahteJsonYanit(hesapYaniti());
+  await useHesapStore.getState().girisYap('ali@ornek.test', 'Kucuk-Kedi-42');
+
+  assert.equal(useHesapStore.getState().atlandi, false);
+  assert.equal(useHesapStore.getState().kullanici?.id, 'hesap-A');
 });
