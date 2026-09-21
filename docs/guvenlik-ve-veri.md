@@ -32,7 +32,9 @@ Hukuki metin taslakları: [hukuk/](hukuk/).
 |---|---|---|
 | `gib_token` | GİB oturum token'ı | `useAuthStore.login()` → `logout()`'ta silinir. NOT: `login()` bir `remember` parametresi alır ama `LoginScreen` bunu geçmez, yani varsayılan `true` ile her girişte yazılır |
 | `gib_kullanici_kodu` | Kullanıcı kodu (şifre değil) | Aynı, token ile birlikte |
-| `gib_hatirlanan_kullanici_kodu` | Login formunu önceden doldurmak için kullanıcı kodu | `LoginScreen` — "Kullanıcı Kodunu Hatırla" işaretliyse, **çıkış yapılsa bile** kalır |
+| `gib_hatirlanan_kodlar_<uygulama hesabı kimliği>` (hesapsız kullanımda `gib_hatirlanan_kodlar_demo`) | Login formunu doldurmak için **uygulama hesabına özel** GİB kullanıcı kodları listesi (JSON dizi, en son kullanılan başta, en fazla 10; şifre yok). Bir kullanıcı birden fazla GİB koduyla çalışabilir; başka bir uygulama hesabı bu listeyi görmez | `src/utils/hatirlananKodlar.ts` — `LoginScreen`'de "Kullanıcı Kodunu Hatırla" işaretliyse kod listenin başına alınır, işaretsizse yalnızca o kod çıkarılır; kodlar giriş ekranında çiplerle seçilir, basılı tutunca kaldırılır. **Çıkışta kalır**, uygulama hesabı **silinince** o hesabın listesi silinir |
+| ~~`gib_hatirlanan_kullanici_kodu`~~ | **Artık kullanılmıyor.** Tüm cihaz için tek bir hatırlanan kod | İlk okuyan uygulama hesabının listesine **taşınır** ve silinir |
+| `yedek_klasor_uri` | Fatura yedek klasörünün adresi (Android, SAF; GİB verisi değil) | `src/services/yedekDeposu.ts` — "Faturaları Şimdi Yedekle"de klasör seçilince. Yedekler bu klasörde **mükellef (VKN/TCKN) başına ayrı alt klasöre** yazılır; VKN, doğrulanmış "Kullanıcı Bilgileri" yanıtından okunur, bulunamazsa yedekleme başlamaz |
 | ~~`gib_hatirlanan_sifre`~~ | **Artık kullanılmıyor.** v1.0.0'da "Şifreyi Hatırla" ile kaydedilen şifre | `LoginScreen` açılışta bu anahtarı **siler** (eski kurulumlardan göç) |
 | `gib_alici_dizin_<kullanıcı kodu>` + `gib_alici_kayit_<kullanıcı kodu>_<yuva>` | O hesaba özel, en fazla 50 kayıtlı alıcı: **her alıcı ayrı bir anahtarda** (tek kaydın JSON'u), sırayı küçük bir dizin anahtarı tutar (bkz. aşağıda "Parçalı saklama"). Anahtardaki kod, karakter kodlarının onaltılık gösterimidir (`hesapAnahtari.ts`) | `aliciDefteri.ts` → `bolunmusDefter.ts` — bir fatura başarıyla oluşturulunca otomatik eklenir/güncellenir; "Alıcı Defteri" ekranından adres/ülke düzenlenir, silinir, elle eklenir. **Defter hesaplar arasında paylaşılmaz**: birden fazla mükellefin hesabına giren bir mali müşavir yalnızca o hesabın alıcılarını görür |
 | `gib_malhizmet_dizin_<kullanıcı kodu>` + `gib_malhizmet_kayit_<kullanıcı kodu>_<yuva>` | O hesaba özel, en fazla 50 mal/hizmet **adı** (her ad ayrı anahtarda, en son kullanılan başta). Anahtarlar alıcı defteriyle aynı biçimde üretilir | `malHizmetDefteri.ts` → `bolunmusDefter.ts` — fatura başarıyla oluşturulunca kalem adları eklenir; fatura formundaki "Kayıtlı Mal/Hizmet Seç" diyaloğundan silinir. Hesaplar arasında paylaşılmaz |
@@ -320,7 +322,7 @@ defterlerini — görürdü.
   `gib_kullanici_kodu` silinir.
 - Güncellemeden sonraki ilk açılışta cihazda duran **sahipsiz `gib_token`
   silinir** (ilk giren hesaba bağlanmaz).
-- `gib_hatirlanan_kullanici_kodu` ve defterler **silinmez**.
+- Hatırlanan GİB kodları ve defterler **silinmez**.
 
 ### Bilinen artık risk: aynı telefonda iki hesap, aynı GİB hesabı
 
@@ -341,7 +343,7 @@ dar; risk bilerek kabul edildi.
 `gibHatasiniIsle` (GİB oturum hatası) **yalnızca GİB oturumunu** kapatır;
 uygulama hesabı oturumuna dokunmaz.
 
-Hiçbir çıkış `gib_hatirlanan_kullanici_kodu`'nu ya da defterleri **silmez**:
+Hiçbir çıkış hatırlanan GİB kodlarını ya da defterleri **silmez**:
 defterlerin hiçbir yedeği yok (D1'e gitmiyorlar), yanlışlıkla çıkan kullanıcı
 50 kayda kadar veri kaybedebilirdi.
 
@@ -420,3 +422,29 @@ sınırlı tutulmalıdır.
 sorgulanamadı — kullanılan API token'ında Workers Observability okuma izni
 yoktu. `invocation_logs: false` ayarının okunabildiği ama saklanan kayıtların
 içeriğinin görülmediği burada açıkça belirtilir.
+
+## Birden fazla GİB kullanıcı kodu (2026-09-21)
+
+Bir kullanıcı (ör. mali müşavir) birden fazla GİB kullanıcı koduyla giriş
+yapabilir. Verilerin ayrımı:
+
+| Veri | Neye göre ayrılır |
+|---|---|
+| Alıcı ve mal/hizmet defterleri | GİB kullanıcı koduna göre (`hesapAnahtari.ts`) — her kodun kendi defteri |
+| Hatırlanan GİB kodları | Uygulama hesabına göre (`hatirlananKodlar.ts`) — bir hesap birden çok kod hatırlar |
+| Fatura yedekleri | Mükellef VKN/TCKN'sine göre alt klasör; "Yedekleri Görüntüle" varsayılan olarak yalnızca açık oturumun mükellefini gösterir |
+| Paylaşım için önbelleğe alınan yedek kopyaları | GİB oturumu kapanınca silinir (`paylasimKopyalariniSil`) |
+| Geçici fatura PDF'leri | GİB oturumu kapanınca silinir |
+| GİB oturumu (token) | Cihazda aynı anda tek oturum; yeni kodla giriş öncekini değiştirir |
+| Sunucu (D1) | GİB kodu ya da GİB verisi **hiç** tutulmaz; birden fazla kod sunucuyu etkilemez |
+
+**Bilinen durum:** Aynı telefonda **iki farklı uygulama hesabı AYNI GİB
+koduyla** girerse, o kodun defterlerini ortak görürler (defter GİB koduna
+bağlı). İkisi de o GİB hesabına zaten erişebildiği için bu bir sızma değil;
+uygulama hesabına göre de ayrılması istenirse defter anahtarına hesap
+kimliği eklenmeli (taşıma gerekir).
+
+Android'de yedek klasörü telefonun ortak depolamasındadır; telefonu kullanan
+herkes ve dosya yöneticisi uygulamaları bu PDF'leri görebilir. Uygulama
+içindeki mükellef süzgeci yalnızca bir görünüm kolaylığıdır, erişim denetimi
+değildir.

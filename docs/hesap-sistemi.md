@@ -111,8 +111,9 @@ Sosyal kayıt yarıda kalmışsa (bilet var, kullanıcı adı girilmemiş) araya
 
 E-posta, Uygulama Kullanıcı Adı, şifre.
 
-- Girilen kullanıcı adı **yalnızca cihazda** `gib_hatirlanan_kullanici_kodu`
-  ile karşılaştırılır; eşitse **istek hiç gönderilmez** ve kullanıcıya bunun
+- Girilen kullanıcı adı **yalnızca cihazda** bilinen GİB kodlarıyla (hesapsız
+  kullanımın hatırlanan kodları ve eski tekil anahtar; bkz.
+  `utils/hatirlananKodlar.ts → kayitIcinBilinenKodlar`) karşılaştırılır; eşitse **istek hiç gönderilmez** ve kullanıcıya bunun
   GİB kodu olduğu söylenir.
 - "En az bir harf" kuralı istemcide de var — yalnızca rakamdan oluşan bir
   değer ağa hiç çıkmaz.
@@ -152,7 +153,7 @@ oturumu sonra giren **herhangi bir** uygulama hesabına sessizce geri yüklenir.
   silinir.
 - Güncellemeden sonraki ilk açılışta cihazda duran **sahipsiz `gib_token`
   silinir** (ilk giren hesaba bağlanmaz).
-- `gib_hatirlanan_kullanici_kodu` ve defterler **silinmez**.
+- Hatırlanan GİB kodları ve defterler **silinmez**.
 - `restoreSession()` artık koşulsuz çağrılmaz.
 
 Takip: [Issue #31](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/31).
@@ -167,7 +168,7 @@ Takip: [Issue #31](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygula
 `gibHatasiniIsle` (`src/services/gibApi.ts`) GİB oturum hatasında **yalnızca
 GİB oturumunu** kapatır; hesap oturumuna dokunmaz.
 
-"Hesaptan çık" cihazda **hiçbir şeyi silmez**: `gib_hatirlanan_kullanici_kodu`
+"Hesaptan çık" cihazda **hiçbir şeyi silmez**: hesabın hatırlanan GİB kodları
 ve defterler yerinde kalır. Gerekçe: defterlerin hiçbir yedeği yok (D1'e
 gitmiyorlar), yanlışlıkla çıkış yapan kullanıcı 50 kayda kadar veri
 kaybedebilirdi.

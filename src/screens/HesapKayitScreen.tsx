@@ -24,15 +24,13 @@ import {
   kullaniciAdiNormalize,
   sifreHatasi,
 } from '../utils/hesapDogrulama';
-import { getSecureItem } from '../utils/secureStorage';
+import { kayitIcinBilinenKodlar } from '../utils/hatirlananKodlar';
 import type { RootStackParamList } from '../../App';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'HesapKayit'>;
 
-// LoginScreen'in giriş formunu doldurmak için kullandığı anahtarla AYNI.
-// Burada yalnızca CİHAZDA karşılaştırma yapmak için okunur; değeri hiçbir
-// koşulda sunucuya gönderilmez.
-const HATIRLANAN_GIB_KODU_KEY = 'gib_hatirlanan_kullanici_kodu';
+// Cihazda hatırlanan GİB kodları yalnızca CİHAZDA karşılaştırma yapmak için
+// okunur; hiçbir koşulda sunucuya gönderilmez (bkz. utils/hatirlananKodlar.ts).
 
 export default function HesapKayitScreen({ navigation }: Props) {
   const theme = useTheme();
@@ -43,18 +41,18 @@ export default function HesapKayitScreen({ navigation }: Props) {
   const [kullaniciAdi, setKullaniciAdi] = useState('');
   const [sifre, setSifre] = useState('');
   const [sifreGorunur, setSifreGorunur] = useState(false);
-  const [hatirlananGibKodu, setHatirlananGibKodu] = useState<string | null>(null);
+  const [bilinenGibKodlari, setBilinenGibKodlari] = useState<string[]>([]);
   const [dokunuldu, setDokunuldu] = useState(false);
 
   useEffect(() => {
-    (async () => setHatirlananGibKodu(await getSecureItem(HATIRLANAN_GIB_KODU_KEY)))();
+    (async () => setBilinenGibKodlari(await kayitIcinBilinenKodlar()))();
   }, []);
 
   const epostaN = epostaNormalize(eposta);
   const kullaniciAdiN = kullaniciAdiNormalize(kullaniciAdi);
 
   const epostaHata = epostaHatasi(epostaN);
-  const kullaniciAdiHata = gibKoduylaCakisiyorMu(kullaniciAdi, hatirlananGibKodu)
+  const kullaniciAdiHata = bilinenGibKodlari.some((kod) => gibKoduylaCakisiyorMu(kullaniciAdi, kod))
     ? GIB_KODU_CAKISMA_MESAJI
     : kullaniciAdiHatasi(kullaniciAdiN);
   const sifreHata = sifreHatasi(sifre, epostaN, kullaniciAdiN);

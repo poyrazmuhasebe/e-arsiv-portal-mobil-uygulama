@@ -81,9 +81,14 @@ istiyor). **Hepsi taslaktır ve hukuki inceleme bekler.**
   duyurusundan birebir alınır.
 - Kullanıcı Kodu + Şifre alanları; şifre alanında göz ikonuyla göster/gizle.
 - **"Kullanıcı Kodunu Hatırla"** — varsayılan olarak işaretli gelir.
-  İşaretliyse, başarılı girişten sonra kullanıcı kodu `expo-secure-store`'a
-  (`gib_hatirlanan_kullanici_kodu` anahtarıyla) yazılır ve bir sonraki uygulama
-  açılışında (kullanıcı **çıkış yapmış olsa bile**) form otomatik doldurulur.
+  İşaretliyse, başarılı girişten sonra kullanıcı kodu, **uygulama hesabına
+  özel** bir listenin başına yazılır (`src/utils/hatirlananKodlar.ts`, en fazla
+  10 kod); işaretsizse yalnızca o kod listeden çıkarılır. Bir kullanıcı birden
+  fazla GİB koduyla çalışabildiği için birden çok kod hatırlanıyorsa giriş
+  ekranının üstünde çipler olarak görünür: dokununca kod alana gelir, basılı
+  tutunca listeden kaldırılır. Form en son kullanılan kodla (kullanıcı
+  **çıkış yapmış olsa bile**) doldurulur. Başka bir uygulama hesabı bu kodları
+  görmez.
   Bu, `useAuthStore`'un oturum token'ı için kullandığı anahtarlardan tamamen
   **ayrı** bir mekanizmadır — biri "formu hatırla", diğeri "oturumu sürdür".
   **Şifre hiçbir zaman saklanmaz** (eski "Şifreyi Hatırla" seçeneği kaldırıldı;

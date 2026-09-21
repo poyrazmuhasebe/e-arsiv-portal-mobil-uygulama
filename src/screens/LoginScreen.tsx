@@ -8,17 +8,17 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Button, Checkbox, Text, TextInput, useTheme } from 'react-native-paper';
+import { Button, Checkbox, Chip, Text, TextInput, useTheme } from 'react-native-paper';
 
 import DuyuruKutusu from '../components/DuyuruKutusu';
 import { useAuthStore } from '../store/useAuthStore';
 import { useHesapStore } from '../store/useHesapStore';
-import { deleteSecureItem, getSecureItem, setSecureItem } from '../utils/secureStorage';
+import { hatirlananKodlariOku, koduHatirla, koduUnut } from '../utils/hatirlananKodlar';
+import { deleteSecureItem } from '../utils/secureStorage';
 
-// Bu anahtar useAuthStore'un oturum (token) için kullandığı anahtarlardan
-// AYRI: yalnızca giriş FORMUNU önceden doldurmak için, oturum açık
-// olsun/olmasın (çıkış yapılsa bile) kalıcı olarak saklanır.
-const HATIRLANAN_KULLANICI_KODU_KEY = 'gib_hatirlanan_kullanici_kodu';
+// Hatırlanan GİB kullanıcı kodları UYGULAMA HESABINA ÖZEL bir listede
+// tutulur (bir kullanıcı birden fazla GİB koduyla çalışabilir); yalnızca giriş
+// formunu doldurmak için, çıkış yapılsa bile kalır. Bkz. utils/hatirlananKodlar.ts.
 // Şifre ARTIK HİÇBİR ZAMAN saklanmıyor. Bu anahtar yalnızca v1.0.0'da "Şifreyi
 // Hatırla" ile kaydedilmiş eski şifreleri cihazdan silmek için (göç) tutuluyor.
 const ESKI_HATIRLANAN_SIFRE_KEY = 'gib_hatirlanan_sifre';
@@ -34,6 +34,8 @@ export default function LoginScreen() {
   const [kullaniciSifresi, setKullaniciSifresi] = useState('');
   const [sifreGorunur, setSifreGorunur] = useState(false);
   const [kullaniciKoduHatirla, setKullaniciKoduHatirla] = useState(true);
+  const [hatirlananKodlar, setHatirlananKodlar] = useState<string[]>([]);
+  const hesapId = hesapKullanicisi?.id ?? null;
 
   // Daha önce "hatırla" işaretlenmiş bir kullanıcı kodu varsa formu otomatik
   // doldur (yalnızca kullanıcı kodu — şifre asla doldurulmaz). Eski
@@ -41,10 +43,25 @@ export default function LoginScreen() {
   useEffect(() => {
     (async () => {
       await deleteSecureItem(ESKI_HATIRLANAN_SIFRE_KEY);
-      const kayitliKullaniciKodu = await getSecureItem(HATIRLANAN_KULLANICI_KODU_KEY);
-      if (kayitliKullaniciKodu) setKullaniciKodu(kayitliKullaniciKodu);
+      const kodlar = await hatirlananKodlariOku(hesapId);
+      setHatirlananKodlar(kodlar);
+      if (kodlar.length > 0) setKullaniciKodu(kodlar[0]);
     })();
-  }, []);
+  }, [hesapId]);
+
+  const handleKoduUnut = (kod: string) => {
+    Alert.alert('Kodu unut', `${kod} hatırlanan kodlardan kaldırılsın mı?`, [
+      { text: 'Vazgeç', style: 'cancel' },
+      {
+        text: 'Kaldır',
+        style: 'destructive',
+        onPress: async () => {
+          setHatirlananKodlar(await koduUnut(hesapId, kod));
+          if (kullaniciKodu.trim() === kod) setKullaniciKodu('');
+        },
+      },
+    ]);
+  };
 
   const girisYapDisabled = isLoading || !kullaniciKodu.trim() || !kullaniciSifresi;
 
@@ -59,10 +76,11 @@ export default function LoginScreen() {
       // (bkz. src/utils/gibSahibi.ts, Issue #31).
       await login(kullaniciKodu.trim(), kullaniciSifresi, hesapKullanicisi?.id ?? '');
 
+      // Yalnızca BU kod eklenir/çıkarılır; hesabın diğer kodları yerinde kalır.
       if (kullaniciKoduHatirla) {
-        await setSecureItem(HATIRLANAN_KULLANICI_KODU_KEY, kullaniciKodu.trim());
+        await koduHatirla(hesapId, kullaniciKodu.trim());
       } else {
-        await deleteSecureItem(HATIRLANAN_KULLANICI_KODU_KEY);
+        await koduUnut(hesapId, kullaniciKodu.trim());
       }
     } catch (err) {
       // GİB'den dönen Türkçe hata mesajını (varsa) doğrudan göster,
@@ -114,6 +132,32 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.form}>
+            {hatirlananKodlar.length > 1 && (
+              <View style={styles.kodlar}>
+                <Text variant="labelSmall" style={styles.kodlarBaslik}>
+                  Hatırlanan kullanıcı kodları (kaldırmak için basılı tutun)
+                </Text>
+                <View style={styles.kodSatiri}>
+                  {hatirlananKodlar.map((kod) => (
+                    <Chip
+                      key={kod}
+                      compact
+                      selected={kullaniciKodu.trim() === kod}
+                      showSelectedCheck={false}
+                      onPress={() => {
+                        setKullaniciKodu(kod);
+                        setKullaniciSifresi('');
+                      }}
+                      onLongPress={() => handleKoduUnut(kod)}
+                      disabled={isLoading}
+                    >
+                      {kod}
+                    </Chip>
+                  ))}
+                </View>
+              </View>
+            )}
+
             <TextInput
               mode="outlined"
               label="GİB Kullanıcı Kodu"
@@ -213,6 +257,9 @@ const styles = StyleSheet.create({
   form: { gap: 16 },
   input: { width: '100%' },
   hatirlaGrubu: { marginTop: -8, marginBottom: -8 },
+  kodlar: { width: '100%', gap: 6 },
+  kodlarBaslik: { opacity: 0.7 },
+  kodSatiri: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   hatirlaOgesi: { paddingHorizontal: 0 },
   hatirlaEtiket: { fontSize: 14 },
   button: { marginTop: 8, borderRadius: 8 },

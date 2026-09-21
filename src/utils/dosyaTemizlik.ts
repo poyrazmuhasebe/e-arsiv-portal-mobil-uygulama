@@ -45,3 +45,20 @@ export async function eskiFaturaPdfleriniSil(azamiYasMs: number = BIR_SAAT_MS): 
   }
   return silinen;
 }
+
+/**
+ * Yedeklenen faturaları paylaşmak için önbelleğe kopyalanan PDF'lerin klasörü
+ * (bkz. services/yedekDeposu.ts → yedegiPaylas). Bu kopyalar da mali veri
+ * içerir; GİB oturumu kapanınca silinir, bir sonraki mükellefe kalmaz.
+ */
+export const PAYLASIM_KLASORU = 'yedek-paylasim';
+
+export async function paylasimKopyalariniSil(): Promise<void> {
+  const dizin = FileSystem.cacheDirectory;
+  if (!dizin) return;
+  try {
+    await FileSystem.deleteAsync(`${dizin}${PAYLASIM_KLASORU}/`, { idempotent: true });
+  } catch {
+    // silinemese de çıkışı engelleme
+  }
+}

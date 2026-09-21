@@ -42,8 +42,8 @@ Hazırlık: `worker/.dev.vars.example` dosyasını `.dev.vars` adıyla kopyalay�
 - [ ] **Yalnızca rakamlı kullanıcı adı reddediliyor** — ör. `34567890`
   yazınca "en az bir harf içermeli" uyarısı çıkıyor ve **istek gitmiyor**
   (`wrangler dev` konsolunda istek görünmemeli).
-- [ ] **Hatırlanan GİB kodu çakışması** — daha önce "Kullanıcı Kodunu Hatırla"
-  ile kaydedilmiş GİB kodunu kullanıcı adı alanına yazınca "Bu, GİB kullanıcı
+- [ ] **Hatırlanan GİB kodu çakışması** — hesapsız ("Şimdilik atla") kullanımda
+  "Kullanıcı Kodunu Hatırla" ile kaydedilmiş GİB kodunu kullanıcı adı alanına yazınca "Bu, GİB kullanıcı
   kodunuz" uyarısı çıkıyor ve **istek gitmiyor**.
 - [ ] **E-posta Doğrula** — 6 haneli kod ekranı geliyor; yerel Worker'da kod
   ekranda "Yerel geliştirme: kod ######" olarak da görünüyor.
@@ -283,3 +283,25 @@ Seç"te kaç kayıt olduğunu ve ilk birkaçının sırasını not edin.
   paylaş düğmesi paylaşım sayfasını açıyor (ör. WhatsApp'a gönderme).
 - [ ] **iPhone** — klasör seçme düğmesi yok, yedekleme ve Görüntüle
   çalışıyor, PDF önizlemesi açılıyor.
+
+## Birden fazla GİB kullanıcı kodu (2026-09-21)
+
+### GİB gerekir
+
+- [ ] **İki kod hatırlanıyor** — A koduyla gir, "GİB oturumunu kapat", B koduyla
+  gir, tekrar kapat: giriş ekranında A ve B çip olarak görünüyor, form B ile
+  dolu; A'ya dokununca alana A geliyor, şifre alanı boşalıyor.
+- [ ] **Kod kaldırma** — bir çipe basılı tut → "Kaldır": çip gidiyor.
+- [ ] **Hesaplar arası ayrım** — başka bir uygulama hesabıyla girince giriş
+  ekranında önceki hesabın kodları görünmüyor.
+- [ ] **Güncelleme sonrası** — eski sürümde hatırlanan kod, güncellemeden sonra
+  ilk açılan hesabın listesinde duruyor.
+- [ ] **Defterler ayrı** — A kodunda kaydedilen alıcı, B kodunun Alıcı
+  Defteri'nde görünmüyor.
+- [ ] **Yedekler ayrı** — A ve B için yedek alın: klasörde iki ayrı "VKN -
+  Unvan" alt klasörü var. B açıkken "Yedeklenen Faturaları Görüntüle" yalnızca
+  B'yi gösteriyor; "Diğer mükelleflerin yedeklerini de göster" açılınca A da
+  görünüyor.
+- [ ] **Paylaşım kopyası temizliği** — bir yedeği paylaşın, sonra "GİB
+  oturumunu kapat": (geliştirici) uygulama önbelleğinde `yedek-paylasim`
+  klasörü kalmıyor.

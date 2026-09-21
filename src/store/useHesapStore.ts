@@ -29,6 +29,7 @@ import {
   type HesapOturumu,
   type HesapYaniti,
 } from '../services/hesapApi';
+import { hesabinKodlariniSil } from '../utils/hatirlananKodlar';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '../utils/secureStorage';
 
 /** `hesap_` öneki bilinçli: bu anahtarlar GİB verisi DEĞİLDİR. */
@@ -243,8 +244,11 @@ export const useHesapStore = create<HesapState>((set, get) => ({
       throw new HesapApiHatasi('oturum_yok', 'Oturumunuz sona erdi, lütfen tekrar giriş yapın.');
     }
     // Hata fırlatırsa (ör. şifre yanlış) yerel oturum KORUNUR.
+    const hesapId = get().kullanici?.id;
     await apiHesabiSil(token, sifre, gelistirmeMi());
     await saklananiSil();
+    // Silinen hesabın hatırlanan GİB kodları cihazda sahipsiz kalmasın.
+    if (hesapId) await hesabinKodlariniSil(hesapId);
     set({ kullanici: null, oturum: null, atlandi: false });
   },
 

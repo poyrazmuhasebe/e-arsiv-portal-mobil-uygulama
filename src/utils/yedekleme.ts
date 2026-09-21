@@ -147,6 +147,43 @@ export function mukellefKlasorAdi(vkn: string, unvan?: string): string {
   return temizUnvan ? `${temizVkn} - ${temizUnvan}` : temizVkn;
 }
 
+export interface Mukellef {
+  vkn: string;
+  unvan?: string;
+}
+
+/** VKN 10, TCKN 11 hane. Kullanıcı kodu gibi başka bir değer kabul edilmez. */
+export const VKN_BICIMI = /^\d{10,11}$/;
+
+function doluMetin(v: unknown): string | undefined {
+  return typeof v === 'string' && v.trim().length > 0 ? v.trim() : undefined;
+}
+
+/**
+ * Oturumdaki kullaniciBilgisi'nden mükellef — yalnızca içinde GEÇERLİ bir
+ * VKN/TCKN varsa (bu alan o yanıtta doğrulanmadı; yoksa null döner ve
+ * doğrulanmış "Kullanıcı Bilgileri" yanıtına bakılır).
+ */
+export function oturumdakiMukellef(bilgi: { vknTckn?: unknown; unvan?: unknown } | null): Mukellef | null {
+  const vkn = doluMetin(bilgi?.vknTckn);
+  if (!vkn || !VKN_BICIMI.test(vkn)) return null;
+  return { vkn, unvan: doluMetin(bilgi?.unvan) };
+}
+
+/**
+ * "Kullanıcı Bilgileri" (RG_KULLANICI, vknTckn alanı canlı doğrulandı)
+ * yanıtından mükellef. Şahıs hesaplarında unvan boş olabilir → ad soyad.
+ */
+export function detaydakiMukellef(
+  detay: { vknTckn?: unknown; unvan?: unknown; ad?: unknown; soyad?: unknown },
+  yedekUnvan?: unknown,
+): Mukellef | null {
+  const vkn = doluMetin(detay.vknTckn);
+  if (!vkn || !VKN_BICIMI.test(vkn)) return null;
+  const adSoyad = [doluMetin(detay.ad), doluMetin(detay.soyad)].filter(Boolean).join(' ');
+  return { vkn, unvan: doluMetin(detay.unvan) ?? (adSoyad || doluMetin(yedekUnvan)) };
+}
+
 export function mukellefKlasoruMu(klasorAdi: string, vkn: string): boolean {
   const temizVkn = guvenliAd(vkn, 20) || 'mukellef';
   return klasorAdi === temizVkn || klasorAdi.startsWith(`${temizVkn} - `);

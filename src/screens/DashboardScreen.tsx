@@ -78,7 +78,7 @@ export default function DashboardScreen({ navigation }: Props) {
    * - "Hesaptan çık": önce GİB, sonra uygulama hesabı kapanır; sunucuda
    *   yenileme token'ı da iptal edilir.
    *
-   * Hiçbiri cihazdaki `gib_hatirlanan_kullanici_kodu`'nu ya da alıcı /
+   * Hiçbiri hesabın hatırlanan GİB kodlarını (utils/hatirlananKodlar.ts) ya da alıcı /
    * mal-hizmet defterlerini SİLMEZ: defterlerin hiçbir yedeği yok (D1'e
    * gitmiyorlar), yanlışlıkla çıkan kullanıcı veri kaybetmesin.
    */

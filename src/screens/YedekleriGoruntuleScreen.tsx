@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, SectionList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityIndicator, Appbar, Button, IconButton, List, Searchbar, Text, useTheme } from 'react-native-paper';
+import { ActivityIndicator, Appbar, Button, IconButton, List, Searchbar, Switch, Text, useTheme } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
 import {
   KLASOR_SECILEBILIR,
+  aktifMukellef,
   klasorGorunenAdi,
   yedegiAc,
   yedegiPaylas,
@@ -15,6 +16,8 @@ import {
   type MukellefYedegi,
   type YedekDosyasi,
 } from '../services/yedekDeposu';
+import { useAuthStore } from '../store/useAuthStore';
+import { mukellefKlasoruMu, type Mukellef } from '../utils/yedekleme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'YedekleriGoruntule'>;
 
@@ -46,6 +49,14 @@ export default function YedekleriGoruntuleScreen({ navigation }: Props) {
   const [gruplar, setGruplar] = useState<MukellefYedegi[]>([]);
   const [arama, setArama] = useState('');
   const [mesgul, setMesgul] = useState<string | null>(null);
+  const token = useAuthStore((s) => s.token);
+  const kullaniciBilgisi = useAuthStore((s) => s.kullaniciBilgisi);
+  // Açık GİB oturumunun mükellefi. Bir kullanıcı birden fazla GİB koduyla
+  // çalışabildiği için varsayılan olarak YALNIZCA onun yedekleri gösterilir;
+  // diğer mükelleflerinkiler anahtarla açılır. Belirlenemezse (ör. çevrimdışı)
+  // hepsi gösterilir ve bu belirtilir.
+  const [mukellef, setMukellef] = useState<Mukellef | null>(null);
+  const [digerleriniGoster, setDigerleriniGoster] = useState(false);
 
   const yukle = useCallback(async () => {
     setYukleniyor(true);
@@ -58,12 +69,19 @@ export default function YedekleriGoruntuleScreen({ navigation }: Props) {
       }
       setKlasorAdi(klasorGorunenAdi(kok));
       setGruplar(yedekleriListele(kok));
+      if (token) {
+        try {
+          setMukellef(await aktifMukellef(token, kullaniciBilgisi));
+        } catch {
+          setMukellef(null);
+        }
+      }
     } catch (err) {
       Alert.alert('Yedekler okunamadı', err instanceof Error ? err.message : 'Bilinmeyen hata');
     } finally {
       setYukleniyor(false);
     }
-  }, []);
+  }, [token, kullaniciBilgisi]);
 
   useEffect(() => {
     yukle();
@@ -82,7 +100,11 @@ export default function YedekleriGoruntuleScreen({ navigation }: Props) {
   };
 
   const aranan = arama.trim().toLocaleLowerCase('tr');
-  const bolumler = gruplar
+  const buMukellefinMi = (g: MukellefYedegi) => mukellef !== null && mukellefKlasoruMu(g.ad, mukellef.vkn);
+  const digerSayisi = mukellef === null ? 0 : gruplar.filter((g) => !buMukellefinMi(g)).length;
+  const gosterilenler = mukellef === null || digerleriniGoster ? gruplar : gruplar.filter(buMukellefinMi);
+
+  const bolumler = gosterilenler
     .map((g) => ({
       title: g.ad,
       toplam: g.dosyalar.length,
@@ -126,6 +148,20 @@ export default function YedekleriGoruntuleScreen({ navigation }: Props) {
                 Klasör: {klasorAdi}
                 {KLASOR_SECILEBILIR ? '' : ' (yalnızca bu uygulamadan erişilir)'}
               </Text>
+              {mukellef === null ? (
+                <Text variant="bodySmall" style={styles.mutedText}>
+                  Açık hesabın mükellefi belirlenemedi; cihazdaki tüm mükelleflerin yedekleri gösteriliyor.
+                </Text>
+              ) : (
+                digerSayisi > 0 && (
+                  <View style={styles.anahtarSatiri}>
+                    <Text variant="bodySmall" style={styles.anahtarMetni}>
+                      Diğer mükelleflerin yedeklerini de göster ({digerSayisi})
+                    </Text>
+                    <Switch value={digerleriniGoster} onValueChange={setDigerleriniGoster} />
+                  </View>
+                )
+              )}
               <Searchbar placeholder="Belge numarası ya da tarih ara" value={arama} onChangeText={setArama} />
             </View>
           }
@@ -162,7 +198,11 @@ export default function YedekleriGoruntuleScreen({ navigation }: Props) {
           ListEmptyComponent={
             <View style={styles.merkezi}>
               <Text variant="bodyMedium" style={[styles.mutedText, styles.ortaMetin]}>
-                {aranan ? 'Aramaya uyan yedek yok.' : 'Bu klasörde henüz yedeklenmiş fatura yok.'}
+                {aranan
+                  ? 'Aramaya uyan yedek yok.'
+                  : mukellef !== null && !digerleriniGoster
+                    ? 'Bu mükellefin henüz yedeklenmiş faturası yok.'
+                    : 'Bu klasörde henüz yedeklenmiş fatura yok.'}
               </Text>
               {!aranan && (
                 <Button mode="contained" onPress={() => navigation.replace('Yedekle')}>
@@ -185,4 +225,6 @@ const styles = StyleSheet.create({
   baslik: { padding: 16, gap: 12 },
   mutedText: { opacity: 0.7 },
   satirSpinner: { marginHorizontal: 16 },
+  anahtarSatiri: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  anahtarMetni: { flex: 1 },
 });

@@ -22,6 +22,7 @@ import { tarihFormatla } from '../components/TarihAraligiFiltresi';
 import { GibApiError, faturaHTMLGetir, gibHatasiniIsle, taslakGetir } from '../services/gibApi';
 import {
   KLASOR_SECILEBILIR,
+  aktifMukellef,
   dosyaOrtami,
   klasorGorunenAdi,
   mukellefKlasoru,
@@ -68,7 +69,6 @@ export default function YedekleScreen({ navigation }: Props) {
   const theme = useTheme();
   const token = useAuthStore((s) => s.token);
   const kullaniciBilgisi = useAuthStore((s) => s.kullaniciBilgisi);
-  const kullaniciKodu = useAuthStore((s) => s.kullaniciKodu);
 
   const [klasor, setKlasor] = useState<Directory | null>(null);
   const [klasorYukleniyor, setKlasorYukleniyor] = useState(true);
@@ -105,9 +105,6 @@ export default function YedekleScreen({ navigation }: Props) {
       Alert.alert('Klasör seçin', 'Önce yedeklerin kaydedileceği klasörü seçin.');
       return;
     }
-    const vkn = String(kullaniciBilgisi?.vknTckn || kullaniciKodu || 'mukellef');
-    const unvan = typeof kullaniciBilgisi?.unvan === 'string' ? kullaniciBilgisi.unvan : undefined;
-
     const bugun = new Date();
     const parcalar = haftalikParcalar(yedekBaslangici(sure, bugun), bugun);
 
@@ -118,7 +115,12 @@ export default function YedekleScreen({ navigation }: Props) {
 
     let sonIlerleme: YedekSonucu | null = null;
     try {
-      const hedef = mukellefKlasoru(klasor, vkn, unvan, true);
+      // Klasör, açık GİB oturumunun mükellefine (VKN/TCKN) göre seçilir.
+      const mukellef = await aktifMukellef(token, kullaniciBilgisi);
+      if (!mukellef) {
+        throw new Error("Mükellefin VKN/TCKN'si GİB'den alınamadı; yedekler doğru klasöre yazılamayacağı için yedekleme başlatılmadı.");
+      }
+      const hedef = mukellefKlasoru(klasor, mukellef.vkn, mukellef.unvan, true);
       if (!hedef) throw new Error('Yedek klasörü oluşturulamadı.');
       const dosya = dosyaOrtami(hedef);
 
@@ -170,7 +172,7 @@ export default function YedekleScreen({ navigation }: Props) {
     } finally {
       deactivateKeepAwake(KEEP_AWAKE_ETIKETI).catch(() => undefined);
     }
-  }, [token, klasor, kullaniciBilgisi, kullaniciKodu, sure, taslaklarDahil, navigation]);
+  }, [token, klasor, kullaniciBilgisi, sure, taslaklarDahil, navigation]);
 
   const baslangicOnizleme = yedekBaslangici(sure);
   const parcaSayisi = haftalikParcalar(baslangicOnizleme, new Date()).length;

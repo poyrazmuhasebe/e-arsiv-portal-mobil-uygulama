@@ -22,8 +22,18 @@ import { Directory, File, Paths } from 'expo-file-system';
 import * as IntentLauncher from 'expo-intent-launcher';
 import * as Sharing from 'expo-sharing';
 
+import { kullaniciBilgileriDetayGetir } from './gibApi';
+import type { KullaniciBilgisi } from '../types/gib';
+import { PAYLASIM_KLASORU } from '../utils/dosyaTemizlik';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '../utils/secureStorage';
-import { mukellefKlasorAdi, mukellefKlasoruMu, type YedekOrtami } from '../utils/yedekleme';
+import {
+  detaydakiMukellef,
+  mukellefKlasorAdi,
+  mukellefKlasoruMu,
+  oturumdakiMukellef,
+  type Mukellef,
+  type YedekOrtami,
+} from '../utils/yedekleme';
 
 const KLASOR_ANAHTARI = 'yedek_klasor_uri';
 const IOS_KLASOR_ADI = 'Fatura Yedekleri';
@@ -89,6 +99,25 @@ export function klasorGorunenAdi(d: Directory): string {
     }
   }
   return d.name || d.uri;
+}
+
+/**
+ * Açık GİB oturumunun mükellefi (VKN/TCKN + unvan) — yedek klasörünün adı.
+ *
+ * Bir kullanıcı birden fazla GİB kullanıcı koduyla çalışabildiği için her
+ * mükellefin yedeği KENDİ klasörüne gitmeli. Klasör GİB kullanıcı koduyla
+ * DEĞİL, VKN/TCKN ile adlandırılır: kullanıcı kodu mükellefi tanımlamaz ve
+ * VKN'nin gelmediği bir girişte koda düşmek aynı mükellef için ikinci bir
+ * klasör açardı. VKN, alanı CANLI DOĞRULANMIŞ "Kullanıcı Bilgileri"
+ * (RG_KULLANICI) yanıtından okunur; oturumdaki kullaniciBilgisi yalnızca
+ * geçerli bir VKN içeriyorsa (ek istek atmamak için) kullanılır.
+ *
+ * VKN bulunamazsa null — yedekleme başlatılmaz, yanlış klasöre yazılmaz.
+ */
+export async function aktifMukellef(token: string, bilgi: KullaniciBilgisi | null): Promise<Mukellef | null> {
+  const oturumdan = oturumdakiMukellef(bilgi);
+  if (oturumdan) return oturumdan;
+  return detaydakiMukellef(await kullaniciBilgileriDetayGetir(token), bilgi?.unvan);
 }
 
 /**
@@ -196,8 +225,12 @@ export async function yedegiPaylas(dosya: File): Promise<void> {
   }
   let paylasilacak = dosya;
   if (Platform.OS === 'android' && dosya.uri.startsWith('content://')) {
-    const kopya = new File(Paths.cache, dosya.name);
-    if (kopya.exists) kopya.delete();
+    // Her paylaşımda klasör boşaltılır: önceki kopyalar birikmez. GİB
+    // oturumu kapanınca da silinir (useAuthStore.logout).
+    const klasor = new Directory(Paths.cache, PAYLASIM_KLASORU);
+    if (klasor.exists) klasor.delete();
+    klasor.create({ intermediates: true, idempotent: true });
+    const kopya = new File(klasor, dosya.name);
     kopya.create();
     kopya.write(await dosya.base64(), { encoding: 'base64' });
     paylasilacak = kopya;

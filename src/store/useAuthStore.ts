@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { login as gibLogin, logout as gibLogout, getKullaniciBilgileri } from '../services/gibApi';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '../utils/secureStorage';
-import { eskiFaturaPdfleriniSil } from '../utils/dosyaTemizlik';
+import { eskiFaturaPdfleriniSil, paylasimKopyalariniSil } from '../utils/dosyaTemizlik';
 import {
   gibOturumuGeriYuklenebilirMi,
   gibSahibiniKaydet,
@@ -85,7 +85,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // hesabına ait bir GİB oturumu. Geri YÜKLENMEZ: GİB'de kapatılmaya
       // çalışılır ve cihazdaki anahtarlar silinir.
       //
-      // `gib_hatirlanan_kullanici_kodu` ve defterler SİLİNMEZ — form yine
+      // Hatırlanan GİB kodları ve defterler SİLİNMEZ — form yine
       // dolu gelir, defterler yerinde kalır.
       try {
         await gibLogout(token);
@@ -132,6 +132,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Çıkışta, oturum boyunca üretilen tüm fatura PDF'lerini (kişisel/mali veri
     // içerirler) cihazdan sil. Hata fırlatmaz; çıkışı asla engellemez.
     await eskiFaturaPdfleriniSil(0);
+    // Yedeklerden paylaşım için önbelleğe alınan kopyalar da (başka bir
+    // mükellefin oturumuna kalmasın).
+    await paylasimKopyalariniSil();
     set({
       token: null,
       kullaniciKodu: null,

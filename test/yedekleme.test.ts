@@ -5,11 +5,13 @@ import type { TaslakFatura } from '../src/types/gib';
 import {
   ARDISIK_HATA_SINIRI,
   belgeTarihiSiralanabilir,
+  detaydakiMukellef,
   guvenliAd,
   haftalikParcalar,
   mukellefKlasorAdi,
   mukellefKlasoruMu,
   noktaliTarih,
+  oturumdakiMukellef,
   yedekBaslangici,
   yedekDosyaAdi,
   yedekle,
@@ -260,4 +262,44 @@ test('yedekle: iki parçada gelen aynı belge bir kez işlenir', async () => {
   });
   await yedekle(haftalikParcalar(gun(6, 9), gun(21, 9)), ortam, SECENEK, () => {});
   assert.equal(pdfSayisi, 1);
+});
+
+// ---------------------------------------------------------------------------
+// Mükellef (yedek klasörü) — birden fazla GİB kodu
+// ---------------------------------------------------------------------------
+
+test('oturumdakiMukellef: yalnızca geçerli VKN/TCKN; kullanıcı kodu kabul edilmez', () => {
+  assert.deepEqual(oturumdakiMukellef({ vknTckn: '1234567890', unvan: 'ABC Ltd.' }), {
+    vkn: '1234567890',
+    unvan: 'ABC Ltd.',
+  });
+  assert.deepEqual(oturumdakiMukellef({ vknTckn: '12345678901' }), { vkn: '12345678901', unvan: undefined });
+  assert.equal(oturumdakiMukellef({ vknTckn: '34567890' }), null); // 8 haneli kullanıcı kodu
+  assert.equal(oturumdakiMukellef({ vknTckn: 'abc1234567' }), null);
+  assert.equal(oturumdakiMukellef({ unvan: 'ABC' }), null);
+  assert.equal(oturumdakiMukellef(null), null);
+});
+
+test('detaydakiMukellef: unvan yoksa ad soyad, o da yoksa oturumdaki unvan', () => {
+  assert.deepEqual(detaydakiMukellef({ vknTckn: '1234567890', unvan: 'ABC A.Ş.' }), {
+    vkn: '1234567890',
+    unvan: 'ABC A.Ş.',
+  });
+  assert.deepEqual(detaydakiMukellef({ vknTckn: '12345678901', unvan: '', ad: 'Ali', soyad: 'Veli' }), {
+    vkn: '12345678901',
+    unvan: 'Ali Veli',
+  });
+  assert.deepEqual(detaydakiMukellef({ vknTckn: '1234567890' }, 'Yedek Unvan'), {
+    vkn: '1234567890',
+    unvan: 'Yedek Unvan',
+  });
+  assert.equal(detaydakiMukellef({ vknTckn: '' }), null);
+});
+
+test('iki farklı mükellefin klasörleri karışmaz', () => {
+  const a = mukellefKlasorAdi('1234567890', 'A Ltd.');
+  const b = mukellefKlasorAdi('9876543210', 'B Ltd.');
+  assert.equal(mukellefKlasoruMu(a, '1234567890'), true);
+  assert.equal(mukellefKlasoruMu(b, '1234567890'), false);
+  assert.equal(mukellefKlasoruMu(a, '9876543210'), false);
 });
