@@ -14,11 +14,14 @@ Mali müşavirlerin mükelleflerinin GİB e-Arşiv Portal üzerinden kendi hesap
 - **Uygulama hesabı:** e-posta + uygulama kullanıcı adı + şifre ile kayıt, e-posta doğrulama (6 haneli kod), şifremi unuttum; hesap oturumu ile GİB oturumu ayrı ayrı kapatılabilir
 - GİB e-Arşiv Portal kullanıcı kodu/şifresiyle giriş; GİB şifresi cihazda hiçbir koşulda saklanmaz
 - Fatura kesim formu: VKN/TCKN'den otomatik alıcı bilgisi (kontrol basamağı doğrulamalı), irsaliye, çok kalemli mal/hizmet, iskonto, KDV ve KDV tevkifatı (52 kod), seçilen para biriminin simgesiyle anlık toplamlar
-- Hesaba özel **Alıcı Defteri** ve **Kayıtlı Mal/Hizmet** defteri (yalnızca cihazda, şifreli)
+- Hesaba özel **Alıcı Defteri** ve **Mal/Hizmet Defteri** (yalnızca cihazda, şifreli; ekleme, düzenleme, silme)
 - Taslak/kesilen faturalar: tarih aralığıyla sorgulama, görüntüleme, PDF indirme/paylaşma, taslak silme, **SMS ile GİB İmza**, iptal talebi oluşturma
 - Gelen iptal/itiraz taleplerini listeleme, kabul/ret
+- "Adıma Düzenlenen Belgeler" listesi; tüm sorgularda GİB'in 7 günlük tarih sınırı
+- **Faturaları cihazda yedekleme:** seçilen dönemdeki faturaları PDF olarak telefondaki bir klasöre indirme (mükellef başına alt klasör), yedekleri görüntüleme/paylaşma
 - Kullanıcı bilgilerini görüntüleme/güncelleme
 - Uygulama kilidi (cihazın biyometrik/PIN kilidiyle), giriş ekranında GİB duyuru kutusu, bilinen GİB/ağ hatalarının anlaşılır Türkçe karşılıkları
+- Koyu, tutarlı arayüz: ortak tasarım sistemi ([docs/tasarim-sistemi.md](docs/tasarim-sistemi.md))
 
 Ayrıntılar: [docs/ozellikler.md](docs/ozellikler.md). Henüz olmayanlar (GENEL İADE için iade edilen fatura girişi, KDV tevkifatı dışındaki vergi türleri, taslak düzenleme, itiraz talebi, "Adıma Düzenlenen Belgeler"nde talep oluşturma): [docs/bilinen-sinirlamalar.md](docs/bilinen-sinirlamalar.md).
 

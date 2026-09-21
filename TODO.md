@@ -44,6 +44,15 @@
 - [x] İki ayrı çıkış: "GİB oturumunu kapat" ve "Hesaptan çık"; hiçbiri cihazdaki defterleri silmiyor
 - [x] Şifremi unuttum ve hesap silme — uygulama içi ekran + herkese açık web sayfası (Issue #29, Google Play şartı)
 - [x] KVKK aydınlatma metni, gizlilik politikası ve hizmet şartları **TASLAKLARI** (`docs/hukuk/`, hukuki inceleme bekliyor; Issue #36)
+- [x] SMS onayında GİB'in ret yanıtı hata olarak gösteriliyor, sonuç taslak listesinden doğrulanıyor (Issue #37, cihazda doğrulama bekliyor)
+- [x] İptal kabul/red ve "FATURA SİLİNDİ" filigranları (görüntüleme + PDF); iptali kabul edilmiş fatura kırmızı "İptal" rozetiyle
+- [x] Tüm sorgu ekranlarında 7 günlük GİB tarih sınırı (`tarihAraligi.ts`, ortak `TarihAraligiFiltresi`)
+- [x] İtiraz Talebi Oluştur formu — gönderim kilitli, GİB isteği yakalanmadı (Issue #7)
+- [x] "Adıma Düzenlenen Belgeler" listesi (Issue #19; talep oluşturma ve görüntüleme açık)
+- [x] Faturaları cihazda PDF olarak yedekleme ve yedekleri görüntüleme/paylaşma (Issue #39)
+- [x] Birden fazla GİB kullanıcı kodu: hatırlanan kodlar uygulama hesabına özel liste; yedekler mükellef VKN'sine göre (Issue #41'de açık soru)
+- [x] Mal/Hizmet Defteri yönetim ekranı (ekle, adını değiştir, sil)
+- [x] Arayüz yeniden tasarımı: tasarım token'ları + ortak bileşenler, temalı dialog'lar (`docs/tasarim-sistemi.md`; cihazda doğrulama Issue #38)
 
 ## Doğrulanması Gerekenler / Yapılacaklar
 
