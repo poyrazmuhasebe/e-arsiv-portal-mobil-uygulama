@@ -49,19 +49,30 @@ export function faturaFiligranMetni(item: TaslakFatura): string | undefined {
 
 /**
  * GİB, `onayDurumu: "Silinmiş"` ile istenen faturanın HTML'ine KENDİ
- * "iptal edilmiş" filigranını çiziyor. Silinmiş (hiç onaylanmamış) bir
- * taslak için bu yanıltıcı: belge iptal edilmedi, silindi.
+ * "İPTAL EDİLMİŞ" filigranını çiziyor. Silinmiş (hiç onaylanmamış) bir taslak
+ * için bu yanıltıcı: belge iptal edilmedi, silindi.
  *
- * ⚠️ GİB'in bu filigranı nasıl çizdiği (metin mi, görsel mi) henüz
- * GÖRÜLMEDİ. Metinse aşağıdaki desen onu "FATURA SİLİNDİ" yapar. Görselse
- * değiştirilemez; o durumda bizim filigranımız onun üstüne eklenir. Yalnızca
- * silinmiş faturalarda uygulanır.
+ * GİB'in biçimi GÖRÜLDÜ (2026-09-21, geliştirme logu): filigran bir METİN,
+ * kendi <p> etiketinde:
+ *   <p style='...transform:rotate(310deg);...color:lightcoral'>İPTAL EDİLMİŞ</p>
+ *
+ * Yalnızca metnin TAMAMI bu ifade olan bir etiket içeriği değiştirilir
+ * (`>İPTAL EDİLMİŞ<`); fatura notu gibi uzun bir metnin içinde geçen
+ * "iptal edildi" gibi ifadelere dokunulmaz.
+ *
+ * NFC: "İ" bazen iki kod noktası (I + U+0307) olarak kodlanır; eşleşme
+ * kaçmasın diye HTML önce kanonik biçime getirilir (görünümü değiştirmez).
  */
-const GIB_IPTAL_METNI =
-  /(İPTAL|İptal|iptal|IPTAL)(\s|&nbsp;)+(EDİLMİŞTİR|EDİLMİŞ|EDİLDİ|EDILMISTIR|EDILMIS|EDILDI|edilmiştir|edilmiş|edildi)/g;
+const GIB_IPTAL_FILIGRANI =
+  />(\s|&nbsp;)*(İPTAL|İptal|iptal|IPTAL)(\s|&nbsp;)+(EDİLMİŞTİR|EDİLMİŞ|EDİLDİ|EDILMISTIR|EDILMIS|EDILDI|edilmiştir|edilmiş|edildi)(\s|&nbsp;)*</g;
 
-export function gibIptalMetniniDegistir(html: string): string {
-  return html.replace(GIB_IPTAL_METNI, 'FATURA SİLİNDİ');
+export function gibIptalMetniniDegistir(html: string): { html: string; degisti: boolean } {
+  let degisti = false;
+  const sonuc = html.normalize('NFC').replace(GIB_IPTAL_FILIGRANI, () => {
+    degisti = true;
+    return '>FATURA SİLİNDİ<';
+  });
+  return { html: degisti ? sonuc : html, degisti };
 }
 
 /** HTML'e yerleştirilen metin kaçışlanır (filigran metni sabit olsa da). */
@@ -96,11 +107,17 @@ export function filigranEkle(html: string, metin?: string): string {
 }
 
 /**
- * Fatura HTML'ini filigranıyla birlikte hazırlar: silinmişse GİB'in "iptal"
- * metnini düzeltir, sonra bizim filigranımızı ekler. Görüntüleme ve PDF bu
- * tek fonksiyonu kullanır.
+ * Fatura HTML'ini filigranıyla birlikte hazırlar. Silinmiş faturada GİB'in
+ * kendi filigranı yerinde "FATURA SİLİNDİ" yapılır; diğer durumlarda bizim
+ * filigranımız eklenir. Görüntüleme ve PDF bu tek fonksiyonu kullanır.
  */
 export function filigranliFaturaHtml(html: string, item: TaslakFatura): string {
-  const duzeltilmis = item.onayDurumu === 'Silinmiş' ? gibIptalMetniniDegistir(html) : html;
-  return filigranEkle(duzeltilmis, faturaFiligranMetni(item));
+  if (item.onayDurumu === 'Silinmiş') {
+    // GİB'in kendi filigranı bulunup "FATURA SİLİNDİ" yapıldıysa İKİNCİ bir
+    // filigran eklenmez (üst üste iki farklı açıda yazı olmasın). Bulunamazsa
+    // (GİB biçimi değişirse) bizimki eklenir.
+    const { html: duzeltilmis, degisti } = gibIptalMetniniDegistir(html);
+    return degisti ? duzeltilmis : filigranEkle(html, faturaFiligranMetni(item));
+  }
+  return filigranEkle(html, faturaFiligranMetni(item));
 }

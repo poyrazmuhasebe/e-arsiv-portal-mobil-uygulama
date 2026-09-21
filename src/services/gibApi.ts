@@ -1247,14 +1247,6 @@ export async function faturaHTMLGetir(
   // HTML gövdesi çok uzun olabileceğinden konsolu boğmamak için kısaltıyoruz.
   const onizleme = typeof result === 'string' ? result : JSON.stringify(result);
   if (__DEV__) console.log('GİB FATURA HTML HAM YANIT (ilk 300 karakter):', onizleme.slice(0, 300));
-  // TANI (yalnızca geliştirme): silinmiş faturada GİB kendi "iptal" filigranını
-  // çiziyor; bunun metin mi görsel mi olduğu henüz görülmedi (bkz.
-  // utils/faturaFiligran.ts → gibIptalMetniniDegistir). "iptal" geçen yerlerin
-  // çevresi yazılır ki biçim öğrenilsin.
-  if (__DEV__ && onayDurumu === 'Silinmiş') {
-    const iptalGecenler = onizleme.match(/.{0,80}(İPTAL|İptal|iptal|IPTAL).{0,80}/g) ?? [];
-    console.log('GİB SİLİNMİŞ FATURA "iptal" GEÇEN YERLER:', iptalGecenler.length ? iptalGecenler : 'YOK (filigran büyük olasılıkla görsel)');
-  }
 
   if (typeof result === 'string' && result.length > 0) return result;
   if (result && typeof result === 'object') {

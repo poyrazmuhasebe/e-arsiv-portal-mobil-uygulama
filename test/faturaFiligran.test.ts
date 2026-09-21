@@ -38,7 +38,7 @@ test('silinmiş fatura "Fatura Silindi" filigranı alır (talep durumu ne olursa
 
 test('GİB\'in "iptal edilmiş" metni FATURA SİLİNDİ olur (farklı yazımlar)', () => {
   for (const metin of ['İPTAL EDİLMİŞTİR', 'İptal Edilmiş'.replace('Edilmiş', 'edilmiş'), 'iptal edildi', 'İPTAL&nbsp;EDİLMİŞ', 'IPTAL EDILMIS']) {
-    assert.equal(gibIptalMetniniDegistir(`<div class="x">${metin}</div>`), '<div class="x">FATURA SİLİNDİ</div>', metin);
+    assert.equal(gibIptalMetniniDegistir(`<div class="x">${metin}</div>`).html, '<div class="x">FATURA SİLİNDİ</div>', metin);
   }
 });
 
@@ -62,4 +62,46 @@ test('filigran metni yoksa HTML hiç değişmez', () => {
 
 test('body etiketi yoksa filigran başa eklenir', () => {
   assert.match(filigranEkle('<p>x</p>', 'Fatura Silindi'), /^<div data-earsiv-filigran="1"[^>]*>FATURA SİLİNDİ<\/div><p>x<\/p>$/);
+});
+
+// ---------------------------------------------------------------------------
+// GİB'in gerçek silinmiş-fatura filigranı (2026-09-21 geliştirme logundan;
+// kişisel veri içermeyen stil parçası)
+// ---------------------------------------------------------------------------
+
+const GIB_SILINMIS_PARCA =
+  "<html><body><div><p style='position:absolute;top:300px;transform:rotate(310deg);" +
+  "-webkit-transform:rotate(310deg);color:lightcoral'>İPTAL EDİLMİŞ</p></div>" +
+  "<div style='z-index:1'><table><tr><td>fatura</td></tr></table></div></body></html>";
+
+test('GİB\'in gerçek "İPTAL EDİLMİŞ" filigranı YERİNDE "FATURA SİLİNDİ" olur', () => {
+  const sonuc = filigranliFaturaHtml(GIB_SILINMIS_PARCA, t({ onayDurumu: 'Silinmiş' }));
+  assert.match(sonuc, /color:lightcoral'>FATURA SİLİNDİ<\/p>/);
+  assert.doesNotMatch(sonuc, /İPTAL EDİLMİŞ/);
+});
+
+test('GİB filigranı değiştirildiyse İKİNCİ bir filigran EKLENMEZ', () => {
+  const sonuc = filigranliFaturaHtml(GIB_SILINMIS_PARCA, t({ onayDurumu: 'Silinmiş' }));
+  assert.doesNotMatch(sonuc, /data-earsiv-filigran/);
+  assert.equal((sonuc.match(/FATURA SİLİNDİ/g) ?? []).length, 1);
+});
+
+test('"İ" iki kod noktası (I + U+0307) olarak kodlanmışsa da eşleşir', () => {
+  const ayrisik = GIB_SILINMIS_PARCA.replace('İPTAL EDİLMİŞ', 'İPTAL EDİLMİŞ');
+  assert.notEqual(ayrisik, GIB_SILINMIS_PARCA);
+  const { degisti, html } = gibIptalMetniniDegistir(ayrisik);
+  assert.equal(degisti, true);
+  assert.match(html, />FATURA SİLİNDİ</);
+});
+
+test('uzun bir metnin İÇİNDE geçen "iptal edildi" değiştirilmez (ör. fatura notu)', () => {
+  const not = '<html><body><p>Önceki sipariş iptal edildi, yenisi düzenlendi.</p></body></html>';
+  const { degisti, html } = gibIptalMetniniDegistir(not);
+  assert.equal(degisti, false);
+  assert.equal(html, not);
+});
+
+test('GİB filigranı bulunamazsa (biçim değişirse) bizim filigranımız eklenir', () => {
+  const sonuc = filigranliFaturaHtml('<html><body><p>fatura</p></body></html>', t({ onayDurumu: 'Silinmiş' }));
+  assert.match(sonuc, /data-earsiv-filigran="1"[^>]*>FATURA SİLİNDİ</);
 });

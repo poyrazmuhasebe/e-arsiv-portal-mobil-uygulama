@@ -360,12 +360,11 @@ görünür (önceden yalnızca PDF'teydi). Kurallar tek yerde:
 Önceki kod bunu tanımadığı için talebi olmayan faturaları "İptal/İtiraz
 Aşamasında" sayıyordu; artık yalnızca "0"/"1"/"2" bir talep sayılıyor.
 
-**Silinmiş fatura:** GİB, silinmiş belgenin HTML'ine kendi "iptal edilmiş"
-filigranını çiziyor. Metin olarak geliyorsa "FATURA SİLİNDİ" ile
-değiştiriliyor. ⚠️ GİB'in bu filigranı metin olarak mı görsel olarak mı
-çizdiği henüz görülmedi. Görselse değiştirilemez ve bizim filigranımız onun
-üstüne eklenir. Geliştirme modunda silinmiş bir fatura açılınca Metro'da
-"GİB SİLİNMİŞ FATURA \"iptal\" GEÇEN YERLER" satırı bunu gösterir.
+**Silinmiş fatura:** GİB, silinmiş belgenin HTML'ine kendi "İPTAL EDİLMİŞ"
+filigranını METİN olarak çiziyor (2026-09-21'de geliştirme loguyla görüldü:
+`<p style='…rotate(310deg)…color:lightcoral'>İPTAL EDİLMİŞ</p>`). Bu yazı
+yerinde "FATURA SİLİNDİ" yapılıyor ve ikinci bir filigran eklenmiyor. GİB
+biçimini değiştirir de eşleşme bulunamazsa bizim filigranımız eklenir.
 
 ## İptal / İtiraz Talepleri (`src/screens/IptalItirazTalepleriScreen.tsx`)
 

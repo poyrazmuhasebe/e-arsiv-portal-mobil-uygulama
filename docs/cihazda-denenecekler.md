@@ -92,9 +92,9 @@ Hazırlık: `worker/.dev.vars.example` dosyasını `.dev.vars` adıyla kopyalay�
 
 ### Filigran ve tarih sınırı (2026-09-21) — GİB gerekir
 
-- [ ] **Silinmiş** bir faturayı aç: ortada "FATURA SİLİNDİ" var, "iptal
-  edilmiş" filigranı **yok**. (Hâlâ görünüyorsa GİB'in filigranı görseldir;
-  Metro'daki "GİB SİLİNMİŞ FATURA … GEÇEN YERLER" satırını gönderin.)
+- [ ] **Silinmiş** bir faturayı aç: GİB'in kendi (açık kırmızı, eğik) filigranı
+  artık "FATURA SİLİNDİ" yazıyor, "İPTAL EDİLMİŞ" **yok** ve üst üste ikinci
+  bir filigran **yok**.
 - [ ] **İptal Kabul Edildi** bir faturayı aç: görüntüleme ekranında ve PDF'te
   "İPTAL KABUL EDİLDİ".
 - [ ] **İptal Reddedildi** bir faturayı aç: "İPTAL REDDEDİLDİ".
