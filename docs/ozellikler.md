@@ -106,9 +106,10 @@ istiyor). **Hepsi taslaktır ve hukuki inceleme bekler.**
   1. **e-Arşiv Fatura (İnteraktif) Oluştur** → `FaturaKesim`
   2. **Taslak / Kesilen Faturalar** → `Taslaklar`
   3. **İptal / İtiraz Talepleri** → `IptalItirazTalepleri` (bkz. aşağıda)
-  4. **Adıma Düzenlenen Belgeler** — henüz uygulanmadı, tıklanınca "Bu
-     özellik henüz eklenmedi." uyarısı gösterir (bkz.
-     [Issue #19](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/19))
+  4. **Adıma Düzenlenen Belgeler** → `AdimaDuzenlenen` (bkz. aşağıda)
+- **"Faturaları Cihazımda Yedekleme"** bölümü (GİB'de yok): **Faturaları
+  Şimdi Yedekle** → `Yedekle`, **Yedeklenen Faturaları Görüntüle** →
+  `YedekleriGoruntule` (bkz. aşağıda).
 - **"Kullanıcı İşlemleri"** başlıklı ikinci bir bölüm, GİB'in kendi ana
   menüsünün ikinci dalıyla eşleşiyor: **Kullanıcı Bilgileri** →
   `KullaniciBilgileri` (bkz. aşağıda). Ayrıca GİB'de karşılığı olmayan,
@@ -413,3 +414,59 @@ listeler.
   (`gibLogout`), bu istek başarısız olsa bile (ağ hatası, süresi dolmuş
   token) yerel token/state her zaman temizlenir — kullanıcı asla
   uygulamada "kilitli" kalmaz.
+
+## Tarih aralığı sınırı (tüm sorgu ekranları)
+
+GİB 1 haftadan uzun aralıkta sorgulamaya izin vermiyor. Taslaklar, İptal/İtiraz
+Talepleri ve Adıma Düzenlenen Belgeler ekranlarında bir uç seçildiğinde diğer
+uç gerekirse kaydırılır (`src/utils/tarihAraligi.ts`); ortak filtre çubuğu
+`src/components/TarihAraligiFiltresi.tsx`.
+
+## Adıma Düzenlenen Belgeler
+
+`AdimaDuzenlenenScreen` — başkalarının kullanıcı adına düzenlediği belgeler.
+Liste `adimaDuzenlenenBelgeleriGetir` ile gelir
+(`EARSIV_PORTAL_ADIMA_KESILEN_BELGELERI_GETIR`, `RG_ALICI_TASLAKLAR`,
+`hourlySearchInterval: "NONE"` — istek canlı yakalamayla doğrulandı; yanıtın
+şekli henüz görülmedi). Kartta GİB tablosunun sütunları: Belge Numarası,
+Satıcı VKN/TCKN, Satıcı Unvan, Belge Tarihi, Belge Türü, Onaylı, İptal/İtiraz
+Durumu. "İtiraz Talebi Oluştur" / "İptal Talebi Oluştur" düğmeleri istekleri
+yakalanmadığı için GİB'e bir şey göndermez; kapatılabilir "Bu bölümden sonrası
+test edilemediği için geliştirilememiştir." kutusu açar. Belgeyi görüntüleme
+henüz yok (isteği yakalanmadı).
+
+## Faturaları Cihazımda Yedekleme
+
+**Faturaları Şimdi Yedekle** (`YedekleScreen`):
+
+- Yedek klasörü: Android'de sistem klasör seçicisiyle seçilir
+  (`Directory.pickDirectoryAsync`, izin kalıcı; adres SecureStore'da
+  `yedek_klasor_uri`). iOS'ta klasör seçilemez; uygulamanın Belgeler
+  klasöründeki "Fatura Yedekleri" kullanılır (EAS derlemesinde Dosyalar
+  uygulamasında görünür, `UIFileSharingEnabled`).
+- Dönem: son 1 hafta / 1 ay / 3 ay / 6 ay / 1 yıl. Dönem, GİB'in 7 gün
+  sınırı yüzünden bugünden geriye haftalık parçalara bölünür
+  (bugün 21.09.2026, son 1 ay: 14–21.09, 06–13.09, 29.08–05.09, 21–28.08).
+- Her parçanın listesi `taslakGetir` ile çekilir; her fatura
+  `faturaHTMLGetir` + filigran + `expo-print` ile tek tek PDF yapılıp
+  `<klasör>/<VKN - Unvan>/<YYYY-AA-GG>_<BelgeNo>.pdf` olarak yazılır.
+  Varsayılan yalnızca onaylı faturalar; anahtarla onaylanmamış
+  (`_ONAYSIZ`) ve silinmiş (`_SILINMIS`) belgeler de eklenir.
+- Aynı adda dosya varsa yeniden indirilmez (yarıda kalan yedekleme kaldığı
+  yerden devam eder). Tek faturanın hatası yedeklemeyi durdurmaz; art arda
+  3 hata ya da oturum hatası durdurur. İki GİB isteği arası 300 ms beklenir.
+- Kutu: "Yedekleme devam ediyor" + o an yedeklenen tarih aralığı + sayaçlar
+  + Durdur. Bitince "Yedekleme tamamlanmıştır" ve 2 sn sonra Görüntüle
+  ekranına geçilir (hatalı belge varsa geçilmez, liste okunabilsin diye).
+- Yedekleme sürerken ekran kararmaz (`expo-keep-awake`).
+- Döngü saf ve testli: `src/utils/yedekleme.ts`; dosya tarafı
+  `src/services/yedekDeposu.ts`.
+
+**Yedeklenen Faturaları Görüntüle** (`YedekleriGoruntuleScreen`): yedek
+klasöründeki PDF'ler mükellef klasörlerine göre listelenir, aranabilir.
+Dokununca telefonun PDF görüntüleyicisinde açılır (Android:
+`expo-intent-launcher` ile ACTION_VIEW; iOS: sistem önizleme/paylaşım
+sayfası); paylaş düğmesi e-posta/WhatsApp/Drive/"Dosyalara Kaydet" için
+paylaşım sayfasını açar.
+
+GİB verisi bu akışların hiçbirinde uygulama sunucusuna (Cloudflare) gitmez.

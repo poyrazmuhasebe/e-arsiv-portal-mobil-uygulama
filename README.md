@@ -20,7 +20,7 @@ Mali müşavirlerin mükelleflerinin GİB e-Arşiv Portal üzerinden kendi hesap
 - Kullanıcı bilgilerini görüntüleme/güncelleme
 - Uygulama kilidi (cihazın biyometrik/PIN kilidiyle), giriş ekranında GİB duyuru kutusu, bilinen GİB/ağ hatalarının anlaşılır Türkçe karşılıkları
 
-Ayrıntılar: [docs/ozellikler.md](docs/ozellikler.md). Henüz olmayanlar (GENEL İADE için iade edilen fatura girişi, KDV tevkifatı dışındaki vergi türleri, taslak düzenleme, itiraz talebi, "Adıma Düzenlenen Belgeler"): [docs/bilinen-sinirlamalar.md](docs/bilinen-sinirlamalar.md).
+Ayrıntılar: [docs/ozellikler.md](docs/ozellikler.md). Henüz olmayanlar (GENEL İADE için iade edilen fatura girişi, KDV tevkifatı dışındaki vergi türleri, taslak düzenleme, itiraz talebi, "Adıma Düzenlenen Belgeler"nde talep oluşturma): [docs/bilinen-sinirlamalar.md](docs/bilinen-sinirlamalar.md).
 
 ## Kurulum
 

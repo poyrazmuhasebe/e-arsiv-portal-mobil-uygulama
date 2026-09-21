@@ -1,0 +1,210 @@
+/**
+ * Fatura yedeklerinin telefondaki yeri.
+ *
+ * ANDROID: Kullanıcı bir klasör seçer (sistem klasör seçicisi, SAF).
+ * `Directory.pickDirectoryAsync` seçilen klasör için KALICI izin alıyor
+ * (expo-file-system 57, FilePickerContract → takePersistableUriPermission);
+ * klasörün adresi SecureStore'da saklanır ve uygulama yeniden açıldığında da
+ * kullanılır. Yedekler bu klasöre, telefonun kendi dosya yöneticisinden de
+ * görülebilecek şekilde yazılır; uygulama silinse bile kalır.
+ *
+ * iOS: Uygulamalar klasör seçip oraya kalıcı yazamıyor. Yedekler uygulamanın
+ * kendi "Belgeler" klasörüne yazılır. Bağımsız (EAS) derlemede bu klasör
+ * "Dosyalar > Bu iPhone'da > e-Arşiv Portal" altında görünür (app.json
+ * UIFileSharingEnabled); Expo Go'da Dosyalar'da görünmez, yalnızca uygulama
+ * içinden açılabilir. iOS'ta uygulama silinirse yedekler de silinir.
+ *
+ * Klasör yapısı: <seçilen klasör>/<VKN - Unvan>/<YYYY-AA-GG_BelgeNo>.pdf
+ */
+
+import { Platform } from 'react-native';
+import { Directory, File, Paths } from 'expo-file-system';
+import * as IntentLauncher from 'expo-intent-launcher';
+import * as Sharing from 'expo-sharing';
+
+import { deleteSecureItem, getSecureItem, setSecureItem } from '../utils/secureStorage';
+import { mukellefKlasorAdi, mukellefKlasoruMu, type YedekOrtami } from '../utils/yedekleme';
+
+const KLASOR_ANAHTARI = 'yedek_klasor_uri';
+const IOS_KLASOR_ADI = 'Fatura Yedekleri';
+
+/** Klasör seçimi yalnızca Android'de var (bkz. dosya başı). */
+export const KLASOR_SECILEBILIR = Platform.OS === 'android';
+
+function klasorVarMi(d: Directory): boolean {
+  try {
+    return d.exists;
+  } catch {
+    return false;
+  }
+}
+
+/** Kayıtlı yedek klasörü; Android'de seçilmemişse ya da erişilemiyorsa null. */
+export async function yedekKlasoru(): Promise<Directory | null> {
+  if (!KLASOR_SECILEBILIR) {
+    const d = new Directory(Paths.document, IOS_KLASOR_ADI);
+    if (!klasorVarMi(d)) d.create({ intermediates: true, idempotent: true });
+    return d;
+  }
+  const uri = await getSecureItem(KLASOR_ANAHTARI);
+  if (!uri) return null;
+  const d = new Directory(uri);
+  // Klasör silindiyse ya da izin geri alındıysa kayıt temizlenir; kullanıcı
+  // yeniden seçer.
+  if (!klasorVarMi(d)) {
+    await deleteSecureItem(KLASOR_ANAHTARI);
+    return null;
+  }
+  return d;
+}
+
+/** Android: sistem klasör seçicisini açar. Vazgeçilirse null. */
+export async function yedekKlasoruSec(): Promise<Directory | null> {
+  if (!KLASOR_SECILEBILIR) return yedekKlasoru();
+  let secilen: Directory;
+  try {
+    secilen = await Directory.pickDirectoryAsync();
+  } catch {
+    return null; // vazgeçildi
+  }
+  await setSecureItem(KLASOR_ANAHTARI, secilen.uri);
+  return secilen;
+}
+
+/**
+ * Kullanıcıya gösterilecek klasör adı. SAF adresi okunaksız
+ * ("content://…/tree/primary%3ADownload%2FYedek"); "Download/Yedek"e çevrilir.
+ */
+export function klasorGorunenAdi(d: Directory): string {
+  if (!KLASOR_SECILEBILIR) return `Uygulama klasörü / ${IOS_KLASOR_ADI}`;
+  const agac = /\/tree\/([^/]+)/.exec(d.uri);
+  if (agac) {
+    try {
+      const yol = decodeURIComponent(agac[1]);
+      const ikiNokta = yol.indexOf(':');
+      const goreli = ikiNokta >= 0 ? yol.slice(ikiNokta + 1) : yol;
+      return goreli || 'Dahili depolama';
+    } catch {
+      // aşağıya düş
+    }
+  }
+  return d.name || d.uri;
+}
+
+/**
+ * Mükellefin alt klasörü. `olustur` true ise yoksa oluşturulur. SAF'ta
+ * `createDirectory` aynı adda klasör varken "Ad (1)" açtığı için önce
+ * mevcutlar listelenir.
+ */
+export function mukellefKlasoru(kok: Directory, vkn: string, unvan: string | undefined, olustur: boolean): Directory | null {
+  for (const oge of kok.list()) {
+    if (oge instanceof Directory && mukellefKlasoruMu(oge.name, vkn)) return oge;
+  }
+  return olustur ? kok.createDirectory(mukellefKlasorAdi(vkn, unvan)) : null;
+}
+
+/** Yedekleme döngüsünün dosya tarafı (bkz. utils/yedekleme.ts → YedekOrtami). */
+export function dosyaOrtami(klasor: Directory): Pick<YedekOrtami, 'varMi' | 'yaz'> {
+  const mevcut = new Set<string>();
+  for (const oge of klasor.list()) {
+    if (oge instanceof File) mevcut.add(oge.name);
+  }
+  return {
+    varMi: (ad) => mevcut.has(ad),
+    yaz: (ad, base64) => {
+      const dosya = klasor.createFile(ad, 'application/pdf');
+      dosya.write(base64, { encoding: 'base64' });
+      mevcut.add(ad);
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Görüntüleme
+// ---------------------------------------------------------------------------
+
+export interface YedekDosyasi {
+  dosya: File;
+  ad: string;
+  boyut: number | null;
+}
+
+export interface MukellefYedegi {
+  klasor: Directory;
+  ad: string;
+  dosyalar: YedekDosyasi[];
+}
+
+/** Yedek klasöründeki mükellef klasörleri ve PDF'leri (en yeni fatura üstte). */
+export function yedekleriListele(kok: Directory): MukellefYedegi[] {
+  const sonuc: MukellefYedegi[] = [];
+  for (const oge of kok.list()) {
+    if (!(oge instanceof Directory)) continue;
+    const dosyalar: YedekDosyasi[] = [];
+    for (const alt of oge.list()) {
+      if (!(alt instanceof File) || !alt.name.toLowerCase().endsWith('.pdf')) continue;
+      let boyut: number | null = null;
+      try {
+        boyut = alt.size;
+      } catch {
+        boyut = null;
+      }
+      dosyalar.push({ dosya: alt, ad: alt.name, boyut });
+    }
+    if (dosyalar.length === 0) continue;
+    dosyalar.sort((a, b) => b.ad.localeCompare(a.ad));
+    sonuc.push({ klasor: oge, ad: oge.name, dosyalar });
+  }
+  sonuc.sort((a, b) => a.ad.localeCompare(b.ad, 'tr'));
+  return sonuc;
+}
+
+// Android Intent.FLAG_GRANT_READ_URI_PERMISSION
+const OKUMA_IZNI = 1;
+
+/**
+ * PDF'i telefonun PDF görüntüleyicisiyle açar. Android'de SAF dosyası
+ * zaten bir content:// adresi; okuma izniyle doğrudan görüntüleyiciye
+ * verilir. iOS'ta sistemin önizleme/paylaşım sayfası açılır.
+ */
+export async function yedegiAc(dosya: File): Promise<void> {
+  if (Platform.OS === 'android') {
+    const uri = dosya.uri.startsWith('content://') ? dosya.uri : dosya.contentUri;
+    try {
+      await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+        data: uri,
+        flags: OKUMA_IZNI,
+        type: 'application/pdf',
+      });
+      return;
+    } catch {
+      // PDF görüntüleyici yoksa paylaşım sayfasına düş.
+    }
+  }
+  await yedegiPaylas(dosya);
+}
+
+/**
+ * Paylaş / başka yere kaydet. expo-sharing Android'de yalnızca uygulamanın
+ * kendi dosyalarını paylaşabildiği için SAF dosyası önce önbelleğe
+ * kopyalanır (içerik Base64 olarak okunup yazılır; önbellek sistemce
+ * temizlenir).
+ */
+export async function yedegiPaylas(dosya: File): Promise<void> {
+  if (!(await Sharing.isAvailableAsync())) {
+    throw new Error('Bu cihazda paylaşım desteklenmiyor.');
+  }
+  let paylasilacak = dosya;
+  if (Platform.OS === 'android' && dosya.uri.startsWith('content://')) {
+    const kopya = new File(Paths.cache, dosya.name);
+    if (kopya.exists) kopya.delete();
+    kopya.create();
+    kopya.write(await dosya.base64(), { encoding: 'base64' });
+    paylasilacak = kopya;
+  }
+  await Sharing.shareAsync(paylasilacak.uri, {
+    mimeType: 'application/pdf',
+    dialogTitle: dosya.name,
+    UTI: 'com.adobe.pdf',
+  });
+}

@@ -9,7 +9,11 @@
     "backgroundColor": "#0D47A1",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.poyrazmuhasebe.earsivportal"
+      "bundleIdentifier": "com.poyrazmuhasebe.earsivportal",
+      "infoPlist": {
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true
+      }
     },
     "android": {
       "package": "com.poyrazmuhasebe.earsivportal",

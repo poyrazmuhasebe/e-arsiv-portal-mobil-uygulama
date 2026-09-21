@@ -2,7 +2,13 @@ import { beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { sahteAgHatasi, sahteAxios, sahteleriSifirla, type SahteYanit } from './sahte/kurulum';
-import { GibApiError, gibHatasiniIsle, login, taslakGetir } from '../src/services/gibApi';
+import {
+  GibApiError,
+  adimaDuzenlenenBelgeleriGetir,
+  gibHatasiniIsle,
+  login,
+  taslakGetir,
+} from '../src/services/gibApi';
 import { useAuthStore } from '../src/store/useAuthStore';
 
 // Bu testler GİB'e İSTEK ATMAZ: axios tamamen sahtelenmiştir (test/sahte/kurulum.ts).
@@ -183,4 +189,32 @@ test('gibHatasiniIsle: oturum dışı hatada mesaj aynen döner, oturum kapanmaz
   assert.deepEqual(sonuc, { mesaj: 'Bir şey ters gitti.', oturumKapandi: false });
   assert.equal(useAuthStore.getState().token, 'T');
   assert.equal((await gibHatasiniIsle('string hata')).mesaj, 'Beklenmeyen bir hata oluştu.');
+});
+
+// ---------------------------------------------------------------------------
+// Adıma Düzenlenen Belgeler
+// ---------------------------------------------------------------------------
+
+test('adimaDuzenlenenBelgeleriGetir: kullanıcının yakaladığı istekle birebir aynı', async () => {
+  yanitla({ status: 200, data: { data: [{ belgeNumarasi: 'X1', saticiUnvanAdSoyad: 'Satıcı A.Ş.' }] } });
+  const sonuc = await adimaDuzenlenenBelgeleriGetir('tok', { baslangicTarihi: '01/09/2026', bitisTarihi: '08/09/2026' });
+  assert.deepEqual(sonuc, [{ belgeNumarasi: 'X1', saticiUnvanAdSoyad: 'Satıcı A.Ş.' }]);
+  const govde = new URLSearchParams(sahteAxios.istekler[0].govde);
+  assert.equal(govde.get('cmd'), 'EARSIV_PORTAL_ADIMA_KESILEN_BELGELERI_GETIR');
+  assert.equal(govde.get('pageName'), 'RG_ALICI_TASLAKLAR');
+  assert.equal(govde.get('token'), 'tok');
+  assert.deepEqual(JSON.parse(govde.get('jp')!), {
+    baslangic: '01/09/2026',
+    bitis: '08/09/2026',
+    hourlySearchInterval: 'NONE',
+  });
+});
+
+test('adimaDuzenlenenBelgeleriGetir: düz dizi de kabul edilir, tanınmayan yanıt boş liste', async () => {
+  yanitla({ status: 200, data: [{ belgeNumarasi: 'X2' }] });
+  assert.deepEqual(await adimaDuzenlenenBelgeleriGetir('tok', { baslangicTarihi: 'a', bitisTarihi: 'b' }), [
+    { belgeNumarasi: 'X2' },
+  ]);
+  yanitla({ status: 200, data: { data: 'beklenmeyen' } });
+  assert.deepEqual(await adimaDuzenlenenBelgeleriGetir('tok', { baslangicTarihi: 'a', bitisTarihi: 'b' }), []);
 });

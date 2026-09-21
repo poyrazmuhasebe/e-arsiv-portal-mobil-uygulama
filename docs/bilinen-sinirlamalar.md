@@ -53,10 +53,22 @@ bu sayfa onların tematik bir özetidir.
 - **Taslak Düzenle** — düğme görünür ama gerçek işlevi yok: `handleAksiyon`
   yalnızca geliştirme modunda bir `console.log` yazar, GİB'e istek atmaz.
   ([Issue #11](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/11))
-- **"Adıma Düzenlenen Belgeler" ekranı henüz yok** — Dashboard'daki menü
-  öğesi "Bu özellik henüz eklenmedi." uyarısı gösteriyor; gerekli cmd henüz
-  yakalanmadı.
+- **"Adıma Düzenlenen Belgeler": yalnızca liste var** — liste isteği
+  doğrulandı ama yanıtın şekli henüz görülmedi (alanların GİB tablosundaki
+  sütun adlarıyla geldiği varsayılıyor). Bu ekrandaki İtiraz/İptal Talebi
+  Oluştur ve belge görüntüleme istekleri yakalanmadı; düğmeler yalnızca bilgi
+  kutusu açar.
   ([Issue #19](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/19))
+- **Fatura yedekleme, iOS** — iPhone'da klasör seçilemiyor; yedekler
+  uygulamanın kendi klasöründe durur ve uygulama silinirse silinir. Expo Go'da
+  bu klasör Dosyalar uygulamasında görünmez (EAS derlemesinde görünür).
+- **Fatura yedekleme, durum değişikliği** — bir fatura yedeklendikten sonra
+  iptal edilirse, aynı dosya adı zaten var olduğu için yeniden indirilmez;
+  yedekteki PDF'te iptal filigranı olmaz. Güncel hali için o dosyayı silip
+  yedeklemeyi tekrar çalıştırın.
+- **Fatura yedekleme, arka plan** — yedekleme uygulama açıkken çalışır;
+  uygulama arka plana alınırsa durabilir. Kaldığı yerden devam etmek için
+  tekrar başlatın.
 
 ## Araştırılması Gerekenler
 

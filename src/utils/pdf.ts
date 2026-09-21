@@ -45,6 +45,21 @@ async function pdfBase64Uret(html: string, filigranMetni?: string): Promise<stri
 }
 
 /**
+ * Yedekleme için: filigranı ÖNCEDEN eklenmiş HTML'in PDF'i, Base64. Dosyaya
+ * yazmayı çağıran yapar (bkz. services/yedekDeposu.ts). expo-print her PDF
+ * için önbellekte bir dosya bırakıyor; yüzlerce fatura yedeklenirken
+ * birikmesin diye silinmesi denenir (silinemezse sistem önbelleği temizler).
+ */
+export async function yedekPdfBase64(html: string): Promise<string> {
+  const { uri, base64 } = await Print.printToFileAsync({ html: utf8MetaEkle(html), base64: true });
+  FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => undefined);
+  if (!base64) {
+    throw new Error('PDF oluşturulamadı (Base64 verisi alınamadı).');
+  }
+  return base64;
+}
+
+/**
  * PDF'i üretip uygulamanın kendi belge dizinine (paylaşım için) yazar.
  * `filigranMetni` verilirse (ör. "İptal Kabul Edildi") sayfanın ortasına
  * çapraz bir filigran olarak eklenir.

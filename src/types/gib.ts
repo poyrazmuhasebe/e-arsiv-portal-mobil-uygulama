@@ -155,6 +155,26 @@ export interface IptalItirazTalebi {
   [key: string]: unknown;
 }
 
+// "Belge İşlemleri > Adıma Düzenlenen Belgeler" listesi
+// (EARSIV_PORTAL_ADIMA_KESILEN_BELGELERI_GETIR). Sütun `rel` adları GİB'in
+// tablosundan (kullanıcının 2026-09-21'de paylaştığı DOM) alındı:
+// belgeNumarasi, saticiVknTckn, saticiUnvanAdSoyad, belgeTarihi, belgeTuru,
+// onayli, talepDurumColumn. YANITIN KENDİSİ HENÜZ GÖRÜLMEDİ: satır objesinde
+// alanların bu adlarla geldiği varsayılıyor; "Onaylı" sütunu için taslak
+// listesindeki `onayDurumu` da yedek olarak okunuyor.
+export interface AdimaDuzenlenenBelge {
+  belgeNumarasi?: string;
+  saticiVknTckn?: string;
+  saticiUnvanAdSoyad?: string;
+  belgeTarihi?: string;
+  belgeTuru?: string;
+  onayli?: string;
+  onayDurumu?: string;
+  talepDurumColumn?: string;
+  ettn?: string;
+  [key: string]: unknown;
+}
+
 export interface GibMesaj {
   type?: string;
   // GİB'in hangi alan adını kullandığı doğrulanmadı; ikisi de görülmüş.

@@ -525,7 +525,7 @@ GİB portalının kendi tek-sayfa uygulamasının (SPA) menü yükleme çağrıs
 | e-Arşiv Fatura (İnteraktif) Oluştur | `RG_BASITFATURA` | ✅ Uygulandı |
 | Düzenlenen Belgeler e-Arşiv Fatura (İnteraktif) | `RG_BASITTASLAKLAR` | ✅ Uygulandı |
 | İptal/İtiraz Talepleri | `RG_IPTALITIRAZTASLAKLAR` | ✅ Uygulandı (`IptalItirazTalepleriScreen`) |
-| Adıma Düzenlenen Belgeler (bana kesilen faturalar) | `RG_ALICI_TASLAKLAR` | ⏳ Henüz uygulanmadı — cmd'ler yakalanmadı (bkz. [Issue #19](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/19)) |
+| Adıma Düzenlenen Belgeler (bana kesilen faturalar) | `RG_ALICI_TASLAKLAR` | 🟡 Liste uygulandı (`AdimaDuzenlenenScreen`, `EARSIV_PORTAL_ADIMA_KESILEN_BELGELERI_GETIR`); talep oluşturma ve görüntüleme cmd'leri yakalanmadı (bkz. [Issue #19](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/19)) |
 | Kullanıcı Bilgileri | `RG_KULLANICI` | ✅ Uygulandı (`KullaniciBilgileriScreen` — `kullaniciBilgileriDetayGetir`/`kullaniciBilgileriKaydet`) |
 
 `getUserMenu`/`SIDE.GET_EAGER_BF_DEFS` çağrılarının kendisi ve GİB

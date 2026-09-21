@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ActivityIndicator,
@@ -14,20 +14,14 @@ import {
   useTheme,
 } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 
 import type { RootStackParamList } from '../../App';
+import TarihAraligiFiltresi, { tarihFormatla } from '../components/TarihAraligiFiltresi';
 import { iptalItirazTalepDurumGuncelle, iptalItirazTalepleriGetir } from '../services/gibApi';
 import { useAuthStore } from '../store/useAuthStore';
 import type { IptalItirazTalebi } from '../types/gib';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'IptalItirazTalepleri'>;
-
-function tarihFormatla(d: Date): string {
-  const gg = String(d.getDate()).padStart(2, '0');
-  const aa = String(d.getMonth() + 1).padStart(2, '0');
-  return `${gg}/${aa}/${d.getFullYear()}`;
-}
 
 function asString(v: unknown): string | undefined {
   return typeof v === 'string' && v.length > 0 ? v : undefined;
@@ -50,7 +44,6 @@ export default function IptalItirazTalepleriScreen({ navigation }: Props) {
 
   const [baslangicTarih, setBaslangicTarih] = useState<Date>(() => new Date());
   const [bitisTarih, setBitisTarih] = useState<Date>(() => new Date());
-  const [acikPicker, setAcikPicker] = useState<'baslangic' | 'bitis' | null>(null);
 
   // Kabul VE Reddet — GİB'in kendi arayüzündeki gerçek akışlar (uyarı +
   // "Uyarıyı Okudum" + Reddet'te ayrıca 255 karakterlik gerekçe metni)
@@ -97,13 +90,6 @@ export default function IptalItirazTalepleriScreen({ navigation }: Props) {
     setYenileniyor(true);
     await veriYukle(baslangicTarih, bitisTarih);
     setYenileniyor(false);
-  };
-
-  const handleTarihSecildi = (_event: DateTimePickerChangeEvent, secilen: Date) => {
-    const hedef = acikPicker;
-    setAcikPicker(null);
-    if (hedef === 'baslangic') setBaslangicTarih(secilen);
-    else if (hedef === 'bitis') setBitisTarih(secilen);
   };
 
   const handleKabulBaslat = (item: IptalItirazTalebi) => {
@@ -234,41 +220,16 @@ export default function IptalItirazTalepleriScreen({ navigation }: Props) {
         <Appbar.Content title="İptal / İtiraz Talepleri" />
       </Appbar.Header>
 
-      <View style={styles.filtreBar}>
-        <View style={styles.tarihRow}>
-          <Pressable
-            onPress={() => setAcikPicker('baslangic')}
-            style={[styles.tarihButon, { borderColor: theme.colors.outline }]}
-          >
-            <Text variant="labelSmall" style={styles.mutedText}>
-              Başlangıç
-            </Text>
-            <Text variant="bodyMedium">{tarihFormatla(baslangicTarih)}</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setAcikPicker('bitis')}
-            style={[styles.tarihButon, { borderColor: theme.colors.outline }]}
-          >
-            <Text variant="labelSmall" style={styles.mutedText}>
-              Bitiş
-            </Text>
-            <Text variant="bodyMedium">{tarihFormatla(bitisTarih)}</Text>
-          </Pressable>
-        </View>
-        <Button mode="contained" onPress={handleSorgula} loading={yukleniyor} disabled={yukleniyor}>
-          Sorgula
-        </Button>
-      </View>
-
-      {acikPicker && (
-        <DateTimePicker
-          value={acikPicker === 'baslangic' ? baslangicTarih : bitisTarih}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          onValueChange={handleTarihSecildi}
-          onDismiss={() => setAcikPicker(null)}
-        />
-      )}
+      <TarihAraligiFiltresi
+        baslangic={baslangicTarih}
+        bitis={bitisTarih}
+        onDegisti={(b, e) => {
+          setBaslangicTarih(b);
+          setBitisTarih(e);
+        }}
+        onSorgula={handleSorgula}
+        yukleniyor={yukleniyor}
+      />
 
       {yukleniyor ? (
         <View style={styles.merkezi}>
@@ -380,15 +341,6 @@ export default function IptalItirazTalepleriScreen({ navigation }: Props) {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  filtreBar: { padding: 16, gap: 12 },
-  tarihRow: { flexDirection: 'row', gap: 12 },
-  tarihButon: {
-    flex: 1,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
   merkezi: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   listContent: { padding: 16, paddingTop: 0, gap: 12 },
   card: { borderRadius: 16, marginBottom: 12 },

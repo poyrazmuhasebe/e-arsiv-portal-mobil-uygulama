@@ -127,8 +127,6 @@ export default function DashboardScreen({ navigation }: Props) {
   // GİB'in kendi "Belge İşlemleri" ana menüsündeki 4 alt sekmeyle birebir
   // eşleşiyor (bkz. gerçek menü ağacı yakalaması): e-Arşiv Fatura Oluştur,
   // Taslak Faturalar, İptal/İtiraz Talepleri, Adıma Düzenlenen Belgeler.
-  // Sonuncusu henüz uygulanmadı — cmd'i canlı bir yakalamayla doğrulanana
-  // kadar yer tutucu bir uyarı gösteriyor.
   const belgeIslemleri: MenuOgesi[] = [
     {
       icon: '🧾',
@@ -151,8 +149,25 @@ export default function DashboardScreen({ navigation }: Props) {
     {
       icon: '📥',
       baslik: 'Adıma Düzenlenen Belgeler',
-      altBaslik: 'Bu özellik henüz eklenmedi',
-      onPress: () => Alert.alert('Yakında', 'Bu özellik henüz eklenmedi.'),
+      altBaslik: 'Başkalarının adınıza düzenlediği faturaları görüntüleyin',
+      onPress: () => navigation.navigate('AdimaDuzenlenen'),
+    },
+  ];
+
+  // GİB'de yok: faturaların PDF'lerini telefondaki bir klasöre yedekler.
+  // GİB verisi yalnızca GİB ile telefon arasında kalır.
+  const yedeklemeIslemleri: MenuOgesi[] = [
+    {
+      icon: '💾',
+      baslik: 'Faturaları Şimdi Yedekle',
+      altBaslik: 'Son 1 hafta – 1 yıl arasındaki faturaları PDF olarak telefona indirin',
+      onPress: () => navigation.navigate('Yedekle'),
+    },
+    {
+      icon: '🗂️',
+      baslik: 'Yedeklenen Faturaları Görüntüle',
+      altBaslik: 'Telefondaki yedekleri açın veya paylaşın',
+      onPress: () => navigation.navigate('YedekleriGoruntule'),
     },
   ];
 
@@ -214,6 +229,23 @@ export default function DashboardScreen({ navigation }: Props) {
           BELGE İŞLEMLERİ
         </Text>
         {belgeIslemleri.map((oge) => (
+          <Card key={oge.baslik} mode="elevated" style={styles.card} onPress={oge.onPress}>
+            <Card.Content style={styles.cardContent}>
+              <Text variant="displaySmall">{oge.icon}</Text>
+              <View style={styles.cardTextGroup}>
+                <Text variant="titleMedium">{oge.baslik}</Text>
+                <Text variant="bodySmall" style={styles.cardSubtitle}>
+                  {oge.altBaslik}
+                </Text>
+              </View>
+            </Card.Content>
+          </Card>
+        ))}
+
+        <Text variant="labelLarge" style={[styles.bolumBasligi, styles.ikinciBolumBasligi]}>
+          FATURALARI CİHAZIMDA YEDEKLEME
+        </Text>
+        {yedeklemeIslemleri.map((oge) => (
           <Card key={oge.baslik} mode="elevated" style={styles.card} onPress={oge.onPress}>
             <Card.Content style={styles.cardContent}>
               <Text variant="displaySmall">{oge.icon}</Text>

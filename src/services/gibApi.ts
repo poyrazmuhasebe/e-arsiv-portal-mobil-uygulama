@@ -18,6 +18,7 @@
 
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import type {
+  AdimaDuzenlenenBelge,
   AliciBilgisi,
   DispatchEnvelope,
   FaturaSatiri,
@@ -1365,6 +1366,50 @@ export async function iptalItirazTalepDurumGuncelle(
   );
 }
 
+// ---------------------------------------------------------------------------
+// Adıma Düzenlenen Belgeler (Belge İşlemleri menüsünün 4. sekmesi)
+// ---------------------------------------------------------------------------
+
+export interface AdimaDuzenlenenFiltre {
+  baslangicTarihi: string; // "GG/AA/YYYY"
+  bitisTarihi: string; // "GG/AA/YYYY"
+}
+
+/**
+ * cmd/pageName/jp tarayıcı DevTools yakalamasıyla BİREBİR DOĞRULANDI
+ * (kullanıcı, 2026-09-21):
+ *   cmd      EARSIV_PORTAL_ADIMA_KESILEN_BELGELERI_GETIR
+ *   pageName RG_ALICI_TASLAKLAR
+ *   jp       {"baslangic":"01/09/2026","bitis":"08/09/2026","hourlySearchInterval":"NONE"}
+ * YANITIN ŞEKLİ henüz görülmedi; taslak listesiyle aynı biçimde (dizi ya da
+ * {data: dizi}) geldiği varsayılıyor. İlk canlı denemede terminaldeki
+ * "GİB ADIMA DÜZENLENEN HAM YANIT" loguna bakın.
+ */
+export async function adimaDuzenlenenBelgeleriGetir(
+  token: string,
+  filtre: AdimaDuzenlenenFiltre,
+): Promise<AdimaDuzenlenenBelge[]> {
+  if (IS_TEST_MODE) {
+    if (__DEV__) console.log('MOCK ADIMA DÜZENLENEN GETİR:', filtre);
+    return Promise.resolve([]);
+  }
+
+  const result = await dispatch<AdimaDuzenlenenBelge[] | { data: AdimaDuzenlenenBelge[] } | Record<string, unknown>>(
+    'EARSIV_PORTAL_ADIMA_KESILEN_BELGELERI_GETIR',
+    'RG_ALICI_TASLAKLAR',
+    { baslangic: filtre.baslangicTarihi, bitis: filtre.bitisTarihi, hourlySearchInterval: 'NONE' },
+    token,
+  );
+
+  if (__DEV__) console.log('GİB ADIMA DÜZENLENEN HAM YANIT:', JSON.stringify(result));
+
+  if (Array.isArray(result)) return result;
+  if (result && typeof result === 'object' && Array.isArray((result as { data?: unknown }).data)) {
+    return (result as { data: AdimaDuzenlenenBelge[] }).data;
+  }
+  return [];
+}
+
 export const gibApi = {
   login,
   logout,
@@ -1383,6 +1428,7 @@ export const gibApi = {
   faturaHTMLGetir,
   iptalItirazTalepleriGetir,
   iptalItirazTalepDurumGuncelle,
+  adimaDuzenlenenBelgeleriGetir,
   gibHatasiniIsle,
 };
 

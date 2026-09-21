@@ -254,3 +254,32 @@ Seç"te kaç kayıt olduğunu ve ilk birkaçının sırasını not edin.
   alıcı ve kalem adları deftere ekleniyor; başarı mesajında "kaydedilemedi"
   notu yok. *Gerçek belge üretir; yalnızca zaten kesilecek bir faturada
   deneyin.*
+
+## Adıma Düzenlenen Belgeler ve fatura yedekleme (2026-09-21)
+
+### GİB gerekir
+
+- [ ] **Adıma Düzenlenen Belgeler listesi** — ana menü → Adıma Düzenlenen
+  Belgeler → adınıza fatura kesilmiş bir hafta seçip Sorgula: kartlarda belge
+  no, satıcı, tarih, tür, onay ve talep durumu dolu mu? Boş gelen alan varsa
+  terminaldeki "GİB ADIMA DÜZENLENEN HAM YANIT" satırını gönderin.
+- [ ] **7 gün sınırı** — Taslaklar, İptal/İtiraz Talepleri ve Adıma
+  Düzenlenen Belgeler'de 7 günden uzun aralık seçilemiyor; diğer uç kayıyor.
+- [ ] **Klasör seçme (Android)** — Faturaları Şimdi Yedekle → Klasör Seç →
+  bir klasör (ör. Download/Faturalar) → ad ekranda görünüyor; uygulamayı
+  kapatıp açınca hâlâ seçili.
+- [ ] **Son 1 hafta yedeği** — kutu "Yedekleme devam ediyor" ve tarih
+  aralığını gösteriyor; bitince "Yedekleme tamamlanmıştır" ve Görüntüle
+  ekranına geçiyor. Telefonun Dosyalar uygulamasında seçilen klasör altında
+  "VKN - Unvan" klasörü ve PDF'ler var.
+- [ ] **Son 1 ay yedeği** — kutudaki tarih 4 kez değişiyor (14–21.09,
+  06–13.09, …); aynı dönemi ikinci kez başlatınca hepsi "Zaten yedekli"
+  sayılıyor, yeni dosya açılmıyor.
+- [ ] **Durdur** — uzun bir dönemde Durdur'a basın: kutu "Yedekleme
+  durduruldu" diyor; tekrar başlatınca kaldığı yerden devam ediyor.
+- [ ] **PDF içeriği** — yedeklenen PDF açılınca fatura tam ve Türkçe
+  karakterler doğru; iptali kabul edilmiş faturada filigran var.
+- [ ] **Görüntüle** — bir yedeğe dokununca PDF görüntüleyicide açılıyor;
+  paylaş düğmesi paylaşım sayfasını açıyor (ör. WhatsApp'a gönderme).
+- [ ] **iPhone** — klasör seçme düğmesi yok, yedekleme ve Görüntüle
+  çalışıyor, PDF önizlemesi açılıyor.
