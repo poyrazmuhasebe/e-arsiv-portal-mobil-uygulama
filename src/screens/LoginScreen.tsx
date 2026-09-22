@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TextInput } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import DuyuruKutusu from '../components/DuyuruKutusu';
 import {
@@ -11,6 +13,7 @@ import {
   Icon,
   InfoBox,
   PrimaryButton,
+  SecondaryButton,
   TextButton,
 } from '../components/ui';
 import { useAuthStore } from '../store/useAuthStore';
@@ -18,6 +21,7 @@ import { useHesapStore } from '../store/useHesapStore';
 import { hatirlananKodlariOku, koduHatirla, koduUnut } from '../utils/hatirlananKodlar';
 import { deleteSecureItem } from '../utils/secureStorage';
 import { colors, radius, spacing, typography } from '../theme';
+import type { RootStackParamList } from '../../App';
 
 // Hatırlanan GİB kullanıcı kodları UYGULAMA HESABINA ÖZEL bir listede
 // tutulur (bir kullanıcı birden fazla GİB koduyla çalışabilir); yalnızca giriş
@@ -27,6 +31,7 @@ import { colors, radius, spacing, typography } from '../theme';
 const ESKI_HATIRLANAN_SIFRE_KEY = 'gib_hatirlanan_sifre';
 
 export default function LoginScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const login = useAuthStore((s) => s.login);
   const isLoading = useAuthStore((s) => s.isLoading);
   const hesapKullanicisi = useHesapStore((s) => s.kullanici);
@@ -225,6 +230,26 @@ export default function LoginScreen() {
                 Giriş Yap
               </PrimaryButton>
 
+              {/* e-Arşiv Portal'dan BAĞIMSIZ: Dijital Vergi Dairesi'nden
+                  (dijital.gib.gov.tr) alıcı olunan e-Arşiv faturaları. e-Arşiv
+                  Portal hizmet vermediğinde de kullanılabilsin diye girişten
+                  önce erişilebilir (kullanıcı isteği, 2026-09-22). Formdaki
+                  kullanıcı kodu taşınır; şifre TAŞINMAZ, orada ayrıca sorulur. */}
+              <SecondaryButton
+                icon="receipt-text-outline"
+                onPress={() =>
+                  navigation.navigate('EarsivFaturalarim', { kullaniciKodu: kullaniciKodu.trim() || undefined })
+                }
+                disabled={isLoading}
+                fullWidth
+              >
+                e-Arşiv Faturalarım (Dijital Vergi Dairesi)
+              </SecondaryButton>
+              <Text style={styles.dvdNotu}>
+                e-Arşiv Portal'a girmeden, Dijital Vergi Dairesi'nden adınıza düzenlenen e-Arşiv faturalarını
+                görüntüleyin.
+              </Text>
+
               <InfoBox tone="primary" icon="shield-lock-outline" title="Güvenliğiniz">
                 <Text style={styles.guvenlikMetni}>
                   Bu uygulama GİB'in resmi bir ürünü değildir. GİB kullanıcı kodunuz,
@@ -299,4 +324,5 @@ const styles = StyleSheet.create({
   kodYazi: { ...typography.label, color: colors.textPrimary, flexShrink: 1 },
   kodYaziSecili: { color: colors.primary, fontWeight: '600' },
   guvenlikMetni: { ...typography.bodySecondary, color: colors.textSecondary },
+  dvdNotu: { ...typography.caption, textAlign: 'center', marginTop: -spacing.xxs },
 });

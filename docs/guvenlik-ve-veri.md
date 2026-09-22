@@ -492,6 +492,11 @@ isteği) şifre artık **yalnızca bellekte** tutuluyor (`src/utils/oturumSifres
   saldırgan şifreyi okuyabilir. SecureStore'daki GİB token'ı zaten aynı
   risktedir; şifre kalıcı olmadığından yeni bir kalıcı iz bırakmaz.
 
+GİB giriş ekranından (e-Arşiv girişi yapılmadan) açılan Dijital VD
+girişinde şifre ekranda sorulur ve **bellekte de tutulmaz**; bellekteki
+(başka bir koda ait olabilecek) şifre kullanılmaz. Bu yolda GİB oturumu
+olmadığından Dijital VD oturumu uygulama hesabı değişince de kapatılır.
+
 Dijital VD token'ı da yalnızca bellekte (`src/store/useDvdStore.ts`); GİB
 oturumu kapanınca ya da başka bir kullanıcı koduna geçilince GİB'de de
 kapatılır. İstekler doğrudan telefondan `dijital.gib.gov.tr`'ye gider;

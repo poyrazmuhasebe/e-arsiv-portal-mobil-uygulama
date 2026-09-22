@@ -62,8 +62,12 @@ function gonderimEtiketi(s: string | undefined): string | undefined {
  * bellekte); kullanıcı yalnızca GİB'in güvenlik kodunu (captcha) yazar. Kod
  * OTOMATİK OKUNMAZ — GİB'in insan doğrulaması aşılmaz.
  */
-export default function EarsivFaturalarimScreen({ navigation }: Props) {
+export default function EarsivFaturalarimScreen({ navigation, route }: Props) {
   const kullaniciKodu = useAuthStore((s) => s.kullaniciKodu);
+  // e-Arşiv girişi yapılmadan (GİB giriş ekranından) açıldı: kullanıcı kodu ve
+  // şifre bu ekranda istenir; formdaki kod taşınır, şifre taşınmaz.
+  const bagimsiz = kullaniciKodu === null;
+  const [girilenKod, setGirilenKod] = useState(route.params?.kullaniciKodu ?? '');
   const token = useDvdStore((s) => s.token);
   const girisYapiliyor = useDvdStore((s) => s.girisYapiliyor);
   const girisYap = useDvdStore((s) => s.girisYap);
@@ -100,7 +104,12 @@ export default function EarsivFaturalarimScreen({ navigation }: Props) {
     if (!kod || !guvenlikKodu.trim() || girisYapiliyor) return;
     setGirisHatasi(null);
     try {
-      await girisYap({ guvenlikKodu, cid: kod.cid, sifre: sifreGerekli ? sifre : undefined });
+      await girisYap({
+        guvenlikKodu,
+        cid: kod.cid,
+        sifre: sifreGerekli ? sifre : undefined,
+        kullaniciKodu: bagimsiz ? girilenKod : undefined,
+      });
       setSifre('');
     } catch (err) {
       setGirisHatasi(err instanceof Error ? err.message : 'Giriş yapılamadı.');
@@ -200,10 +209,23 @@ export default function EarsivFaturalarimScreen({ navigation }: Props) {
             keyboardShouldPersistTaps="handled"
           >
             <InfoBox tone="info" icon="shield-account-outline" title="Dijital Vergi Dairesi girişi">
-              {`Adınıza düzenlenen e-Arşiv faturaları Dijital Vergi Dairesi'nden alınır. Giriş, e-Arşiv girişindeki kullanıcı kodunuzla (${kullaniciKodu ?? '—'}) yapılır; yalnızca aşağıdaki güvenlik kodunu yazın.`}
+              {bagimsiz
+                ? "Adınıza düzenlenen e-Arşiv faturaları Dijital Vergi Dairesi'nden alınır; e-Arşiv Portal'a giriş gerekmez. GİB kullanıcı kodunuz ve şifrenizle (e-Arşiv girişindekilerle aynı) ve aşağıdaki güvenlik koduyla giriş yapın."
+                : `Adınıza düzenlenen e-Arşiv faturaları Dijital Vergi Dairesi'nden alınır. Giriş, e-Arşiv girişindeki kullanıcı kodunuzla (${kullaniciKodu}) yapılır; yalnızca aşağıdaki güvenlik kodunu yazın.`}
             </InfoBox>
 
-            <SectionCard title="Güvenlik kodu" icon="form-textbox-password">
+            <SectionCard title={bagimsiz ? 'Giriş bilgileri' : 'Güvenlik kodu'} icon="form-textbox-password">
+              {bagimsiz ? (
+                <AppInput
+                  label="GİB Kullanıcı Kodu"
+                  value={girilenKod}
+                  onChangeText={setGirilenKod}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="username"
+                  disabled={girisYapiliyor}
+                />
+              ) : null}
               <View style={styles.kodSatiri}>
                 <View style={styles.kodResmi}>
                   {kodYukleniyor ? (
@@ -247,7 +269,11 @@ export default function EarsivFaturalarimScreen({ navigation }: Props) {
                   secureTextEntry={!sifreGorunur}
                   autoCapitalize="none"
                   autoCorrect={false}
-                  helperText="Uygulama yeniden açıldığı için şifreniz bir kez daha isteniyor. Cihaza kaydedilmez; yalnızca bu oturum boyunca bellekte tutulur."
+                  helperText={
+                    bagimsiz
+                      ? "Şifreniz yalnızca GİB'e gönderilir; cihaza kaydedilmez, bellekte de tutulmaz."
+                      : 'Uygulama yeniden açıldığı için şifreniz bir kez daha isteniyor. Cihaza kaydedilmez; yalnızca bu oturum boyunca bellekte tutulur.'
+                  }
                   right={
                     <TextInput.Icon
                       icon={sifreGorunur ? 'eye-off' : 'eye'}
@@ -264,7 +290,13 @@ export default function EarsivFaturalarimScreen({ navigation }: Props) {
                 icon="login"
                 onPress={handleGiris}
                 loading={girisYapiliyor}
-                disabled={!kod || !guvenlikKodu.trim() || (sifreGerekli && !sifre) || girisYapiliyor}
+                disabled={
+                  !kod ||
+                  !guvenlikKodu.trim() ||
+                  (sifreGerekli && !sifre) ||
+                  (bagimsiz && !girilenKod.trim()) ||
+                  girisYapiliyor
+                }
                 fullWidth
               >
                 Giriş Yap

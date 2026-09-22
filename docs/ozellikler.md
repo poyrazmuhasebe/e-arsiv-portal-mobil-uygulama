@@ -541,6 +541,11 @@ telefon…), hangi firma keserse kessin.
   tutmayabiliyor; hesaplanmaz).
 - Faturalar tıklanmaz: yanıtta açmaya yarayan bir kimlik yok, GİB'in kendi
   sayfasında da liste yalnızca metin.
+- **e-Arşiv girişi olmadan:** GİB giriş ekranında "Giriş Yap"ın altındaki
+  "e-Arşiv Faturalarım (Dijital Vergi Dairesi)" düğmesiyle de açılır (e-Arşiv
+  Portal hizmet vermediğinde kullanılabilsin diye). Bu yolda ekran kullanıcı
+  kodunu (formdan dolu gelir) ve şifreyi de ister; şifre belleğe alınmaz.
+  Uygulama hesabından çıkınca Dijital VD oturumu da kapatılır.
 - **Oturum:** Dijital VD token'ı yalnızca bellekte; uygulama kapanınca, GİB
   oturumundan çıkınca ya da başka bir GİB kullanıcı koduna geçince GİB'de de
   kapatılır (`src/store/useDvdStore.ts`). Başlıktaki düğmeyle elle de

@@ -315,3 +315,47 @@ test('e-Arşiv girişi şifreyi yalnızca belleğe alır; GİB çıkışında si
   await useAuthStore.getState().logout();
   assert.equal(oturumSifresi(), null);
 });
+
+// ---------------------------------------------------------------------------
+// Bağımsız giriş: GİB giriş ekranından, e-Arşiv girişi yapılmadan
+// ---------------------------------------------------------------------------
+
+test('bağımsız giriş: ekrandaki kod ve şifre kullanılır; şifre belleğe alınmaz', async () => {
+  // e-Arşiv oturumu yok; bellekte (başka bir koda ait olabilecek) eski şifre var.
+  oturumSifresiniAyarla('baska-kodun-sifresi');
+  yanitla(() => sahteJsonYanit({ result: true, token: 'dvd-token' }));
+  await useDvdStore.getState().girisYap({ guvenlikKodu: 'k1', cid: 'c', kullaniciKodu: ' 87654321 ', sifre: 'ekrandaki' });
+  assert.deepEqual(JSON.parse(sahteFetch.istekler[0].govde!), {
+    dk: 'k1',
+    userid: '87654321',
+    sifre: 'ekrandaki',
+    imageId: 'c',
+  });
+  assert.equal(useDvdStore.getState().kullaniciKodu, '87654321');
+  assert.equal(oturumSifresi(), 'baska-kodun-sifresi'); // değişmedi
+});
+
+test('bağımsız giriş: bellekteki şifre kullanılmaz; kod ve şifre zorunlu', async () => {
+  oturumSifresiniAyarla('bellekteki');
+  await assert.rejects(useDvdStore.getState().girisYap({ guvenlikKodu: 'k', cid: 'c', kullaniciKodu: '87654321' }), /şifrenizi/);
+  await assert.rejects(useDvdStore.getState().girisYap({ guvenlikKodu: 'k', cid: 'c', sifre: 'x' }), /kullanıcı kodunuzu/);
+  assert.equal(sahteFetch.istekler.length, 0);
+});
+
+test('bağımsız oturum: uygulama hesabından çıkınca Dijital VD oturumu kapatılır', async () => {
+  const { useHesapStore } = await import('../src/store/useHesapStore');
+  useHesapStore.setState({ atlandi: true });
+  useDvdStore.setState({ token: 'dvd-token', kullaniciKodu: '87654321' });
+  yanitla(() => sahteJsonYanit({ result: true }));
+  useHesapStore.setState({ atlandi: false, kullanici: null });
+  assert.equal(useDvdStore.getState().token, null);
+});
+
+test('bağımsız oturum: aynı kodla e-Arşiv girişi yapılınca korunur, başka kodla kapanır', () => {
+  useDvdStore.setState({ token: 'dvd-token', kullaniciKodu: '87654321' });
+  useAuthStore.setState({ token: 'gib', kullaniciKodu: '87654321' });
+  assert.equal(useDvdStore.getState().token, 'dvd-token');
+  yanitla(() => sahteJsonYanit({ result: true }));
+  useAuthStore.setState({ token: 'gib2', kullaniciKodu: '11112222' });
+  assert.equal(useDvdStore.getState().token, null);
+});

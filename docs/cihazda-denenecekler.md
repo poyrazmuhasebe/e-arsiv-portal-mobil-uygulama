@@ -339,6 +339,10 @@ Seç"te kaç kayıt olduğunu ve ilk birkaçının sırasını not edin.
 
 - [ ] **Menü** — ana menü → Belge İşlemleri → "Adıma Düzenlenen Belgeler"in
   altında "e-Arşiv Faturalarım".
+- [ ] **e-Arşiv girişi olmadan** — GİB giriş ekranında "Giriş Yap"ın altındaki
+  "e-Arşiv Faturalarım (Dijital Vergi Dairesi)" düğmesi: kullanıcı kodu formdan
+  dolu geliyor, şifre + güvenlik koduyla giriş yapılıp liste geliyor; geri
+  dönünce giriş ekranı duruyor.
 - [ ] **Güvenlik kodu** — ekranda GİB'in kod resmi görünüyor; yenile düğmesi
   yeni kod getiriyor.
 - [ ] **Giriş (yalnızca kod)** — e-Arşiv'e girdikten hemen sonra: yalnızca kodu

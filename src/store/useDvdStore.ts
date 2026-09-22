@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { dvdCikisYap, dvdGirisYap } from '../services/dvdApi';
 import { oturumSifresi, oturumSifresiniAyarla } from '../utils/oturumSifresi';
 import { useAuthStore } from './useAuthStore';
+import { useHesapStore } from './useHesapStore';
 
 /**
  * Dijital Vergi Dairesi oturumu — YALNIZCA BELLEKTE.
@@ -22,7 +23,12 @@ interface DvdDurumu {
   /** Oturumun hangi GİB kullanıcı koduyla açıldığı (başka koda geçilirse geçersiz). */
   kullaniciKodu: string | null;
   girisYapiliyor: boolean;
-  girisYap: (b: { guvenlikKodu: string; cid: string; sifre?: string }) => Promise<void>;
+  /**
+   * `kullaniciKodu` verilmezse açık GİB (e-Arşiv) oturumunun kodu kullanılır.
+   * e-Arşiv girişi yapılmadan (GİB giriş ekranından) açıldığında ekran kodu
+   * ve şifreyi kendisi verir; o durumda şifre belleğe de ALINMAZ.
+   */
+  girisYap: (b: { guvenlikKodu: string; cid: string; sifre?: string; kullaniciKodu?: string }) => Promise<void>;
   cikisYap: () => Promise<void>;
   /** Oturum GİB'de düşmüşse yalnızca yerelde temizler. */
   oturumuUnut: () => void;
@@ -33,16 +39,20 @@ export const useDvdStore = create<DvdDurumu>((set, get) => ({
   kullaniciKodu: null,
   girisYapiliyor: false,
 
-  girisYap: async ({ guvenlikKodu, cid, sifre }) => {
-    const kullaniciKodu = useAuthStore.getState().kullaniciKodu;
-    const kullanilacakSifre = sifre ?? oturumSifresi();
-    if (!kullaniciKodu) throw new Error('GİB oturumu açık değil.');
+  girisYap: async ({ guvenlikKodu, cid, sifre, kullaniciKodu: verilenKod }) => {
+    const gibKodu = useAuthStore.getState().kullaniciKodu;
+    const bagimsiz = gibKodu === null;
+    const kullaniciKodu = (bagimsiz ? verilenKod?.trim() : gibKodu) || null;
+    // Bağımsız girişte bellekteki şifre KULLANILMAZ (başka bir koda ait olabilir).
+    const kullanilacakSifre = sifre || (bagimsiz ? null : oturumSifresi());
+    if (!kullaniciKodu) throw new Error('GİB kullanıcı kodunuzu girin.');
     if (!kullanilacakSifre) throw new Error('GİB şifrenizi girin.');
     set({ girisYapiliyor: true });
     try {
       const token = await dvdGirisYap({ kullaniciKodu, sifre: kullanilacakSifre, guvenlikKodu, cid });
-      // Ekranda yazılan şifre doğru çıktıysa bu oturum için bellekte tutulur.
-      if (sifre) oturumSifresiniAyarla(sifre);
+      // Ekranda yazılan şifre doğru çıktıysa ve açık GİB oturumunun koduna
+      // aitse bu oturum için bellekte tutulur. Bağımsız girişte tutulmaz.
+      if (sifre && !bagimsiz) oturumSifresiniAyarla(sifre);
       set({ token, kullaniciKodu });
     } finally {
       set({ girisYapiliyor: false });
@@ -58,9 +68,12 @@ export const useDvdStore = create<DvdDurumu>((set, get) => ({
   oturumuUnut: () => set({ token: null, kullaniciKodu: null }),
 }));
 
-/** Şifrenin bellekte olup olmadığı (ekran şifre alanını buna göre gösterir). */
+/**
+ * Ekran şifre alanını göstermeli mi? e-Arşiv oturumu yoksa (bağımsız giriş)
+ * her zaman; varsa yalnızca şifre bellekte değilse.
+ */
 export function dvdSifreGerekli(): boolean {
-  return oturumSifresi() === null;
+  return useAuthStore.getState().kullaniciKodu === null || oturumSifresi() === null;
 }
 
 // GİB oturumu kapanınca ya da başka bir kullanıcı koduna geçilince Dijital VD
@@ -71,4 +84,15 @@ useAuthStore.subscribe((durum, onceki) => {
   const kapandi = onceki.token !== null && durum.token === null;
   const kodDegisti = durum.kullaniciKodu !== null && durum.kullaniciKodu !== dvd.kullaniciKodu;
   if (kapandi || kodDegisti) void dvd.cikisYap();
+});
+
+// Dijital VD, e-Arşiv girişi yapılmadan da (GİB giriş ekranından) açılabildiği
+// için GİB oturumu olmayabilir. Uygulama hesabı değişince (çıkış, başka hesap,
+// "Şimdilik atla"dan çıkış) oturum bir sonraki kullanıcıya KALMASIN.
+useHesapStore.subscribe((durum, onceki) => {
+  const dvd = useDvdStore.getState();
+  if (!dvd.token) return;
+  const hesapDegisti = (onceki.kullanici?.id ?? null) !== (durum.kullanici?.id ?? null);
+  const atlamaBitti = onceki.atlandi && !durum.atlandi;
+  if (hesapDegisti || atlamaBitti) void dvd.cikisYap();
 });

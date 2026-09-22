@@ -53,7 +53,8 @@ export type RootStackParamList = {
   AliciDefteri: undefined;
   MalHizmetDefteri: undefined;
   AdimaDuzenlenen: undefined;
-  EarsivFaturalarim: undefined;
+  // kullaniciKodu: GİB giriş ekranından (e-Arşiv girişi yapılmadan) açılınca formdaki kod.
+  EarsivFaturalarim: { kullaniciKodu?: string } | undefined;
   Yedekle: undefined;
   YedekleriGoruntule: undefined;
 };
@@ -186,6 +187,8 @@ export default function App() {
                   ) : token === null ? (
                     <Stack.Group>
                       <Stack.Screen name="Login" component={LoginScreen} />
+                      {/* e-Arşiv Portal girişinden bağımsız (Dijital Vergi Dairesi). */}
+                      <Stack.Screen name="EarsivFaturalarim" component={EarsivFaturalarimScreen} />
                       <Stack.Screen name="HesapSil" component={HesapSilScreen} />
                       <Stack.Screen name="HukukiMetin" component={HukukiMetinScreen} />
                     </Stack.Group>
