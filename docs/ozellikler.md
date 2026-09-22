@@ -517,3 +517,31 @@ sayfası); paylaş düğmesi e-posta/WhatsApp/Drive/"Dosyalara Kaydet" için
 paylaşım sayfasını açar.
 
 GİB verisi bu akışların hiçbirinde uygulama sunucusuna (Cloudflare) gitmez.
+
+## e-Arşiv Faturalarım (Dijital Vergi Dairesi) — `src/screens/EarsivFaturalarimScreen.tsx`
+
+Ana menüde "Adıma Düzenlenen Belgeler"in altında. e-Arşiv Portal'ın DEĞİL,
+**Dijital Vergi Dairesi**'nin "e-Arşiv Faturalarım" sayfasının karşılığı:
+mükellefin **alıcı** olduğu tüm e-Arşiv faturaları (elektrik, doğalgaz,
+telefon…), hangi firma keserse kessin.
+
+- **Giriş:** e-Arşiv girişindeki kullanıcı kodu ve şifre kullanılır; kullanıcı
+  yalnızca GİB'in güvenlik kodunu (resim) yazar. Yenile düğmesiyle yeni kod.
+  Her başarısız denemeden sonra yeni kod alınır. Uygulama yeniden açılıp GİB
+  oturumu kayıtlı token'dan geri geldiyse şifre bellekte olmadığından ekran
+  şifreyi bir kez sorar.
+- **Liste:** tarih aralığı (ortak filtre, 7 gün — Dijital VD'nin gerçek sınırı
+  henüz bilinmiyor), girişten sonra son 7 gün kendiliğinden sorgulanır.
+  Kartta satıcı unvanı, fatura no, düzenlenme tarihi, satıcı VKN/TCKN, tesisat
+  no, toplam tutar, vergiler, **ödenecek tutar** (öne çıkan), gönderim şekli
+  (Kâğıt/Elektronik) ve varsa iptal/itiraz durumu. GİB sayfa başına 10 kayıt
+  veriyor; "Daha fazla göster" ile sonraki sayfalar. Liste düzenlenme
+  tarihine göre yeniden eskiye sıralanır (GİB'in sırası güvenilmez).
+- Tutarlar GİB'in verdiği gibi gösterilir (toplam + vergi, ödenecek tutarı
+  tutmayabiliyor; hesaplanmaz).
+- Faturalar tıklanmaz: yanıtta açmaya yarayan bir kimlik yok, GİB'in kendi
+  sayfasında da liste yalnızca metin.
+- **Oturum:** Dijital VD token'ı yalnızca bellekte; uygulama kapanınca, GİB
+  oturumundan çıkınca ya da başka bir GİB kullanıcı koduna geçince GİB'de de
+  kapatılır (`src/store/useDvdStore.ts`). Başlıktaki düğmeyle elle de
+  kapatılabilir.

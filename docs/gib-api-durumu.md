@@ -34,3 +34,20 @@ indirme özelliği zaten `faturaHTMLGetir` (yukarıda ✅) + istemci tarafı PDF
 üretimiyle (`src/utils/pdf.ts`) tam çalışır ve canlı doğrulanmış durumda —
 `faturaIndir` gereksiz/kafa karıştırıcı olduğu için koddan tamamen
 kaldırıldı.
+
+## Dijital Vergi Dairesi (dijital.gib.gov.tr) — `src/services/dvdApi.ts`
+
+e-Arşiv Portal'dan AYRI bir GİB sistemi. Taban: `https://dijital.gib.gov.tr/apigateway`.
+Oturum `Authorization: Bearer <token>` başlığıyla taşınır (e-Arşiv Portal'daki
+gibi gövdede değil). Tüm istekler kullanıcının 2026-09-22 DevTools
+yakalamalarıyla birebir yazıldı.
+
+| Fonksiyon | Uç nokta | Durum |
+|---|---|---|
+| `dvdGuvenlikKoduGetir` | `GET /captcha/getnewcaptcha` → `{ captchaImgBase64, cid }` (PNG 135×45) | ✅ İstek ve yanıt yakalamayla doğrulandı |
+| `dvdGirisYap` | `POST /auth/tdvd/login`, başlık `page-name: login`, `ui-client: fe`, gövde `{ dk, userid, sifre, imageId }` (`imageId` = `cid`) → `{ result: true, token }` | ✅ Başarılı yanıt ve yanlış güvenlik kodu yanıtı (`{ messages: [{ text, type: "ERROR" }] }`) doğrulandı. ⚠️ Hatalı yanıtın HTTP durum kodu ve yanlış şifre metni görülmedi |
+| `dvdEarsivFaturalariGetir` | `POST /eislemler/earsiv/alici-list`, gövde `{ data: { duzenlenmeTarihiBas, duzenlenmeTarihiSon } (GG/AA/YYYY), meta: { pagination: { pageNo, pageSize: 10 }, sortFieldName: "faturaNo", sortType: "DESC", filters: [] } }` → `{ pageDetail, resultListDenormalized }` | ✅ İstek ve yanıt doğrulandı. ⚠️ GİB istenen sıralamayı uygulamıyor görünüyor (uygulama kendisi sıralar); tarih aralığı sınırı, `filters` yapısı, iptal/itiraz alanlarının dolu değerleri ve oturumu düşmüş token'ın yanıtı (401/403 varsayılıyor) görülmedi. Yanıtta faturayı açmaya yarayan kimlik yok; GİB'in sayfasında da liste yalnızca metin |
+| `dvdCikisYap` | `POST /auth/tdvd/logout` (Bearer, gövde yok) → `{ data: { redirectUrl }, result: true }` | ✅ Doğrulandı |
+
+Güvenlik kodu (captcha) **otomatik okunmaz**; kullanıcı yazar (GİB'in insan
+doğrulaması aşılmaz).

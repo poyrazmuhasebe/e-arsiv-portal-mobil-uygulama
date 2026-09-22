@@ -159,6 +159,15 @@ export default function DashboardScreen({ navigation }: Props) {
       altBaslik: 'Başkalarının adınıza düzenlediği faturaları görüntüleyin',
       onPress: () => navigation.navigate('AdimaDuzenlenen'),
     },
+    {
+      // Dijital Vergi Dairesi (GİB'in e-Arşiv Portal'ı değil): mükellefin
+      // ALICI olduğu tüm e-Arşiv faturaları (elektrik, doğalgaz, telefon…).
+      icon: 'receipt-text-outline',
+      accent: 'success',
+      baslik: 'e-Arşiv Faturalarım',
+      altBaslik: "Dijital Vergi Dairesi'nden adınıza düzenlenen e-Arşiv faturaları (elektrik, doğalgaz, telefon…)",
+      onPress: () => navigation.navigate('EarsivFaturalarim'),
+    },
   ];
 
   // GİB'de yok: faturaların PDF'lerini telefondaki bir klasöre yedekler.

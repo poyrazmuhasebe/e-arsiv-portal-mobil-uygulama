@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { login as gibLogin, logout as gibLogout, getKullaniciBilgileri } from '../services/gibApi';
 import { deleteSecureItem, getSecureItem, setSecureItem } from '../utils/secureStorage';
 import { eskiFaturaPdfleriniSil, paylasimKopyalariniSil } from '../utils/dosyaTemizlik';
+import { oturumSifresiniAyarla, oturumSifresiniSil } from '../utils/oturumSifresi';
 import {
   gibOturumuGeriYuklenebilirMi,
   gibSahibiniKaydet,
@@ -53,6 +54,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const token = await gibLogin(kullaniciKodu, kullaniciSifresi);
+      // Dijital Vergi Dairesi girişinde yeniden sorulmasın diye YALNIZCA
+      // BELLEKTE tutulur; diske/SecureStore'a yazılmaz (bkz. utils/oturumSifresi.ts).
+      oturumSifresiniAyarla(kullaniciSifresi);
       const kullaniciBilgisi = await getKullaniciBilgileri(token).catch(() => null);
 
       if (remember) {
@@ -132,6 +136,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Çıkışta, oturum boyunca üretilen tüm fatura PDF'lerini (kişisel/mali veri
     // içerirler) cihazdan sil. Hata fırlatmaz; çıkışı asla engellemez.
     await eskiFaturaPdfleriniSil(0);
+    // Bellekteki GİB şifresi (Dijital VD için) de silinir.
+    oturumSifresiniSil();
     // Yedeklerden paylaşım için önbelleğe alınan kopyalar da (başka bir
     // mükellefin oturumuna kalmasın).
     await paylasimKopyalariniSil();

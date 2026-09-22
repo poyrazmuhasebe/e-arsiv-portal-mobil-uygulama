@@ -332,3 +332,26 @@ Seç"te kaç kayıt olduğunu ve ilk birkaçının sırasını not edin.
 - [ ] **Boyut** — PDF'teki karekod GİB portalından indirilen PDF'tekiyle aynı boyutta (~5,3 cm, sayfa genişliğinin ~dörtte biri).
 - [ ] **Yedek** — Faturaları Şimdi Yedekle → yedeklenen PDF'lerde karekod var; yedekleme belirgin biçimde yavaşlamadı (fatura başına ~1 sn ek süre beklenir).
 - [ ] **Filigran** — iptali kabul edilmiş bir faturanın PDF'inde hem filigran hem karekod var.
+
+## e-Arşiv Faturalarım (Dijital Vergi Dairesi) (2026-09-22)
+
+### GİB gerekir
+
+- [ ] **Menü** — ana menü → Belge İşlemleri → "Adıma Düzenlenen Belgeler"in
+  altında "e-Arşiv Faturalarım".
+- [ ] **Güvenlik kodu** — ekranda GİB'in kod resmi görünüyor; yenile düğmesi
+  yeni kod getiriyor.
+- [ ] **Giriş (yalnızca kod)** — e-Arşiv'e girdikten hemen sonra: yalnızca kodu
+  yazıp giriş yapılabiliyor (şifre sorulmuyor).
+- [ ] **Yanlış kod** — "Güvenlik kodunu yanlış girdiniz…" gösteriliyor ve yeni kod
+  geliyor.
+- [ ] **Çerez** — doğru kodla giriş başarılı (captcha ile giriş arasında GİB
+  güvenlik duvarı çerezi korunuyor mu?). Başarısızsa hata metnini not edin.
+- [ ] **Uygulama yeniden açılınca** — şifre alanı da çıkıyor; şifre + kodla
+  giriş yapılıyor.
+- [ ] **Liste** — girişten sonra son 7 gün geliyor; kartlarda satıcı, fatura no,
+  tarih, tutarlar doğru (GİB'in kendi sayfasıyla karşılaştırın).
+- [ ] **Sayfalama** — 10'dan fazla faturalı bir aralıkta "Daha fazla göster"
+  çalışıyor.
+- [ ] **Oturum** — GİB oturumunu kapatıp yeniden girince Dijital VD kodu tekrar
+  isteniyor; başlıktaki çıkış düğmesi çalışıyor.

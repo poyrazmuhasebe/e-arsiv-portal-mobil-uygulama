@@ -472,3 +472,27 @@ Android'de yedek klasörü telefonun ortak depolamasındadır; telefonu kullanan
 herkes ve dosya yöneticisi uygulamaları bu PDF'leri görebilir. Uygulama
 içindeki mükellef süzgeci yalnızca bir görünüm kolaylığıdır, erişim denetimi
 değildir.
+
+## GİB şifresinin bellekte tutulması — Dijital Vergi Dairesi (2026-09-22)
+
+**İlke değişikliği.** Önceden GİB şifresi girişten sonra hiçbir yerde
+tutulmuyordu. "e-Arşiv Faturalarım" (Dijital Vergi Dairesi) ekranında
+kullanıcının yalnızca güvenlik kodunu yazması istendiği için (kullanıcı
+isteği) şifre artık **yalnızca bellekte** tutuluyor (`src/utils/oturumSifresi.ts`):
+
+- Diske, SecureStore'a, zustand durumuna ya da sunucuya **yazılmaz**; tek bir
+  modül değişkeninde durur. `npm test` bunu doğrular (kalıcı depoda şifre
+  yok).
+- e-Arşiv girişi başarılı olunca konur, **GİB oturumu kapanınca silinir**
+  (çıkış, "Hesaptan çık", oturum hatası). Uygulama süreci bitince kendiliğinden
+  yok olur.
+- Uygulama yeniden açılıp GİB oturumu kayıtlı token'dan geri gelirse bellekte
+  şifre yoktur; Dijital VD ekranı bir kez sorar (yine yalnızca bellekte).
+- Risk: uygulama açıkken belleğine erişebilen (ör. root'lu cihazda) bir
+  saldırgan şifreyi okuyabilir. SecureStore'daki GİB token'ı zaten aynı
+  risktedir; şifre kalıcı olmadığından yeni bir kalıcı iz bırakmaz.
+
+Dijital VD token'ı da yalnızca bellekte (`src/store/useDvdStore.ts`); GİB
+oturumu kapanınca ya da başka bir kullanıcı koduna geçilince GİB'de de
+kapatılır. İstekler doğrudan telefondan `dijital.gib.gov.tr`'ye gider;
+Cloudflare'e hiçbir şey gitmez. Güvenlik kodu otomatik okunmaz.

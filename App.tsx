@@ -23,6 +23,7 @@ import SifremiUnuttumScreen from './src/screens/SifremiUnuttumScreen';
 import HukukiMetinScreen from './src/screens/HukukiMetinScreen';
 import HesapSilScreen from './src/screens/HesapSilScreen';
 import AdimaDuzenlenenScreen from './src/screens/AdimaDuzenlenenScreen';
+import EarsivFaturalarimScreen from './src/screens/EarsivFaturalarimScreen';
 import YedekleScreen from './src/screens/YedekleScreen';
 import YedekleriGoruntuleScreen from './src/screens/YedekleriGoruntuleScreen';
 import { useAuthStore } from './src/store/useAuthStore';
@@ -52,6 +53,7 @@ export type RootStackParamList = {
   AliciDefteri: undefined;
   MalHizmetDefteri: undefined;
   AdimaDuzenlenen: undefined;
+  EarsivFaturalarim: undefined;
   Yedekle: undefined;
   YedekleriGoruntule: undefined;
 };
@@ -197,6 +199,7 @@ export default function App() {
                       <Stack.Screen name="AliciDefteri" component={AliciDefteriScreen} />
                       <Stack.Screen name="MalHizmetDefteri" component={MalHizmetDefteriScreen} />
                       <Stack.Screen name="AdimaDuzenlenen" component={AdimaDuzenlenenScreen} />
+                      <Stack.Screen name="EarsivFaturalarim" component={EarsivFaturalarimScreen} />
                       <Stack.Screen name="Yedekle" component={YedekleScreen} />
                       <Stack.Screen name="YedekleriGoruntule" component={YedekleriGoruntuleScreen} />
                       <Stack.Screen name="HesapSil" component={HesapSilScreen} />

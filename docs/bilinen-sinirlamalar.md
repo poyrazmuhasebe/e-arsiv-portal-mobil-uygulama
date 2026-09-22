@@ -184,3 +184,8 @@ bu sayfa onların tematik bir özetidir.
   veri merkezlerinde tutuluyor, Cloudflare için yeterlilik kararı yok ve
   standart sözleşme meselesi açık. Hukuki metinler TASLAK.
   ([Issue #36](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/36))
+
+- **e-Arşiv Faturalarım (Dijital VD)** — tarih aralığı 7 günle sınırlı (Dijital
+  VD'nin gerçek sınırı bilinmiyor); faturalar açılamıyor/indirilemiyor
+  (yanıtta kimlik yok); Excel/PDF dışa aktarma yok; oturumu düşmüş token'ın
+  yanıtı görülmedi (401/403 varsayılıyor).
