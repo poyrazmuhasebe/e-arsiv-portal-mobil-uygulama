@@ -381,6 +381,13 @@ Seç"te kaç kayıt olduğunu ve ilk birkaçının sırasını not edin.
   gösteriyor.
 - [ ] **Oturum düşerse** — aktarma sırasında Dijital VD oturumu düşünce giriş
   ekranına dönülüyor.
+- [ ] **Mükellefe göre ayrım** — PDF kayıt klasöründe "VKN/TCKN - Ad Soyad"
+  klasörüne yazılıyor. Başka bir kullanıcı koduyla (başka VKN) girip aktarınca
+  ayrı klasör açılıyor; Kaydedilen PDF'ler yalnızca oturumdaki mükellefinkileri
+  gösteriyor, "Diğer mükelleflerin PDF'lerini de göster" diğerlerini açıyor.
+- [ ] **Fatura indir (Taslaklar)** — Android'de seçilen klasörün içinde
+  "VKN/TCKN - Unvan" klasörü açılıp PDF oraya yazılıyor; aynı mükellef için
+  ikinci indirmede aynı klasör kullanılıyor ("Ad (1)" açılmıyor).
 - [ ] **iOS** — klasör sorulmuyor; PDF uygulama klasörüne yazılıyor, Kaydedilen
   PDF'ler'de görünüyor.
 

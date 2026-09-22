@@ -242,9 +242,14 @@ export default function EarsivFaturalarimScreen({ navigation, route }: Props) {
     setAktarma({ tur: 'suruyor', ilerleme: null, asama: 'topluyor' });
     await activateKeepAwakeAsync(KEEP_AWAKE_ETIKETI).catch(() => undefined);
     try {
+      // Dosyalar VKN/TCKN klasörlerine ayrılır (aynı üyelikte başka kullanıcı
+      // kodlarıyla da giriş yapılabilir); mükellef belirlenemezse kaydedilmez.
+      const mukellef = await useDvdStore.getState().mukellefiBelirle();
+      if (!mukellef) throw new Error("VKN/TCKN belirlenemedi. Dosyalar mükellefe göre ayrı klasörlere kaydedildiği için PDF kaydedilmedi; Dijital Vergi Dairesi'nden çıkıp yeniden giriş yapmayı deneyin.");
       const sonuc = await dvdPdfAktar({
         token,
         klasor,
+        mukellef,
         parcalar: [{ baslangic: tarihFormatla(baslangicTarih), bitis: tarihFormatla(bitisTarih) }],
         baslangic: baslangicTarih,
         bitis: bitisTarih,

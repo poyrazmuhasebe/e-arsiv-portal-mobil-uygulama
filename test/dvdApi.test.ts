@@ -499,3 +499,29 @@ test('tüm faturalar: faturasız hafta aktarmayı durdurmaz, yeniden denenmez', 
     [2, 1],
   ]);
 });
+
+test('mükellef: Dijital VD user-info VKN/TCKN; bellekte tutulur, çıkışta silinir', async () => {
+  useDvdStore.setState({ token: 'tok', kullaniciKodu: '12345678', mukellef: null });
+  yanitla(() => sahteJsonYanit({ name: 'AHMET', surname: 'YILMAZ', vkn: '', tckn: '12345678901', userCode: '12345678' }));
+  assert.deepEqual(await useDvdStore.getState().mukellefiBelirle(), { vkn: '12345678901', unvan: 'AHMET YILMAZ' });
+  assert.equal(sahteFetch.istekler.length, 1);
+  await useDvdStore.getState().mukellefiBelirle(); // önbellekten
+  assert.equal(sahteFetch.istekler.length, 1);
+  useDvdStore.getState().oturumuUnut();
+  assert.equal(useDvdStore.getState().mukellef, null);
+});
+
+test('mükellef: user-info VKN vermezse ve e-Arşiv oturumu yoksa null (yanlış klasöre yazılmaz)', async () => {
+  useDvdStore.setState({ token: 'tok', kullaniciKodu: '12345678', mukellef: null });
+  yanitla(() => sahteJsonYanit({ name: 'A', vkn: null, tckn: null, userCode: '12345678' }));
+  assert.equal(await useDvdStore.getState().mukellefiBelirle(), null);
+});
+
+test('mükellef: e-Arşiv oturumu aynı koddaysa oradaki geçerli VKN kullanılır; farklı koddaysa kullanılmaz', async () => {
+  yanitla(() => sahteJsonYanit({}, 500));
+  useAuthStore.setState({ token: 'gib', kullaniciKodu: '12345678', kullaniciBilgisi: { vknTckn: '1234567890', unvan: 'X A.Ş.' } as never });
+  useDvdStore.setState({ token: 'tok', kullaniciKodu: '12345678', mukellef: null });
+  assert.deepEqual(await useDvdStore.getState().mukellefiBelirle(), { vkn: '1234567890', unvan: 'X A.Ş.' });
+  useDvdStore.setState({ token: 'tok', kullaniciKodu: '99999999', mukellef: null });
+  assert.equal(await useDvdStore.getState().mukellefiBelirle(), null);
+});

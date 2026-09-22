@@ -10,17 +10,11 @@
 
 import type { Directory, File } from 'expo-file-system';
 
-import {
-  DvdApiError,
-  dvdKullaniciBilgisiGetir,
-  dvdTumFaturalariGetir,
-  type DvdKullanici,
-  type DvdSorguParcasi,
-  type DvdToplamaIlerlemesi,
-} from './dvdApi';
-import { IOS_RAPOR_KLASOR_ADI, klasorGorunenAdi, pdfDosyasiYaz } from './yedekDeposu';
+import { DvdApiError, dvdTumFaturalariGetir, type DvdSorguParcasi, type DvdToplamaIlerlemesi } from './dvdApi';
+import { IOS_RAPOR_KLASOR_ADI, klasorGorunenAdi, mukellefKlasoru, pdfDosyasiYaz } from './yedekDeposu';
 import { dvdRaporDosyaAdi, dvdRaporHtml } from '../utils/dvdRapor';
 import { htmlPdfBase64 } from '../utils/pdf';
+import type { Mukellef } from '../utils/yedekleme';
 
 export type DvdPdfSonucu =
   | { durduruldu: true }
@@ -43,11 +37,13 @@ function adimHatasi(adim: string, err: unknown): never {
 
 export async function dvdPdfAktar(b: {
   token: string;
+  /** Kök klasör; PDF bunun içindeki mükellef (VKN/TCKN) klasörüne yazılır. */
   klasor: Directory;
+  /** Oturumun mükellefi (bkz. useDvdStore.mukellefiBelirle). */
+  mukellef: Mukellef;
   parcalar: DvdSorguParcasi[];
   baslangic: Date;
   bitis: Date;
-  /** Alıcı bilgisi alınamazsa PDF başlığında ve dosya adında kullanılır. */
   kullaniciKodu?: string;
   durduruldu?: () => boolean;
   ilerleme?: (d: DvdToplamaIlerlemesi) => void;
@@ -55,16 +51,6 @@ export async function dvdPdfAktar(b: {
   /** Faturalar toplandı, PDF oluşturuluyor. */
   pdfAsamasi?: () => void;
 }): Promise<DvdPdfSonucu> {
-  // Yalnızca PDF başlığındaki alıcı adı/VKN için. HİÇBİR hatası aktarmayı
-  // durdurmaz (oturum gerçekten düştüyse fatura sorgusu bunu zaten bildirir).
-  let alici: DvdKullanici | undefined;
-  try {
-    alici = await dvdKullaniciBilgisiGetir(b.token);
-  } catch (err) {
-    console.warn("[PDF'e aktar] Kullanıcı bilgisi alınamadı (PDF yine oluşturulur):", hataMetni(err));
-    alici = undefined;
-  }
-
   let sonuc: Awaited<ReturnType<typeof dvdTumFaturalariGetir>>;
   try {
     sonuc = await dvdTumFaturalariGetir(b.token, b.parcalar, {
@@ -83,7 +69,7 @@ export async function dvdPdfAktar(b: {
   try {
     const html = dvdRaporHtml({
       faturalar: sonuc.faturalar,
-      alici,
+      alici: { adSoyad: b.mukellef.unvan, vkn: b.mukellef.vkn },
       kullaniciKodu: b.kullaniciKodu,
       baslangic: b.baslangic,
       bitis: b.bitis,
@@ -95,14 +81,18 @@ export async function dvdPdfAktar(b: {
   }
 
   const ad = dvdRaporDosyaAdi({
-    kimlik: alici?.vkn || alici?.tckn || b.kullaniciKodu || 'mukellef',
+    kimlik: b.mukellef.vkn,
     baslangic: b.baslangic,
     bitis: b.bitis,
     olusturma,
   });
   let dosya: File;
+  let hedef: Directory;
   try {
-    dosya = pdfDosyasiYaz(b.klasor, ad, base64);
+    // Aynı üyelikte başka kullanıcı kodlarıyla da giriş yapılabildiği için
+    // her mükellefin PDF'leri KENDİ VKN/TCKN klasörüne.
+    hedef = mukellefKlasoru(b.klasor, b.mukellef.vkn, b.mukellef.unvan, true)!;
+    dosya = pdfDosyasiYaz(hedef, ad, base64);
   } catch (err) {
     adimHatasi('PDF klasöre kaydedilemedi (klasörü yeniden seçmeyi deneyin)', err);
   }
@@ -110,6 +100,6 @@ export async function dvdPdfAktar(b: {
     durduruldu: false,
     dosya,
     adet: sonuc.faturalar.length,
-    klasorAdi: klasorGorunenAdi(b.klasor, IOS_RAPOR_KLASOR_ADI),
+    klasorAdi: `${klasorGorunenAdi(b.klasor, IOS_RAPOR_KLASOR_ADI)} / ${hedef.name}`,
   };
 }

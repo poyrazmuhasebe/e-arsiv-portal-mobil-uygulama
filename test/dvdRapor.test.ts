@@ -9,9 +9,10 @@ import {
   htmlKacis,
   paraToplamlari,
   topluDonemBaslangici,
+  dvdMukellefi,
 } from '../src/utils/dvdRapor';
 import type { DvdEarsivFatura } from '../src/services/dvdApi';
-import { haftalikParcalar } from '../src/utils/yedekleme';
+import { haftalikParcalar, safOgeAdi } from '../src/utils/yedekleme';
 import { aralikGecerliMi, gunFarki } from '../src/utils/tarihAraligi';
 
 const FATURALAR: DvdEarsivFatura[] = [
@@ -156,4 +157,24 @@ test('toplu: tek sorgu değil; parçalar ≤ 7 gün, aynı ay, boşluksuz, 01.07
   assert.equal(parcalar[0].bitis.getTime(), bugun.getTime());
   assert.equal(parcalar[parcalar.length - 1].baslangic.getTime(), new Date(2026, 6, 1).getTime());
   for (let i = 1; i < parcalar.length; i++) assert.equal(gunFarki(parcalar[i].bitis, parcalar[i - 1].baslangic), 1);
+});
+
+test('dvdMukellefi: önce geçerli VKN, sonra TCKN; kullanıcı kodu kabul edilmez', () => {
+  assert.deepEqual(dvdMukellefi({ adSoyad: 'AHMET YILMAZ', vkn: '1234567890', tckn: '12345678901' }), {
+    vkn: '1234567890',
+    unvan: 'AHMET YILMAZ',
+  });
+  assert.deepEqual(dvdMukellefi({ vkn: '   ', tckn: '12345678901' }), { vkn: '12345678901', unvan: undefined });
+  assert.equal(dvdMukellefi({ vkn: '', tckn: '', kullaniciKodu: '12345678' }), null);
+  assert.equal(dvdMukellefi({ vkn: 'ABC' }), null);
+  assert.equal(dvdMukellefi(undefined), null);
+});
+
+test('safOgeAdi: SAF adresinden görünen ad', () => {
+  assert.equal(
+    safOgeAdi('content://com.android.externalstorage.documents/tree/primary%3ADownload/document/primary%3ADownload%2F1234567890%20-%20AHMET'),
+    '1234567890 - AHMET',
+  );
+  assert.equal(safOgeAdi('content://x/tree/primary%3ADownload/document/primary%3AFaturalar'), 'Faturalar');
+  assert.equal(safOgeAdi('content://x/document/%E0%A4%A'), '');
 });

@@ -187,6 +187,25 @@ export function detaydakiMukellef(
   return { vkn, unvan: doluMetin(detay.unvan) ?? (adSoyad || doluMetin(yedekUnvan)) };
 }
 
+/**
+ * Android SAF (Storage Access Framework) adresinden öğenin görünen adı:
+ * "content://…/document/primary%3ADownload%2F123%20-%20X" → "123 - X".
+ * Çözülemezse ''.
+ */
+export function safOgeAdi(uri: string): string {
+  const son = uri.split('/').pop() ?? '';
+  let yol: string;
+  try {
+    yol = decodeURIComponent(son);
+  } catch {
+    return '';
+  }
+  const bolu = yol.lastIndexOf('/');
+  if (bolu >= 0) return yol.slice(bolu + 1);
+  const ikiNokta = yol.indexOf(':');
+  return ikiNokta >= 0 ? yol.slice(ikiNokta + 1) : yol;
+}
+
 export function mukellefKlasoruMu(klasorAdi: string, vkn: string): boolean {
   const temizVkn = guvenliAd(vkn, 20) || 'mukellef';
   return klasorAdi === temizVkn || klasorAdi.startsWith(`${temizVkn} - `);

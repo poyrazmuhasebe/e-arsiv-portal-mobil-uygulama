@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, Modal, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Modal, Platform, StyleSheet, Text, View } from 'react-native';
 import { ActivityIndicator, Portal } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -47,6 +47,9 @@ import {
   telefonnoSorgula,
 } from '../services/gibApi';
 import { useAuthStore } from '../store/useAuthStore';
+import { aktifMukellef } from '../services/yedekDeposu';
+import type { Mukellef } from '../utils/yedekleme';
+
 import { pdfIndir, pdfPaylas } from '../utils/pdf';
 import type { TaslakFatura } from '../types/gib';
 import { filigranliFaturaHtml, iptalItirazDurumMetni, iptalKabulEdildiMi } from '../utils/faturaFiligran';
@@ -91,6 +94,11 @@ function talepRozeti(metin: string): StatusBadgeDurum {
 // AppSelect'in beklediği biçim; değer ve etiketler ITIRAZ_YONTEMLERI'yle birebir.
 const ITIRAZ_YONTEMI_SECENEKLERI = ITIRAZ_YONTEMLERI.map((y) => ({ value: y.deger, label: y.etiket }));
 
+const INDIRILDI_MESAJI =
+  Platform.OS === 'android'
+    ? 'Fatura PDF olarak seçtiğiniz klasördeki mükellef (VKN/TCKN) klasörüne kaydedildi.'
+    : 'Fatura PDF olarak cihazınıza kaydedildi.';
+
 type Props = NativeStackScreenProps<RootStackParamList, 'Taslaklar'>;
 
 function paraFormatla(n: number): string {
@@ -123,6 +131,24 @@ const SMS_SURESI_SN = 180;
 
 export default function TaslaklarScreen({ navigation }: Props) {
   const token = useAuthStore((s) => s.token);
+  const kullaniciBilgisi = useAuthStore((s) => s.kullaniciBilgisi);
+
+  /**
+   * İndirilen fatura, seçilen klasörün içindeki mükellef (VKN/TCKN) klasörüne
+   * yazılır (aynı üyelikte başka kullanıcı kodlarıyla da giriş yapılabilir).
+   * Mükellef belirlenemezse indirilmez. iOS'ta paylaşım sayfası açıldığı için
+   * gerekmez.
+   */
+  const indirmeMukellefi = async (): Promise<Mukellef | undefined> => {
+    if (Platform.OS !== 'android') return undefined;
+    const m = token ? await aktifMukellef(token, kullaniciBilgisi) : null;
+    if (!m) {
+      throw new Error(
+        'VKN/TCKN belirlenemedi. İndirilen faturalar mükellefe göre ayrı klasörlere kaydedildiği için fatura indirilmedi; tekrar deneyin.',
+      );
+    }
+    return m;
+  };
 
   const [taslaklar, setTaslaklar] = useState<TaslakFatura[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
@@ -482,10 +508,10 @@ export default function TaslaklarScreen({ navigation }: Props) {
     if (!htmlIcerik) return;
     setPdfIsleniyor(true);
     try {
-      await pdfIndir(htmlIcerik);
+      await pdfIndir(htmlIcerik, undefined, await indirmeMukellefi());
       // Artık paylaşım penceresi açılmıyor (doğrudan indiriliyor), bu yüzden
       // başarı geri bildirimi yalnızca bu Alert.
-      Alert.alert('İndirildi', 'Fatura PDF olarak cihazınıza kaydedildi.');
+      Alert.alert('İndirildi', INDIRILDI_MESAJI);
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'PDF oluşturulamadı.';
       Alert.alert('Hata', message);
@@ -513,8 +539,8 @@ export default function TaslaklarScreen({ navigation }: Props) {
     setIndirilenEttn(item.ettn);
     try {
       const html = await faturaHTMLGetir(token, item.ettn, item.onayDurumu);
-      await pdfIndir(filigranliFaturaHtml(html, item));
-      Alert.alert('İndirildi', 'Fatura PDF olarak cihazınıza kaydedildi.');
+      await pdfIndir(filigranliFaturaHtml(html, item), undefined, await indirmeMukellefi());
+      Alert.alert('İndirildi', INDIRILDI_MESAJI);
     } catch (err) {
       const message = err instanceof Error && err.message ? err.message : 'Fatura indirilemedi.';
       Alert.alert('Hata', message);

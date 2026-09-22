@@ -13,6 +13,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 
 import { eskiFaturaPdfleriniSil } from './dosyaTemizlik';
 import { betikliHtmlHazirla } from './htmlOnIsleme';
+import { mukellefKlasorAdi, mukellefKlasoruMu, safOgeAdi, type Mukellef } from './yedekleme';
 
 // GİB'in döndürdüğü HTML bazen <meta charset> içermiyor; bu durumda
 // Türkçe karakterler (ş, ı, ğ vb.) PDF'e yanlış kodlanabiliyor.
@@ -97,13 +98,26 @@ export async function pdfPaylas(html: string, dialogTitle?: string, filigranMetn
 }
 
 /**
+ * Seçilen SAF klasöründeki mükellef alt klasörü ("VKN - Unvan"); yoksa
+ * oluşturulur. Aynı VKN'li klasör (unvan farklı yazılmış olsa bile) varsa o
+ * kullanılır, "Ad (1)" gibi ikinci bir klasör açılmaz.
+ */
+async function mukellefSafKlasoru(kokUri: string, mukellef: Mukellef): Promise<string> {
+  const SAF = FileSystem.StorageAccessFramework;
+  const cocuklar = await SAF.readDirectoryAsync(kokUri);
+  const mevcut = cocuklar.find((u) => mukellefKlasoruMu(safOgeAdi(u), mukellef.vkn));
+  if (mevcut) return mevcut;
+  return SAF.makeDirectoryAsync(kokUri, mukellefKlasorAdi(mukellef.vkn, mukellef.unvan));
+}
+
+/**
  * Gerçek "cihaza indir": paylaşım penceresi AÇILMAZ. Android'de
  * StorageAccessFramework ile kullanıcıya bir klasör seçtirilir ve PDF
  * doğrudan oraya yazılır. iOS'ta SAF karşılığı olmadığından (Apple'ın
  * sistemi "Dosyalara Kaydet"i yalnızca paylaşım sayfası üzerinden sunar)
  * orada paylaşım sayfasına düşülür — bu, iOS'un kendi standart yoludur.
  */
-export async function pdfIndir(html: string, filigranMetni?: string): Promise<void> {
+export async function pdfIndir(html: string, filigranMetni?: string, mukellef?: Mukellef): Promise<void> {
   if (__DEV__) console.log('pdfIndir çağrıldı, Platform.OS =', Platform.OS);
   if (Platform.OS !== 'android') {
     await pdfPaylas(html, "PDF'i Kaydet", filigranMetni);
@@ -116,12 +130,11 @@ export async function pdfIndir(html: string, filigranMetni?: string): Promise<vo
   }
 
   const base64 = await pdfBase64Uret(html, filigranMetni);
+  // Aynı üyelikte başka kullanıcı kodlarıyla da giriş yapılabildiği için
+  // indirilen fatura seçilen klasörün içindeki mükellef (VKN/TCKN) klasörüne.
+  const hedefUri = mukellef ? await mukellefSafKlasoru(izin.directoryUri, mukellef) : izin.directoryUri;
   const dosyaAdi = `Fatura_${Date.now()}`;
-  const safUri = await FileSystem.StorageAccessFramework.createFileAsync(
-    izin.directoryUri,
-    dosyaAdi,
-    'application/pdf',
-  );
+  const safUri = await FileSystem.StorageAccessFramework.createFileAsync(hedefUri, dosyaAdi, 'application/pdf');
   await FileSystem.writeAsStringAsync(safUri, base64, { encoding: FileSystem.EncodingType.Base64 });
 }
 

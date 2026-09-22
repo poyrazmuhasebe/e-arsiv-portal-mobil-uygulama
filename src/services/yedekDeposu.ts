@@ -153,6 +153,32 @@ export function pdfleriListele(klasor: Directory, onEk: string): KayitliPdf[] {
   return sonuc.sort((a, b) => b.ad.localeCompare(a.ad));
 }
 
+export interface MukellefPdfleri {
+  /** Mükellef klasörü; kök klasördeki (eski, klasörsüz) dosyalar için null. */
+  klasor: Directory | null;
+  /** Klasör adı ("VKN - Unvan"); kökteki dosyalar için ''. */
+  ad: string;
+  dosyalar: KayitliPdf[];
+}
+
+/**
+ * Kök klasördeki mükellef (VKN/TCKN) klasörleri ve içlerindeki `onEk` ile
+ * başlayan PDF'ler. Kökte doğrudan duran eşleşen PDF'ler (mükellefe
+ * ayrılmadan önce kaydedilmiş olanlar) ayrı bir grup olarak en sonda.
+ */
+export function raporlariListele(kok: Directory, onEk: string): MukellefPdfleri[] {
+  const sonuc: MukellefPdfleri[] = [];
+  for (const oge of kok.list()) {
+    if (!(oge instanceof Directory)) continue;
+    const dosyalar = pdfleriListele(oge, onEk);
+    if (dosyalar.length > 0) sonuc.push({ klasor: oge, ad: oge.name, dosyalar });
+  }
+  sonuc.sort((a, b) => a.ad.localeCompare(b.ad, 'tr'));
+  const koktekiler = pdfleriListele(kok, onEk);
+  if (koktekiler.length > 0) sonuc.push({ klasor: null, ad: '', dosyalar: koktekiler });
+  return sonuc;
+}
+
 /** Dosyayı siler; silinemezse false. */
 export function dosyaSil(dosya: File): boolean {
   try {

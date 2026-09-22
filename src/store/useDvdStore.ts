@@ -1,6 +1,9 @@
 import { create } from 'zustand';
 
-import { dvdCikisYap, dvdGirisYap } from '../services/dvdApi';
+import { DvdApiError, dvdCikisYap, dvdGirisYap, dvdKullaniciBilgisiGetir } from '../services/dvdApi';
+import { kullaniciBilgileriDetayGetir } from '../services/gibApi';
+import { dvdMukellefi } from '../utils/dvdRapor';
+import { detaydakiMukellef, oturumdakiMukellef, type Mukellef } from '../utils/yedekleme';
 import { oturumSifresi, oturumSifresiniAyarla } from '../utils/oturumSifresi';
 import { useAuthStore } from './useAuthStore';
 import { useHesapStore } from './useHesapStore';
@@ -24,6 +27,19 @@ interface DvdDurumu {
   kullaniciKodu: string | null;
   girisYapiliyor: boolean;
   /**
+   * Oturumun mükellefi (VKN/TCKN + ad). İndirilen PDF'ler bu VKN/TCKN'nin
+   * klasörüne yazılır: aynı üyelikte başka kullanıcı kodlarıyla da giriş
+   * yapılabildiği için dosyalar mükellefe göre ayrılır. Yalnızca bellekte.
+   */
+  mukellef: Mukellef | null;
+  /**
+   * Mükellefi belirler (önbellekte yoksa). Önce Dijital VD `user-info`; o
+   * geçerli VKN/TCKN vermezse ve oturum açık e-Arşiv oturumuyla AYNI
+   * kullanıcı koduna aitse e-Arşiv'in doğrulanmış "Kullanıcı Bilgileri".
+   * Belirlenemezse null. Oturum hatası fırlatılır.
+   */
+  mukellefiBelirle: () => Promise<Mukellef | null>;
+  /**
    * `kullaniciKodu` verilmezse açık GİB (e-Arşiv) oturumunun kodu kullanılır.
    * e-Arşiv girişi yapılmadan (GİB giriş ekranından) açıldığında ekran kodu
    * ve şifreyi kendisi verir; o durumda şifre belleğe de ALINMAZ.
@@ -38,6 +54,7 @@ export const useDvdStore = create<DvdDurumu>((set, get) => ({
   token: null,
   kullaniciKodu: null,
   girisYapiliyor: false,
+  mukellef: null,
 
   girisYap: async ({ guvenlikKodu, cid, sifre, kullaniciKodu: verilenKod }) => {
     const gibKodu = useAuthStore.getState().kullaniciKodu;
@@ -53,19 +70,48 @@ export const useDvdStore = create<DvdDurumu>((set, get) => ({
       // Ekranda yazılan şifre doğru çıktıysa ve açık GİB oturumunun koduna
       // aitse bu oturum için bellekte tutulur. Bağımsız girişte tutulmaz.
       if (sifre && !bagimsiz) oturumSifresiniAyarla(sifre);
-      set({ token, kullaniciKodu });
+      set({ token, kullaniciKodu, mukellef: null });
     } finally {
       set({ girisYapiliyor: false });
     }
   },
 
+  mukellefiBelirle: async () => {
+    const { token, kullaniciKodu, mukellef } = get();
+    if (!token) return null;
+    if (mukellef) return mukellef;
+    let bulunan: Mukellef | null = null;
+    try {
+      bulunan = dvdMukellefi(await dvdKullaniciBilgisiGetir(token));
+    } catch (err) {
+      if (err instanceof DvdApiError && err.oturumHatasi) throw err;
+      bulunan = null;
+    }
+    if (!bulunan) {
+      const auth = useAuthStore.getState();
+      if (auth.token && auth.kullaniciKodu !== null && auth.kullaniciKodu === kullaniciKodu) {
+        bulunan = oturumdakiMukellef(auth.kullaniciBilgisi);
+        if (!bulunan) {
+          try {
+            bulunan = detaydakiMukellef(await kullaniciBilgileriDetayGetir(auth.token), auth.kullaniciBilgisi?.unvan);
+          } catch {
+            bulunan = null;
+          }
+        }
+      }
+    }
+    // Bu arada oturum kapandıysa ya da değiştiyse sonuç yazılmaz.
+    if (bulunan && get().token === token) set({ mukellef: bulunan });
+    return bulunan;
+  },
+
   cikisYap: async () => {
     const { token } = get();
-    set({ token: null, kullaniciKodu: null });
+    set({ token: null, kullaniciKodu: null, mukellef: null });
     if (token) await dvdCikisYap(token);
   },
 
-  oturumuUnut: () => set({ token: null, kullaniciKodu: null }),
+  oturumuUnut: () => set({ token: null, kullaniciKodu: null, mukellef: null }),
 }));
 
 /**

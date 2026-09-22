@@ -586,7 +586,19 @@ telefon…), hangi firma keserse kessin.
     klasöründeki "e-Arşiv Faturalarım PDF". Dosya adı
     `e-Arsiv-Faturalarim_<YYYYAAGG-SSDDss>_<VKN>_<başlangıç>_<bitiş>.pdf`
     (aynı dönem tekrar aktarılsa üzerine yazılmaz).
-- **Kaydedilen PDF'ler** (`src/screens/DvdRaporlarScreen.tsx`): başlıktaki
+- **Mükellefe göre ayrım:** aynı üyelikte başka kullanıcı kodlarıyla da giriş
+  yapılabildiği için PDF, kayıt klasörünün içindeki mükellef klasörüne
+  ("VKN/TCKN - Ad Soyad") yazılır. Mükellef: Dijital VD `user-info`
+  (önce VKN, sonra TCKN); o vermezse ve oturum açık e-Arşiv oturumuyla aynı
+  kullanıcı koduna aitse e-Arşiv "Kullanıcı Bilgileri". Belirlenemezse PDF
+  **kaydedilmez** (yanlış klasöre düşmesin). Yalnızca bellekte tutulur
+  (`useDvdStore.mukellef`).
+- **Kaydedilen PDF'ler** (`src/screens/DvdRaporlarScreen.tsx`): varsayılan
+  olarak yalnızca oturumdaki mükellefin PDF'leri (Dijital VD, yoksa e-Arşiv
+  oturumu); "Diğer mükelleflerin PDF'lerini de göster" anahtarıyla hepsi,
+  mükellef başlıklarıyla. Oturum yoksa hepsi gösterilir. **Seçerek / toplu
+  silme:** başlıktaki seçim düğmesi ya da karta uzun basma → onay kutuları,
+  "Görünenlerin tümünü seç", "Sil (N)" (onaylı; yalnızca görünenler). Başlıktaki
   klasör düğmesiyle ya da aktarma bitince açılır. Klasör adı + değiştir;
   dosyalar yeniden eskiye (dönem, oluşturulma zamanı, VKN, boyut); Aç, Paylaş,
   Sil (onaylı). Dijital VD oturumu gerekmez.

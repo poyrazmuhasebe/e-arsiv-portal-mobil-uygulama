@@ -13,6 +13,20 @@
 
 import type { DvdEarsivFatura, DvdKullanici } from '../services/dvdApi';
 import { tutarEtiketi } from './paraBirimi';
+import { VKN_BICIMI, type Mukellef } from './yedekleme';
+
+/**
+ * Dijital VD oturumunun mükellefi (`/auth/tdvd/user-info`): önce VKN, geçerli
+ * değilse TCKN. Kullanıcı kodu mükellefi tanımlamaz; geçerli bir VKN/TCKN
+ * yoksa null (PDF yanlış mükellefin klasörüne yazılmasın).
+ */
+export function dvdMukellefi(k: DvdKullanici | undefined | null): Mukellef | null {
+  for (const aday of [k?.vkn, k?.tckn]) {
+    const v = aday?.trim();
+    if (v && VKN_BICIMI.test(v)) return { vkn: v, unvan: k?.adSoyad?.trim() || undefined };
+  }
+  return null;
+}
 
 export const DVD_RAPOR_ON_EKI = 'e-Arsiv-Faturalarim_';
 
