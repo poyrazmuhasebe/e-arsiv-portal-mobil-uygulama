@@ -37,6 +37,7 @@ import type { HukukiMetinAnahtari } from './src/constants/hukukiMetinler';
 import { AlertHost } from './src/components/ui/AppAlert';
 import HtmlOnIsleyici from './src/components/HtmlOnIsleyici';
 import GuncellemeKutusu from './src/components/GuncellemeKutusu';
+import { guncellemeIcinOturumlariKapat } from './src/utils/guncellemeCikisi';
 import { colors, navigationTheme, paperTheme } from './src/theme';
 
 export type RootStackParamList = {
@@ -82,6 +83,9 @@ export default function App() {
   // Uygulama kilidi (bkz. src/utils/uygulamaKilidi.ts): kayıtlı oturum geri
   // yüklendiğinde ve uzun süre arka planda kaldıktan sonra doğrulama istenir.
   const [kilitli, setKilitli] = useState(false);
+  // Değişince Stack.Navigator yeniden kurulur: yığın, o anki grubun ilk
+  // ekranına (ör. GİB giriş) döner. Zorunlu güncellemede kullanılır.
+  const [gezinmeAnahtari, setGezinmeAnahtari] = useState(0);
   const arkaPlanaGecis = useRef<number | null>(null);
 
   useEffect(() => {
@@ -170,6 +174,7 @@ export default function App() {
 
                     Bkz. docs/hesap-sistemi.md → "Ekran durumları". */}
                 <Stack.Navigator
+                  key={gezinmeAnahtari}
                   screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}
                 >
                   {hesapKullanicisi === null ? (
@@ -225,7 +230,14 @@ export default function App() {
         )}
         {/* Zorunlu güncelleme: yüklü sürüm eskiyse her şeyin (kilit ekranı
             dahil) üstünde kapatılamayan kutu. Bkz. src/utils/surumKontrolu.ts */}
-        <GuncellemeKutusu />
+        <GuncellemeKutusu
+          onGerekli={() => {
+            // GİB ve Dijital VD oturumları kapanır, açık ekran (yarım fatura,
+            // rapor vb.) bırakılıp ana ekrana dönülür; kutu onun üstünde kalır.
+            setGezinmeAnahtari((k) => k + 1);
+            void guncellemeIcinOturumlariKapat().finally(() => setGezinmeAnahtari((k) => k + 1));
+          }}
+        />
       </PaperProvider>
     </SafeAreaProvider>
   );

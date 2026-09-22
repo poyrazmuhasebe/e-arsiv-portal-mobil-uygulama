@@ -20,7 +20,15 @@ function gelistirmeMi(): boolean {
  * kutusu: kapatma düğmesi yok, Android geri tuşu yutulur (onRequestClose
  * boş), alttaki ekranlara dokunulamaz. Karar mantığı: utils/surumKontrolu.ts.
  */
-export default function GuncellemeKutusu() {
+interface Props {
+  /**
+   * Kutu açıldığı anda BİR KEZ çağrılır. App.tsx burada GİB ve Dijital VD
+   * oturumlarını kapatıp gezinmeyi ana ekrana sıfırlar.
+   */
+  onGerekli?: () => void;
+}
+
+export default function GuncellemeKutusu({ onGerekli }: Props) {
   const [durum, setDurum] = useState<SurumDurumu>({ tur: 'bilinmiyor' });
   const [kontrolEdiliyor, setKontrolEdiliyor] = useState(false);
   const sonKontrol = useRef(0);
@@ -49,6 +57,13 @@ export default function GuncellemeKutusu() {
     });
     return () => abonelik.remove();
   }, [denetle]);
+
+  const gerekli = durum.tur === 'guncelleme_gerekli';
+  const onGerekliRef = useRef(onGerekli);
+  onGerekliRef.current = onGerekli;
+  useEffect(() => {
+    if (gerekli) onGerekliRef.current?.();
+  }, [gerekli]);
 
   if (durum.tur !== 'guncelleme_gerekli') return null;
   const { son } = durum;
