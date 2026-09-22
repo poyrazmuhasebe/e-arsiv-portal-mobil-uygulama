@@ -26,6 +26,7 @@ interface Props {
 
 /**
  * Ortak tarih filtresi (DateFilter): Başlangıç / Bitiş + GİB sınırı notu +
+ * (uçlar dahil en fazla 7 gün, AY SONUNU GEÇMEZ; kullanıcı tarifi 2026-09-22) +
  * Sorgula. GİB 1 haftadan uzun aralıkta sorgulamaya izin vermiyor
  * (kullanıcı bildirimi, 2026-09-21): seçilen uca dokunulmaz, DİĞER uç
  * gerekirse kaydırılır (bkz. utils/tarihAraligi.ts). Sorgula da geçersiz
@@ -47,7 +48,7 @@ export default function TarihAraligiFiltresi({ baslangic, bitis, onDegisti, onSo
     if (sonuc.duzeltildi) {
       Alert.alert(
         'Tarih aralığı ayarlandı',
-        `GİB en fazla ${EN_FAZLA_GUN} günlük aralıkta sorgulamaya izin veriyor; ` +
+        `GİB en fazla ${EN_FAZLA_GUN} günlük ve aynı ay içindeki aralıkta sorgulamaya izin veriyor; ` +
           (hedef === 'baslangic' ? 'bitiş' : 'başlangıç') +
           ' tarihi buna göre değiştirildi.',
       );
@@ -56,7 +57,10 @@ export default function TarihAraligiFiltresi({ baslangic, bitis, onDegisti, onSo
 
   const handleSorgula = () => {
     if (!aralikGecerliMi(baslangic, bitis)) {
-      Alert.alert('Tarih aralığı çok uzun', `GİB en fazla ${EN_FAZLA_GUN} günlük aralıkta sorgulamaya izin veriyor.`);
+      Alert.alert(
+        'Tarih aralığı geçersiz',
+        `GİB en fazla ${EN_FAZLA_GUN} günlük ve aynı ay içindeki aralıkta sorgulamaya izin veriyor.`,
+      );
       return;
     }
     onSorgula();
@@ -70,7 +74,7 @@ export default function TarihAraligiFiltresi({ baslangic, bitis, onDegisti, onSo
           <DateField label="Bitiş" value={tarihFormatla(bitis)} onPress={() => setAcikPicker('bitis')} />
         </FormRow>
         <InfoBox tone="neutral" icon="calendar-range">
-          {`En fazla ${EN_FAZLA_GUN} günlük aralık sorgulanabilir (GİB sınırı).`}
+          {`En fazla ${EN_FAZLA_GUN} gün, aynı ay içinde sorgulanabilir (GİB sınırı).`}
         </InfoBox>
         <PrimaryButton icon="magnify" onPress={handleSorgula} loading={yukleniyor} disabled={yukleniyor} fullWidth>
           Sorgula

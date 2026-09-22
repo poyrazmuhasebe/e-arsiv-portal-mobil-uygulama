@@ -16,7 +16,7 @@
 
 import type { TaslakFatura } from '../types/gib';
 import { iptalItirazDurumMetni } from './faturaFiligran';
-import { EN_FAZLA_FARK, EN_FAZLA_GUN } from './tarihAraligi';
+import { EN_FAZLA_FARK, EN_FAZLA_GUN, enErkenBaslangic } from './tarihAraligi';
 
 export type YedekSuresi = '1h' | '1a' | '3a' | '6a' | '1y';
 
@@ -60,8 +60,9 @@ export interface TarihParcasi {
 }
 
 /**
- * [baslangic, bitis] aralığını uçlar dahil en fazla EN_FAZLA_GUN günlük
- * parçalara böler, EN YENİDEN ESKİYE. Parçalar örtüşmez ve boşluk bırakmaz: bir sonraki
+ * [baslangic, bitis] aralığını uçlar dahil en fazla EN_FAZLA_GUN günlük ve
+ * AY SINIRINI GEÇMEYEN parçalara böler (ör. 28.08–03.09 yerine 28.08–31.08 ve
+ * 01.09–03.09), EN YENİDEN ESKİYE. Parçalar örtüşmez ve boşluk bırakmaz: bir sonraki
  * parçanın bitişi, öncekinin başlangıcından bir gün öncedir.
  */
 export function haftalikParcalar(baslangic: Date, bitis: Date): TarihParcasi[] {
@@ -69,7 +70,8 @@ export function haftalikParcalar(baslangic: Date, bitis: Date): TarihParcasi[] {
   let sonGun = gunBasi(bitis);
   const parcalar: TarihParcasi[] = [];
   while (sonGun >= ilk) {
-    const aday = gunEkle(sonGun, -EN_FAZLA_FARK);
+    // Uçlar dahil en fazla 7 gün ve AY SINIRINI GEÇMEZ (bkz. tarihAraligi.ts).
+    const aday = enErkenBaslangic(sonGun);
     const parcaBasi = aday < ilk ? ilk : aday;
     parcalar.push({ baslangic: parcaBasi, bitis: sonGun });
     sonGun = gunEkle(parcaBasi, -1);

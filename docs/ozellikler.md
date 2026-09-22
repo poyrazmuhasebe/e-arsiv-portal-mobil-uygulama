@@ -444,8 +444,10 @@ listeler.
 
 GİB 1 haftadan uzun aralıkta sorgulamaya izin vermiyor. Bir hafta = başlangıç ve
 bitiş **dahil** 7 takvim günü (01/08–07/08, 15/08–21/08; iki uç arasında en fazla
-6 gün fark — 2026-09-22 düzeltmesi, önceden 8 güne izin veriliyordu). Varsayılan
-"son 7 gün" = bugün dahil 7 gün. Taslaklar, İptal/İtiraz Talepleri, Adıma
+6 gün fark — 2026-09-22 düzeltmesi, önceden 8 güne izin veriliyordu) ve **ay
+sonunu geçemez**: 29/08 seçilirse bitiş en fazla 31/08, 29/04 seçilirse 30/04;
+bitiş 03/09 seçilirse başlangıç en erken 01/09. Varsayılan "son 7 gün" = bugün
+dahil 7 gün, ayın ilk günlerinde ay başında durur (bugün 03.09 → 01.09–03.09). Taslaklar, İptal/İtiraz Talepleri, Adıma
 Düzenlenen Belgeler ve e-Arşiv Faturalarım ekranlarında bir uç seçildiğinde diğer
 uç gerekirse kaydırılır (`src/utils/tarihAraligi.ts`); ortak filtre çubuğu
 `src/components/TarihAraligiFiltresi.tsx`.
@@ -474,8 +476,9 @@ henüz yok (isteği yakalanmadı).
   uygulamasında görünür, `UIFileSharingEnabled`).
 - Dönem: son 1 hafta / 1 ay / 3 ay / 6 ay / 1 yıl. Dönem, GİB'in 7 gün
   sınırı yüzünden bugünden geriye haftalık parçalara bölünür
-  Her parça uçlar dahil en fazla 7 gün (bugün 21.09.2026, son 1 ay:
-  15–21.09, 08–14.09, 01–07.09, 25–31.08, 21–24.08).
+  Her parça uçlar dahil en fazla 7 gün ve ay sınırını geçmez (bugün
+  21.09.2026, son 1 ay: 15–21.09, 08–14.09, 01–07.09, 25–31.08, 21–24.08;
+  bugün 03.09 ise "son 1 hafta" iki sorgu: 01–03.09, 28–31.08).
 - Her parçanın listesi `taslakGetir` ile çekilir; her fatura
   `faturaHTMLGetir` + filigran + `expo-print` ile tek tek PDF yapılıp
   `<klasör>/<VKN - Unvan>/<YYYY-AA-GG>_<BelgeNo>.pdf` olarak yazılır.

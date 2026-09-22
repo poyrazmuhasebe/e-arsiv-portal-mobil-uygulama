@@ -476,3 +476,16 @@ test('belge no sıralaması eskiden yeniye: biçimsizler yine sonda', () => {
     'tarihsiz_ettn-1.pdf',
   ]);
 });
+
+test('haftalikParcalar: parçalar ay sınırını geçmez; her parça ay içinde en fazla 7 gün', () => {
+  assert.deepEqual(haftalikParcalar(gun(21, 8), gun(3, 9)).map(aralik), [
+    '01.09.2026-03.09.2026',
+    '25.08.2026-31.08.2026',
+    '21.08.2026-24.08.2026',
+  ]);
+  // Son 1 hafta, bugün 03.09: iki sorgu (ay geçişi).
+  assert.deepEqual(haftalikParcalar(yedekBaslangici('1h', gun(3, 9)), gun(3, 9)).map(aralik), [
+    '01.09.2026-03.09.2026',
+    '28.08.2026-31.08.2026',
+  ]);
+});

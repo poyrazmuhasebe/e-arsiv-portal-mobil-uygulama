@@ -365,4 +365,6 @@ Seç"te kaç kayıt olduğunu ve ilk birkaçının sırasını not edin.
 - [ ] Taslaklar, İptal/İtiraz Talepleri, Adıma Düzenlenen Belgeler ve e-Arşiv
   Faturalarım'da başlangıç 01/08 seçilince bitiş en fazla 07/08 oluyor;
   varsayılan aralık bugün dahil 7 gün (ör. 16.09–22.09).
+- [ ] Başlangıç 29/08 seçilince bitiş 31/08'e çekiliyor (ay sonunu geçmiyor);
+  bitiş 03/09 seçilince başlangıç 01/09 oluyor.
 - [ ] GİB bu 7 günlük aralıkları kabul ediyor ("1 haftadan uzun" hatası yok).
