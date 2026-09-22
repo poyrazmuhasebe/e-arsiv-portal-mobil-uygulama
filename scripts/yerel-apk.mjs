@@ -13,8 +13,8 @@
 // başarısız olursa app.json eski hâline döner. app.json değişikliği commit'lenmeli.
 //
 // Gerekenler (kullanıcı klasörüne taşınabilir kurulum, sistem ayarı değiştirmez):
-//   %LOCALAPPDATA%\Android\jdk17   Microsoft OpenJDK 17
-//   %LOCALAPPDATA%\Android\Sdk     Android SDK (platform 36, build-tools 36.0.0, NDK 27.1, CMake)
+//   %USERPROFILE%\Android\jdk17    Microsoft OpenJDK 17
+//   %USERPROFILE%\Android\Sdk      Android SDK (platform 36, build-tools 36.0.0, NDK 27.1, CMake)
 // Farklı yerdeyse JAVA_HOME / ANDROID_HOME ortam değişkenleri kullanılır.
 //
 // İMZA: proje kökündeki `yerel-imza.properties` (git'e GİRMEZ) varsa APK o
@@ -58,11 +58,17 @@ if (yayinla && debugImza) {
 }
 
 // --- Araçlar ------------------------------------------------------------
-const yerel = process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Android') : '';
-const javaHome = existsSync(path.join(yerel, 'jdk17')) ? path.join(yerel, 'jdk17') : process.env.JAVA_HOME;
-const androidHome = existsSync(path.join(yerel, 'Sdk')) ? path.join(yerel, 'Sdk') : process.env.ANDROID_HOME;
-if (!javaHome || !existsSync(javaHome)) dur('JDK 17 bulunamadı (%LOCALAPPDATA%\\Android\\jdk17 ya da JAVA_HOME).');
-if (!androidHome || !existsSync(androidHome)) dur('Android SDK bulunamadı (%LOCALAPPDATA%\\Android\\Sdk ya da ANDROID_HOME).');
+// Önce %USERPROFILE%\Android: Claude masaüstü uygulaması (MSIX) içinden
+// %LOCALAPPDATA%'ya kurulan dosyalar sanallaştırılıp normal terminalden
+// görünmüyor; araçlar bu yüzden kullanıcı klasörüne taşındı (2026-09-22).
+const adaylar = [process.env.USERPROFILE, process.env.LOCALAPPDATA]
+  .filter(Boolean)
+  .map((k) => path.join(k, 'Android'));
+const bul = (alt, yedek) => adaylar.map((a) => path.join(a, alt)).find((y) => existsSync(y)) ?? yedek;
+const javaHome = bul('jdk17', process.env.JAVA_HOME);
+const androidHome = bul('Sdk', process.env.ANDROID_HOME);
+if (!javaHome || !existsSync(javaHome)) dur('JDK 17 bulunamadı (%USERPROFILE%\\Android\\jdk17 ya da JAVA_HOME).');
+if (!androidHome || !existsSync(androidHome)) dur('Android SDK bulunamadı (%USERPROFILE%\\Android\\Sdk ya da ANDROID_HOME).');
 
 // --- İmza ---------------------------------------------------------------
 const imzaDosyasi = path.join(kok, 'yerel-imza.properties');
