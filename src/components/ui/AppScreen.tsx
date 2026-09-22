@@ -1,6 +1,6 @@
 import React from 'react';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
-import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
+import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets, type Edge } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { colors } from '../../theme';
@@ -16,12 +16,19 @@ interface Props {
 
 const TUM_KENARLAR: Edge[] = ['top', 'bottom', 'left', 'right'];
 
+/** Her sayfanın altında çok küçük gösterilen geliştirici bilgisi (kullanıcı isteği, 2026-09-22). */
+export const GELISTIRICI_METNI = 'Geliştirici: Dursun Can Poyraz';
+
 /**
  * Her ekranın kökü: güvenli alan (çentik, Android sistem çubukları) +
- * koyu zemin + üstte hafif dekoratif ışıma. İçerik sistem gezinme çubuğuyla
- * çakışmaz.
+ * koyu zemin + üstte hafif dekoratif ışıma + en altta küçük geliştirici
+ * satırı. İçerik sistem gezinme çubuğuyla çakışmaz.
  */
 export default function AppScreen({ children, edges = TUM_KENARLAR, glow = true, style }: Props) {
+  const insets = useSafeAreaInsets();
+  // Alt kenarı güvenli alana bırakmayan ekranlarda satır sistem çubuğunun
+  // altında kalmasın.
+  const altBosluk = edges.includes('bottom') ? 0 : insets.bottom;
   return (
     <View style={styles.kok}>
       {glow && (
@@ -31,8 +38,16 @@ export default function AppScreen({ children, edges = TUM_KENARLAR, glow = true,
           style={styles.isima}
         />
       )}
-      <SafeAreaView style={[styles.guvenli, style]} edges={edges}>
-        {children}
+      <SafeAreaView style={styles.guvenli} edges={edges}>
+        <View style={[styles.icerik, style]}>{children}</View>
+        <Text
+          style={[styles.gelistirici, { paddingBottom: 2 + altBosluk }]}
+          numberOfLines={1}
+          allowFontScaling={false}
+          accessibilityRole="text"
+        >
+          {GELISTIRICI_METNI}
+        </Text>
       </SafeAreaView>
     </View>
   );
@@ -41,5 +56,14 @@ export default function AppScreen({ children, edges = TUM_KENARLAR, glow = true,
 const styles = StyleSheet.create({
   kok: { flex: 1, backgroundColor: colors.background },
   guvenli: { flex: 1 },
+  icerik: { flex: 1 },
   isima: { position: 'absolute', top: 0, left: 0, right: 0, height: 320 },
+  gelistirici: {
+    fontSize: 10,
+    lineHeight: 13,
+    paddingTop: 2,
+    textAlign: 'center',
+    color: colors.textMuted,
+    opacity: 0.8,
+  },
 });
