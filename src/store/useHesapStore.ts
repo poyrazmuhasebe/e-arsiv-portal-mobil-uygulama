@@ -53,17 +53,6 @@ interface HesapState {
   /** Açılıştaki geri yükleme bitti mi? App.tsx bunu bekler. */
   hazir: boolean;
   yukleniyor: boolean;
-  /**
-   * DEMO: kullanıcı Karşılama ekranında "Şimdilik atla"ya bastı ve hesapsız
-   * GİB girişine geçti. YALNIZCA BELLEKTE tutulur, cihaza yazılmaz: uygulama
-   * yeniden başlatılınca Karşılama ekranı tekrar gelir. Bu modda açılan GİB
-   * oturumu hiçbir uygulama hesabına bağlanmaz, bu yüzden bir sonraki açılışta
-   * geri yüklenmez (bkz. utils/gibSahibi.ts).
-   */
-  atlandi: boolean;
-
-  /** DEMO: hesap oluşturmadan GİB girişine geç. */
-  hesabiAtla: () => void;
   oturumuGeriYukle: () => Promise<void>;
   kayitOl: (eposta: string, kullaniciAdi: string, sifre: string) => Promise<HesapYaniti>;
   girisYap: (eposta: string, sifre: string) => Promise<void>;
@@ -140,9 +129,6 @@ export const useHesapStore = create<HesapState>((set, get) => ({
   oturum: null,
   hazir: false,
   yukleniyor: false,
-  atlandi: false,
-
-  hesabiAtla: () => set({ atlandi: true }),
 
   oturumuGeriYukle: async () => {
     const [ham, yenilemeToken] = await Promise.all([
@@ -182,7 +168,7 @@ export const useHesapStore = create<HesapState>((set, get) => ({
     try {
       const yanit = await apiKayitOl(eposta, kullaniciAdi, sifre, gelistirmeMi());
       await oturumuSakla(yanit.kullanici, yanit.oturum);
-      set({ kullanici: yanit.kullanici, oturum: yanit.oturum, atlandi: false });
+      set({ kullanici: yanit.kullanici, oturum: yanit.oturum });
       return yanit;
     } finally {
       set({ yukleniyor: false });
@@ -194,7 +180,7 @@ export const useHesapStore = create<HesapState>((set, get) => ({
     try {
       const yanit = await apiGirisYap(eposta, sifre, gelistirmeMi());
       await oturumuSakla(yanit.kullanici, yanit.oturum);
-      set({ kullanici: yanit.kullanici, oturum: yanit.oturum, atlandi: false });
+      set({ kullanici: yanit.kullanici, oturum: yanit.oturum });
     } finally {
       set({ yukleniyor: false });
     }
@@ -235,7 +221,7 @@ export const useHesapStore = create<HesapState>((set, get) => ({
       }
     }
     await saklananiSil();
-    set({ kullanici: null, oturum: null, atlandi: false });
+    set({ kullanici: null, oturum: null });
   },
 
   hesabiSil: async (sifre) => {
@@ -249,7 +235,7 @@ export const useHesapStore = create<HesapState>((set, get) => ({
     await saklananiSil();
     // Silinen hesabın hatırlanan GİB kodları cihazda sahipsiz kalmasın.
     if (hesapId) await hesabinKodlariniSil(hesapId);
-    set({ kullanici: null, oturum: null, atlandi: false });
+    set({ kullanici: null, oturum: null });
   },
 
   gecerliErisimToken: async () => {

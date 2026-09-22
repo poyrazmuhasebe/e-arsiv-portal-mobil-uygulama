@@ -36,6 +36,7 @@ import { kilitGerekliMi, zamanAsimiDolduMu } from './src/utils/uygulamaKilidi';
 import type { HukukiMetinAnahtari } from './src/constants/hukukiMetinler';
 import { AlertHost } from './src/components/ui/AppAlert';
 import HtmlOnIsleyici from './src/components/HtmlOnIsleyici';
+import GuncellemeKutusu from './src/components/GuncellemeKutusu';
 import { colors, navigationTheme, paperTheme } from './src/theme';
 
 export type RootStackParamList = {
@@ -77,8 +78,6 @@ export default function App() {
   const oturumuGeriYukle = useHesapStore((s) => s.oturumuGeriYukle);
   const token = useAuthStore((s) => s.token);
   const hesapKullanicisi = useHesapStore((s) => s.kullanici);
-  // DEMO: "Şimdilik atla" ile hesapsız GİB girişine geçildi mi (yalnızca bellekte).
-  const hesapAtlandi = useHesapStore((s) => s.atlandi);
   const [isRestoring, setIsRestoring] = useState(true);
   // Uygulama kilidi (bkz. src/utils/uygulamaKilidi.ts): kayıtlı oturum geri
   // yüklendiğinde ve uzun süre arka planda kaldıktan sonra doğrulama istenir.
@@ -131,9 +130,8 @@ export default function App() {
     if (!token && hesapKullanicisi === null) setKilitli(false);
   }, [token, hesapKullanicisi]);
 
-  // Hesapla girildiyse e-posta doğrulaması zorunlu; hesap atlandıysa bu adım yok.
+  // Uygulama hesabı zorunlu; hesapla girildiyse e-posta doğrulaması da zorunlu.
   const epostaDogrulandi = hesapKullanicisi?.epostaDogrulandi === true;
-  const hesapAdimiGecildi = hesapKullanicisi !== null ? epostaDogrulandi : hesapAtlandi;
   const kilitGosterilsin = (token !== null || hesapKullanicisi !== null) && kilitli;
 
   // Uygulamanın teması src/theme'deki token'lardan üretilir (koyu grafit +
@@ -166,7 +164,6 @@ export default function App() {
                     içinden manuel navigate/replace çağırmasına gerek kalmaz:
 
                     1. Uygulama hesabı yok        → Karşılama / Kayıt / Giriş
-                       (DEMO: "Şimdilik atla" ile doğrudan 3'e geçilebilir)
                     2. Hesap var, e-posta yok     → E-posta Doğrula (ZORUNLU)
                     3. Hesap var, GİB oturumu yok → GİB Giriş (bugünkü Login)
                     4. İkisi de var               → Dashboard grubu
@@ -175,7 +172,7 @@ export default function App() {
                 <Stack.Navigator
                   screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}
                 >
-                  {hesapKullanicisi === null && !hesapAtlandi ? (
+                  {hesapKullanicisi === null ? (
                     <Stack.Group>
                       <Stack.Screen name="Karsilama" component={KarsilamaScreen} />
                       <Stack.Screen name="HesapKayit" component={HesapKayitScreen} />
@@ -183,7 +180,7 @@ export default function App() {
                       <Stack.Screen name="SifremiUnuttum" component={SifremiUnuttumScreen} />
                       <Stack.Screen name="HukukiMetin" component={HukukiMetinScreen} />
                     </Stack.Group>
-                  ) : !hesapAdimiGecildi ? (
+                  ) : !epostaDogrulandi ? (
                     <Stack.Group>
                       <Stack.Screen name="EpostaDogrula" component={EpostaDogrulaScreen} />
                       <Stack.Screen name="HukukiMetin" component={HukukiMetinScreen} />
@@ -226,6 +223,9 @@ export default function App() {
             <HtmlOnIsleyici />
           </View>
         )}
+        {/* Zorunlu güncelleme: yüklü sürüm eskiyse her şeyin (kilit ekranı
+            dahil) üstünde kapatılamayan kutu. Bkz. src/utils/surumKontrolu.ts */}
+        <GuncellemeKutusu />
       </PaperProvider>
     </SafeAreaProvider>
   );

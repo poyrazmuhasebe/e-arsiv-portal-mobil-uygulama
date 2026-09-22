@@ -42,8 +42,7 @@ Hazırlık: `worker/.dev.vars.example` dosyasını `.dev.vars` adıyla kopyalay�
 - [ ] **Yalnızca rakamlı kullanıcı adı reddediliyor** — ör. `34567890`
   yazınca "en az bir harf içermeli" uyarısı çıkıyor ve **istek gitmiyor**
   (`wrangler dev` konsolunda istek görünmemeli).
-- [ ] **Hatırlanan GİB kodu çakışması** — hesapsız ("Şimdilik atla") kullanımda
-  "Kullanıcı Kodunu Hatırla" ile kaydedilmiş GİB kodunu kullanıcı adı alanına yazınca "Bu, GİB kullanıcı
+- [ ] **Hatırlanan GİB kodu çakışması** — "Kullanıcı Kodunu Hatırla" ile kaydedilmiş GİB kodunu kullanıcı adı alanına yazınca "Bu, GİB kullanıcı
   kodunuz" uyarısı çıkıyor ve **istek gitmiyor**.
 - [ ] **E-posta Doğrula** — 6 haneli kod ekranı geliyor; yerel Worker'da kod
   ekranda "Yerel geliştirme: kod ######" olarak da görünüyor.
@@ -79,16 +78,29 @@ Hazırlık: `worker/.dev.vars.example` dosyasını `.dev.vars` adıyla kopyalay�
 - [ ] **Sahipsiz GİB oturumu siliniyor** — güncellemeden önce girilmiş bir
   cihazda ilk açılışta GİB oturumu geri yüklenmiyor, GİB kodu formda kalıyor.
 
-### DEMO: "Şimdilik atla" (2026-09-21) — GİB gerekir, Worker gerekmez
+### "Şimdilik atla" kaldırıldı (2026-09-22)
 
-- [ ] Karşılama ekranında "Şimdilik atla" görünüyor ve doğrudan GİB giriş
-  ekranına geçiyor (kayıt/doğrulama adımı yok).
-- [ ] GİB giriş ekranının altındaki düğme "Kayıt ol / giriş yap" yazıyor ve
-  Karşılama ekranına dönüyor.
-- [ ] GİB'e girince Dashboard açılıyor; menüde "Hesabımı Sil" **yok**; çıkış
-  diyaloğunda "Tamamen çık" var.
-- [ ] Uygulamayı tamamen kapatıp açınca Karşılama ekranı geliyor ve GİB
-  oturumu **hatırlanmıyor** (hatırlanan GİB kullanıcı kodu formda duruyor).
+- [ ] Karşılama ekranında yalnızca "Kayıt Ol" ve "Giriş Yap" var.
+- [ ] Dashboard menüsünde "Hesabımı Sil" her zaman görünüyor; çıkış
+  diyaloğundaki düğme "Hesaptan Çık".
+
+### Zorunlu güncelleme (2026-09-22) — Worker (uzak) gerekir, GİB gerekmez
+
+Önkoşul: `0002_uygulama_surumleri.sql` uzak D1'e uygulanmış ve Worker deploy edilmiş.
+
+- [ ] Sunucuda hiç sürüm kaydı yokken uygulama normal açılıyor.
+- [ ] Yeni APK derlenip (`npm run apk:yerel`) `npm run surum:yayinla` ile
+  kaydedilince, ESKİ APK açılışta "Güncelleme gerekli" kutusunu gösteriyor;
+  yüklü ve son sürüm adı/kodu doğru.
+- [ ] Kutu kapatılamıyor: kapatma düğmesi yok, Android geri tuşu işe yaramıyor,
+  arkadaki ekrana dokunulamıyor. Kilit ekranı açıkken de kutu üstte.
+- [ ] Eski APK açıkken arka plana alıp (1 dk+) sürüm yayınlayınca, geri
+  dönüşte kutu çıkıyor.
+- [ ] `--adres` ile yayınlandıysa "Güncellemeyi İndir" adresi tarayıcıda açıyor;
+  adres yoksa yalnızca "Tekrar Kontrol Et" var.
+- [ ] Uçak modunda eski APK açılıyor (ağ hatası engellemiyor); kutu açıkken
+  uçak moduna geçip "Tekrar Kontrol Et"e basınca kutu KAPANMIYOR.
+- [ ] Yeni APK eskinin üzerine kurulunca kutu çıkmıyor.
 
 ### Filigran ve tarih sınırı (2026-09-21) — GİB gerekir
 

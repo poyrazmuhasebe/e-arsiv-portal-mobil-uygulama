@@ -2,8 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, Icon, InfoBox, PrimaryButton, SecondaryButton, TextButton } from '../components/ui';
-import { useHesapStore } from '../store/useHesapStore';
+import { AppScreen, Icon, InfoBox, PrimaryButton, SecondaryButton } from '../components/ui';
 import { colors, radius, spacing, typography } from '../theme';
 import type { RootStackParamList } from '../../App';
 
@@ -14,8 +13,6 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Karsilama'>;
  * hesabı, sonra GİB. Karar ve gerekçe: docs/hesap-sistemi.md
  */
 export default function KarsilamaScreen({ navigation }: Props) {
-  const hesabiAtla = useHesapStore((s) => s.hesabiAtla);
-
   return (
     <AppScreen>
       <ScrollView persistentScrollbar indicatorStyle="white" contentContainerStyle={styles.icerik}>
@@ -40,15 +37,6 @@ export default function KarsilamaScreen({ navigation }: Props) {
             <SecondaryButton icon="login" onPress={() => navigation.navigate('HesapGiris')} fullWidth>
               Giriş Yap
             </SecondaryButton>
-            {/* DEMO: hesap oluşturmadan GİB girişine geçiş. Bu seçim cihaza
-                YAZILMAZ; uygulama yeniden açılınca bu ekran tekrar gelir ve bu
-                modda açılan GİB oturumu geri yüklenmez (bkz. useHesapStore). */}
-            <TextButton icon="arrow-right" onPress={hesabiAtla} fullWidth>
-              Şimdilik atla
-            </TextButton>
-            <Text style={styles.atlaNotu}>
-              Hesap oluşturmadan doğrudan GİB girişine geçer. Uygulamayı kapatınca GİB oturumunuz hatırlanmaz.
-            </Text>
           </View>
 
           <InfoBox tone="primary" icon="shield-lock-outline" title="Gizliliğiniz">
@@ -85,5 +73,4 @@ const styles = StyleSheet.create({
   baslik: { ...typography.screenTitle, textAlign: 'center' },
   altBaslik: { ...typography.bodySecondary, textAlign: 'center', maxWidth: 420 },
   butonlar: { gap: spacing.sm },
-  atlaNotu: { ...typography.caption, textAlign: 'center', marginTop: -spacing.xxs },
 });

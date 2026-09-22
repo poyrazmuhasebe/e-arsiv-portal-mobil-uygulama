@@ -22,6 +22,7 @@ import { cikisUcu, yenileUcu } from "./uclar/oturumUclari";
 import { epostaDogrulaUcu, kodGonderUcu } from "./uclar/epostaDogrulama";
 import { sifirlamaBaslatUcu, sifirlamaTamamlaUcu } from "./uclar/sifreSifirlama";
 import { hesapSilFormu, hesapSilSayfasi, hesapSilUcu } from "./uclar/hesapSil";
+import { surumUcu } from "./uclar/surum";
 
 const YAPILANDIRMA_HATASI = new IstekHatasi(
   "yapilandirma_eksik",
@@ -71,6 +72,11 @@ async function yonlendir(
   // silme talebinin uygulama dışından da yapılabilmesini istiyor.
   if (yontem === "GET" && yol === "/hesap-sil") {
     return hesapSilSayfasi();
+  }
+
+  // Zorunlu güncelleme kontrolü. Oturum gerektirmez (bkz. uclar/surum.ts).
+  if (yontem === "GET" && yol === "/v1/surum") {
+    return surumUcu(istek, env);
   }
 
   if (yontem === "GET" && yol === "/v1/saglik") {

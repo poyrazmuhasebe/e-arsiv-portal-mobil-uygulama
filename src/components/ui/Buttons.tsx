@@ -47,7 +47,7 @@ interface Gorunum {
  *  - SecondaryButton : koyu, kenarlıklı — ikincil eylemler ("Satır Ekle")
  *  - DangerButton    : yıkıcı eylemler; DangerSoftButton kart içi küçük hali
  *  - SuccessSoftButton: olumlu onay ("Talep Kabul Et")
- *  - TextButton      : üçüncül ("Vazgeç", "Şimdilik atla")
+ *  - TextButton      : üçüncül ("Vazgeç", "İptal")
  */
 function temel(g: Gorunum) {
   return function Dugme({

@@ -7,7 +7,8 @@
  * BAŞKA bir uygulama hesabının giriş formuna da dolduruluyordu.
  *
  * Artık her uygulama hesabının kendi listesi var (en yeni başta, en fazla
- * EN_FAZLA_KOD). Hesapsız (DEMO "Şimdilik atla") kullanımın listesi ayrıdır.
+ * EN_FAZLA_KOD). Hesapsız kullanım için ayrı bir "demo" listesi vardır
+ * (eski "Şimdilik atla" modundan kalma; o mod 2026-09-22'de kaldırıldı).
  * Şifre hiçbir zaman saklanmaz; yalnızca kullanıcı kodları.
  *
  * Eski tekil anahtar, onu ilk okuyan hesabın listesine TAŞINIR ve silinir

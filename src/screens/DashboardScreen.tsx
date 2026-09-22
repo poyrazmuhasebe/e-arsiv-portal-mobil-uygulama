@@ -45,8 +45,6 @@ export default function DashboardScreen({ navigation }: Props) {
   const logout = useAuthStore((s) => s.logout);
   const isLoggingOut = useAuthStore((s) => s.isLoggingOut);
   const hesaptanCik = useHesapStore((s) => s.hesaptanCik);
-  // DEMO "Şimdilik atla" modunda uygulama hesabı yoktur.
-  const hesapVar = useHesapStore((s) => s.kullanici !== null);
 
   // Çıkış seçenekleri dialog'u (Android'in beyaz sistem dialog'u yerine).
   const [cikisAcik, setCikisAcik] = useState(false);
@@ -112,8 +110,6 @@ export default function DashboardScreen({ navigation }: Props) {
     }
   };
 
-  // Hesap atlandıysa (DEMO) kapatılacak hesap yok; bu seçenek her iki
-  // oturumu kapatıp Karşılama ekranına döner.
   const hesaptanCikis = async () => {
     setCikisAcik(false);
     setLocalBusy(true);
@@ -214,18 +210,13 @@ export default function DashboardScreen({ navigation }: Props) {
       altBaslik: 'Bu hesaba kayıtlı mal/hizmet adlarını düzenleyin, silin veya ekleyin',
       onPress: () => navigation.navigate('MalHizmetDefteri'),
     },
-    // Hesap atlandıysa (DEMO) silinecek bir uygulama hesabı yok.
-    ...(hesapVar
-      ? [
-          {
-            icon: 'account-remove-outline' as IconName,
-            accent: 'danger' as const,
-            baslik: 'Hesabımı Sil',
-            altBaslik: 'Uygulama hesabınızı kalıcı olarak silin (GİB hesabınız etkilenmez)',
-            onPress: () => navigation.navigate('HesapSil'),
-          },
-        ]
-      : []),
+    {
+      icon: 'account-remove-outline',
+      accent: 'danger',
+      baslik: 'Hesabımı Sil',
+      altBaslik: 'Uygulama hesabınızı kalıcı olarak silin (GİB hesabınız etkilenmez)',
+      onPress: () => navigation.navigate('HesapSil'),
+    },
   ];
 
   const kilitAciklamasi = !cihazKilidiVar
@@ -310,7 +301,7 @@ export default function DashboardScreen({ navigation }: Props) {
               GİB Oturumunu Kapat
             </SecondaryButton>
             <DangerSoftButton icon="account-arrow-right-outline" onPress={hesaptanCikis} fullWidth compact>
-              {hesapVar ? 'Hesaptan Çık' : 'Tamamen Çık'}
+              Hesaptan Çık
             </DangerSoftButton>
             <TextButton onPress={() => setCikisAcik(false)} fullWidth compact>
               İptal

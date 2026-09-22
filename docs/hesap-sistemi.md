@@ -76,7 +76,7 @@ e-posta ve kullanıcı adı **hiçbir koşulda** yazılmaz.
 | Ekran etiketi | **"Uygulama Kullanıcı Adı"** | GİB tarafı "GİB Kullanıcı Kodu" olarak ayrışır |
 | Cloudflare bağlantısı | **Worker + D1 binding** (`env.DB`) | Uygulamadan doğrudan D1 REST API'si keyfi SQL çalıştırır ve hesap düzeyinde bir API token'ı ister; o token APK'dan çıkarılabilir |
 | Giriş alanı | **E-posta + şifre** | GİB girişiyle (kod+şifre) görsel olarak karışmaz |
-| Hesap zorunluluğu | ~~Zorunlu~~ → **2026-09-21: DEMO için "Şimdilik atla" eklendi** | Karşılama ekranından hesap oluşturmadan GİB girişine geçilebilir. Bu seçim yalnızca bellekte tutulur; yeniden açılışta Karşılama tekrar gelir ve bu modda açılan GİB oturumu hiçbir hesaba bağlanmadığı için geri yüklenmez. Apple 5.1.1(v) riskini de azaltır |
+| Hesap zorunluluğu | **Zorunlu** (2026-09-22: DEMO "Şimdilik atla" kaldırıldı) | Eski not — 2026-09-21: DEMO için "Şimdilik atla" eklenmişti: Karşılama ekranından hesap oluşturmadan GİB girişine geçilebilir. Bu seçim yalnızca bellekte tutulur; yeniden açılışta Karşılama tekrar gelir ve bu modda açılan GİB oturumu hiçbir hesaba bağlanmadığı için geri yüklenmez. Apple 5.1.1(v) riskini de azaltır |
 | Çevrimdışı | Cihazda geçerli oturum varsa Worker'a **sorulmadan** GİB ekranına geçilir | Cloudflare kesintisi ya da günlük limit uygulamayı tamamen kilitlemesin |
 | Platform | **Yalnız Android**, şimdilik | Apple ile Giriş, `.p8`, Apple token iptali ve `bekleyen_kayitlar` tablosu kapsam dışı |
 | Plan | **Workers Paid** | İstek başına varsayılan 30 sn CPU; scrypt rahat sığar |
@@ -98,8 +98,7 @@ e-posta ve kullanıcı adı **hiçbir koşulda** yazılmaz.
 
 | # | Koşul | Ekran |
 |---|---|---|
-| 1 | Hesap oturumu yok | **Karşılama** → "Kayıt Ol" / "Giriş Yap" / **"Şimdilik atla"** (DEMO). GİB girişi burada **yok** |
-| 1a | Hesap yok ama "Şimdilik atla"ya basıldı (DEMO, yalnızca bellekte) | Doğrudan **GİB Giriş**; e-posta doğrulama adımı yok. "Hesabımı Sil" menüde görünmez |
+| 1 | Hesap oturumu yok | **Karşılama** → "Kayıt Ol" / "Giriş Yap". GİB girişi burada **yok** |
 | 2 | Hesap var, e-posta doğrulanmamış | **E-posta Doğrula** (6 haneli kod + "yeniden gönder") |
 | 3 | Hesap var + doğrulanmış; GİB token'ı yok **ya da** `hesap_gib_sahibi` eşleşmiyor | **GİB Giriş** — bugünkü `LoginScreen`; etiket "GİB Kullanıcı Kodu", duyuru kutusu burada kalır |
 | 4 | İkisi de var | Mevcut Dashboard grubu (değişmez) |

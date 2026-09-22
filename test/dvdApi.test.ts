@@ -346,10 +346,10 @@ test('bağımsız giriş: bellekteki şifre kullanılmaz; kod ve şifre zorunlu'
 
 test('bağımsız oturum: uygulama hesabından çıkınca Dijital VD oturumu kapatılır', async () => {
   const { useHesapStore } = await import('../src/store/useHesapStore');
-  useHesapStore.setState({ atlandi: true });
+  useHesapStore.setState({ kullanici: { id: 'hesap-A', eposta: 'a@ornek.test', kullaniciAdi: 'ali', epostaDogrulandi: true } });
   useDvdStore.setState({ token: 'dvd-token', kullaniciKodu: '87654321' });
   yanitla(() => sahteJsonYanit({ result: true }));
-  useHesapStore.setState({ atlandi: false, kullanici: null });
+  useHesapStore.setState({ kullanici: null });
   assert.equal(useDvdStore.getState().token, null);
 });
 

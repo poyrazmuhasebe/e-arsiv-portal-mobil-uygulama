@@ -133,12 +133,11 @@ useAuthStore.subscribe((durum, onceki) => {
 });
 
 // Dijital VD, e-Arşiv girişi yapılmadan da (GİB giriş ekranından) açılabildiği
-// için GİB oturumu olmayabilir. Uygulama hesabı değişince (çıkış, başka hesap,
-// "Şimdilik atla"dan çıkış) oturum bir sonraki kullanıcıya KALMASIN.
+// için GİB oturumu olmayabilir. Uygulama hesabı değişince (çıkış, başka hesap)
+// oturum bir sonraki kullanıcıya KALMASIN.
 useHesapStore.subscribe((durum, onceki) => {
   const dvd = useDvdStore.getState();
   if (!dvd.token) return;
   const hesapDegisti = (onceki.kullanici?.id ?? null) !== (durum.kullanici?.id ?? null);
-  const atlamaBitti = onceki.atlandi && !durum.atlandi;
-  if (hesapDegisti || atlamaBitti) void dvd.cikisYap();
+  if (hesapDegisti) void dvd.cikisYap();
 });

@@ -129,12 +129,14 @@ async function istek<T>(secenekler: IstekSecenekleri): Promise<T> {
   const kesici = new AbortController();
   const sayac = setTimeout(() => kesici.abort(), ZAMAN_ASIMI_MS);
 
+  const yontem = secenekler.yontem ?? 'POST';
   let yanit: Response;
   try {
     yanit = await fetch(`${durum.taban}${secenekler.yol}`, {
-      method: secenekler.yontem ?? 'POST',
+      method: yontem,
       headers: basliklar,
-      body: JSON.stringify(secenekler.govde ?? {}),
+      // GET isteğinde gövde olamaz (fetch hata fırlatır).
+      body: yontem === 'GET' ? undefined : JSON.stringify(secenekler.govde ?? {}),
       signal: kesici.signal,
     });
   } catch (hata) {
@@ -292,6 +294,38 @@ export function sifreSifirlamaTamamla(
   return istek({
     yol: '/v1/sifre/sifirlama-tamamla',
     govde: { eposta, kod, yeniSifre },
+    gelistirmeMi,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Zorunlu güncelleme kontrolü (bkz. utils/surumKontrolu.ts)
+// ---------------------------------------------------------------------------
+
+export interface SonSurum {
+  /** Android versionCode. */
+  kod: number;
+  /** Ör. "1.0.1-beta.3". */
+  ad: string;
+  indirmeAdresi: string | null;
+  /** Unix zamanı, saniye. */
+  yayin: number;
+}
+
+export interface SurumYaniti {
+  platform: string;
+  /** Sunucuda hiç sürüm kaydı yoksa null. */
+  sonSurum: SonSurum | null;
+}
+
+/** Yayınlanmış en son sürümü sorar. Oturum gerektirmez, gövde göndermez. */
+export function sonSurumuGetir(
+  platform: 'android' | 'ios',
+  gelistirmeMi: boolean,
+): Promise<SurumYaniti> {
+  return istek<SurumYaniti>({
+    yol: `/v1/surum?platform=${platform}`,
+    yontem: 'GET',
     gelistirmeMi,
   });
 }

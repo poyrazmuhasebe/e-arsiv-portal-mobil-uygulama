@@ -76,6 +76,7 @@ describe("GİB verisi Worker'a kabul edilmez", () => {
       "oran_sinir",
       "oturumlar",
       "tek_kullanimlik_kodlar",
+      "uygulama_surumleri",
     ]);
 
     const yasakli = /gib|vkn|tckn|fatura|alici|malhizmet|unvan|vergi|token(?!_)/i;
