@@ -16,6 +16,5 @@ dokümantasyon burada, konuya göre ayrılmış dosyalarda tutulur:
 | [proje-yapisi.md](proje-yapisi.md) | Klasör/dosya ağacı |
 | [kurulum-ve-gelistirme.md](kurulum-ve-gelistirme.md) | Kurulum, test modu, geliştirme iş akışı, yayına hazırlık |
 | [bilinen-sinirlamalar.md](bilinen-sinirlamalar.md) | Bilinen eksikler/riskler ve ilgili GitHub Issue'lar |
-| [cihazda-denenecekler.md](cihazda-denenecekler.md) | Kodlanmış ama henüz telefonda denenmemiş değişikliklerin kontrol listesi |
 
 Açık hata/geliştirme takibi için: [GitHub Issues](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues).

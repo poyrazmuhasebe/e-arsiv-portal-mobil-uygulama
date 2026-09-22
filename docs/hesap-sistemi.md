@@ -573,4 +573,3 @@ secret'ları geri okunamaz; yedeği parola yöneticisinde tutulmalıdır.
 - [hukuk/](hukuk/) — aydınlatma metni, gizlilik politikası ve hizmet şartları
   **taslakları**
 - [bilinen-sinirlamalar.md](bilinen-sinirlamalar.md)
-- [cihazda-denenecekler.md](cihazda-denenecekler.md)

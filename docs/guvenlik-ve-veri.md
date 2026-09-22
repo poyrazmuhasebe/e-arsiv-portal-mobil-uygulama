@@ -133,8 +133,7 @@ bir sonraki yazma eski yuvaların hepsini temizler.
 sayıldı): listeyi okumak 52 okuma (eski biçim kontrolü + dizin + 50 kayıt,
 paralel istenir); alıcı ekleme/güncelleme/adres düzenleme 52 okuma + 4 yazma +
 1 silme; silme 52 okuma + 2 yazma + 1 silme. Önceki biçimde bunlar 1–2 okuma +
-1 yazmaydı. **Cihazda ne kadar sürdüğü ölçülmedi** (bkz.
-[cihazda-denenecekler.md](cihazda-denenecekler.md)).
+1 yazmaydı.
 
 ### Eski biçimden taşıma
 

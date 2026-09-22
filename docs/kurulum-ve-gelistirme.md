@@ -110,10 +110,7 @@ derlemede etkilidir, Expo Go'da değil (bkz.
       `bundleIdentifier`, EAS `projectId`
 - [x] İlk Android APK (v1.0.0, `preview` profili) — **log düzeltmesinden önce
       alındı, kullanılmamalı** (bkz. [guvenlik-ve-veri.md](guvenlik-ve-veri.md))
-- [ ] Düzeltmeleri içeren yeni APK (v1.0.1) —
-      [Issue #22](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/22)
-- [ ] `production` (AAB) derlemesi, iOS paketi ve mağaza yayın hazırlığı —
-      [Issue #17](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/17)
+- [x] Beta APK'ları yerel derlemeyle (`npm run apk:yerel`, `1.0.1-beta.N`)
 
 ## Hesap sunucusu (Cloudflare Worker + D1)
 

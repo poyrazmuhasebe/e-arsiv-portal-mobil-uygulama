@@ -91,7 +91,7 @@ bu sayfa onların tematik bir özetidir.
 
 - ~~Detaylı Alıcı Defteri yönetim ekranı (düzenleme/silme/elle ekleme).~~ —
   **yapıldı** ("Kullanıcı İşlemleri > Alıcı Defteri", bkz.
-  [ozellikler.md](ozellikler.md)). Cihazda canlı denenmesi gerekiyor.
+  [ozellikler.md](ozellikler.md)).
   ([Issue #9](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/9))
 - ~~**SecureStore değer boyutu**: defter tek değerde ~13–48 KB~~ — **tasarım
   düzeltildi**: alıcı ve mal/hizmet defterleri artık kayıt başına ayrı
@@ -105,8 +105,7 @@ bu sayfa onların tematik bir özetidir.
   bildirilir.
   ([Issue #23](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/23))
 - ~~"Kayıtlı Mal/Hizmet Adı" defteri.~~ — **yapıldı** (hesaba özel, en fazla
-  50 ad; fatura formunda "Kayıtlı Mal/Hizmet Seç"). Cihazda canlı denenmesi
-  gerekiyor.
+  50 ad; fatura formunda "Kayıtlı Mal/Hizmet Seç").
   ([Issue #10](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/10))
 - ~~Gerçek VKN/TCKN checksum doğrulaması~~ — **yapıldı**
   (`src/utils/kimlikDogrula.ts`; VKN ve TCKN kontrol basamağı algoritmaları).
@@ -161,15 +160,6 @@ bu sayfa onların tematik bir özetidir.
   APK (v1.0.0) hazır. **Kalan:** `production` (AAB) derlemesi, iOS paketi,
   mağaza yayın hazırlığı.
   ([Issue #17](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/17))
-- **v1.0.0 APK'sı güncel değil** — log düzeltmesinden ve sonraki güvenlik
-  sıkılaştırmalarından önce alındı; düzeltmeleri içeren yeni derleme (v1.0.1)
-  alınana kadar kullanılmamalı.
-  ([Issue #22](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/22))
-- **Cihazda denenmemiş değişiklikler** —
-  [cihazda-denenecekler.md](cihazda-denenecekler.md)'deki liste henüz
-  tamamlanmadı. **Uygulama hesabı sisteminin hiçbir ekranı telefonda
-  görülmedi.**
-  ([Issue #24](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/24))
 - **Doğrulama e-postasının gerçekten ulaştığı teyit edilmedi.** Cloudflare
   Email Sending BETA ve postayı yalnızca *teslim için kabul ediyor*; üretimde
   var olmayan bir adrese yapılan kayıt bile hata vermiyor. E-posta doğrulama
