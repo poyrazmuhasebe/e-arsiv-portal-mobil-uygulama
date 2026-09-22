@@ -557,3 +557,36 @@ telefon…), hangi firma keserse kessin.
   oturumundan çıkınca ya da başka bir GİB kullanıcı koduna geçince GİB'de de
   kapatılır (`src/store/useDvdStore.ts`). Başlıktaki düğmeyle elle de
   kapatılabilir.
+- **PDF'e Aktar:** tarih filtresinin altındaki düğme, seçili aralığın TÜM
+  faturalarını (bütün sayfalar) tek bir PDF'te listeler; sonuç kutusunda Aç,
+  Paylaş, Kaydedilen PDF'ler.
+- **Toplu PDF'e Aktar** — AYRI SAYFA (`src/screens/DvdTopluAktarScreen.tsx`):
+  dönem ("Son 1 ay" = önceki ayın 1'inden bugüne, "Son 2 ay" = iki önceki ayın
+  1'inden bugüne; ör. Eylül'de 01.08 / 01.07 – bugün), kayıt klasörü
+  (seç/değiştir), PDF'e Aktar.
+  Dönem **tek sorguda istenmez**: GİB kuralına uygun haftalık (uçlar dahil
+  ≤ 7 gün, ay sınırında bölünen) parçalar sırayla, tüm sayfalarıyla sorgulanır;
+  sonuç tek PDF. İşlem süreci fatura yedeklemedeki gibi **kapatılabilir bir
+  kutuda** görünür (sorgulanan aralık, sorgu x / N, bulunan fatura, ilerleme
+  çubuğu); bitince kutuda PDF'i Aç / PDF'i Paylaş / Kaydedilen PDF'ler.
+  **Arka planda iş kalmaz:** kutu kapatılır, "Durdur ve Kapat"a basılır ya da
+  sayfadan çıkılırsa döngü bir sonraki istekten önce durur; kutu süren istek
+  bitene kadar "Durduruluyor" gösterir ve PDF oluşturulmaz. Ortak akış:
+  `src/services/dvdPdfAktar.ts`.
+  - PDF **uygulama içinde** üretilir (`src/utils/dvdRapor.ts` → yatay A4 tablo,
+    expo-print). Dijital VD'nin kendi "PDF'e Aktar" servisi
+    (`/eislemler/report/download`) **kullanılmaz** (kullanıcı isteği).
+  - İçerik: alıcı (ad soyad + VKN/TCKN, `/auth/tdvd/user-info`; alınamazsa
+    kullanıcı kodu), dönem, oluşturulma zamanı, fatura sayısı, para birimine
+    göre toplamlar ve fatura tablosu (fatura no, tarih, satıcı, VKN/TCKN,
+    tesisat no, tutarlar, gönderim, iptal/itiraz). Tüm metinler HTML kaçışından
+    geçer; betik yok. Altta "faturaların kendisi değildir" notu.
+  - **Klasör:** Android'de ilk aktarmada sistem klasör seçicisi açılır (fatura
+    yedeklerinden AYRI kayıt: `dvd_rapor_klasor_uri`); iOS'ta uygulama
+    klasöründeki "e-Arşiv Faturalarım PDF". Dosya adı
+    `e-Arsiv-Faturalarim_<YYYYAAGG-SSDDss>_<VKN>_<başlangıç>_<bitiş>.pdf`
+    (aynı dönem tekrar aktarılsa üzerine yazılmaz).
+- **Kaydedilen PDF'ler** (`src/screens/DvdRaporlarScreen.tsx`): başlıktaki
+  klasör düğmesiyle ya da aktarma bitince açılır. Klasör adı + değiştir;
+  dosyalar yeniden eskiye (dönem, oluşturulma zamanı, VKN, boyut); Aç, Paylaş,
+  Sil (onaylı). Dijital VD oturumu gerekmez.

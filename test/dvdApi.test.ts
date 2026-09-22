@@ -11,7 +11,9 @@ import {
   dvdFaturalariSirala,
   dvdGirisYap,
   dvdGuvenlikKoduGetir,
+  dvdKullaniciBilgisiGetir,
   dvdTarihiGoster,
+  dvdTumFaturalariGetir,
 } from '../src/services/dvdApi';
 import { oturumSifresi, oturumSifresiniAyarla, oturumSifresiniSil } from '../src/utils/oturumSifresi';
 import { useAuthStore } from '../src/store/useAuthStore';
@@ -358,4 +360,142 @@ test('bağımsız oturum: aynı kodla e-Arşiv girişi yapılınca korunur, baş
   yanitla(() => sahteJsonYanit({ result: true }));
   useAuthStore.setState({ token: 'gib2', kullaniciKodu: '11112222' });
   assert.equal(useDvdStore.getState().token, null);
+});
+
+// ---------------------------------------------------------------------------
+// PDF'e aktarma için: kullanıcı bilgisi ve bir dönemin TÜM faturaları
+// ---------------------------------------------------------------------------
+
+test('user-info: yalnızca ad, VKN, TCKN, kullanıcı kodu okunur', async () => {
+  yanitla(() =>
+    sahteJsonYanit({ name: 'AHMET', surname: 'YILMAZ', vkn: '1234567890', tckn: null, userCode: '12345678', sessionId: 'x' }),
+  );
+  const k = await dvdKullaniciBilgisiGetir('tok');
+  const [istek] = sahteFetch.istekler;
+  assert.equal(istek.url, `${DVD_TABAN}/auth/tdvd/user-info`);
+  assert.equal(istek.yontem, 'GET');
+  assert.equal(istek.basliklar.authorization, 'Bearer tok');
+  assert.deepEqual(k, { adSoyad: 'AHMET YILMAZ', vkn: '1234567890', tckn: undefined, kullaniciKodu: '12345678' });
+});
+
+function sayfaYaniti(pageNo: number, totalPage: number, nolar: string[]) {
+  return {
+    messages: null,
+    pageDetail: { pageNo, pageSize: 10, total: 99, totalPage },
+    resultListDenormalized: nolar.map((no, i) => ({
+      faturaNo: no,
+      duzenlenmeTarihi: `2026-08-0${(i % 9) + 1} 10:00:00`,
+      tcknVkn: '1790617537',
+      unvan: 'S',
+      toplamTutar: 1,
+    })),
+  };
+}
+
+test('tüm faturalar: her parçanın tüm sayfaları, tekrarlar bir kez, ilerleme bildirilir', async () => {
+  yanitla((i) => {
+    const g = JSON.parse(i.govde!);
+    const bas = g.data.duzenlenmeTarihiBas;
+    const sayfa = g.meta.pagination.pageNo;
+    if (bas === '25/08/2026') return sahteJsonYanit(sayfa === 1 ? sayfaYaniti(1, 2, ['A', 'B']) : sayfaYaniti(2, 2, ['C']));
+    return sahteJsonYanit(sayfaYaniti(1, 1, ['C', 'D']));
+  });
+  const ilerlemeler: number[] = [];
+  const parcaSonuclari: [number, number][] = [];
+  const s = await dvdTumFaturalariGetir(
+    'tok',
+    [
+      { baslangic: '25/08/2026', bitis: '31/08/2026' },
+      { baslangic: '18/08/2026', bitis: '24/08/2026' },
+    ],
+    { bekleMs: 0, ilerleme: (d) => ilerlemeler.push(d.parcaSirasi), parcaTamam: (i, n) => parcaSonuclari.push([i, n]) },
+  );
+  // 2. parçada gelen C daha önce görüldüğü için yalnızca D yeni sayılır.
+  assert.deepEqual(parcaSonuclari, [
+    [1, 3],
+    [2, 1],
+  ]);
+  assert.equal(sahteFetch.istekler.length, 3);
+  assert.deepEqual(
+    s.faturalar.map((f) => f.faturaNo).sort(),
+    ['A', 'B', 'C', 'D'],
+  );
+  assert.equal(s.durduruldu, false);
+  assert.deepEqual(ilerlemeler, [1, 1, 2]);
+});
+
+test('tüm faturalar: durdurulunca istek atılmaz, o ana kadar toplananlar döner', async () => {
+  let durdur = false;
+  yanitla(() => {
+    durdur = true;
+    return sahteJsonYanit(sayfaYaniti(1, 3, ['A']));
+  });
+  const s = await dvdTumFaturalariGetir('tok', [{ baslangic: 'a', bitis: 'b' }], {
+    bekleMs: 0,
+    durduruldu: () => durdur,
+  });
+  assert.equal(sahteFetch.istekler.length, 1);
+  assert.equal(s.durduruldu, true);
+  assert.deepEqual(s.faturalar.map((f) => f.faturaNo), ['A']);
+});
+
+test('tüm faturalar: oturum hatası dışarı iletilir', async () => {
+  yanitla(() => sahteJsonYanit({}, 401));
+  const h = await hataBekle(dvdTumFaturalariGetir('tok', [{ baslangic: 'a', bitis: 'b' }], { bekleMs: 0 }));
+  assert.equal(h.oturumHatasi, true);
+});
+
+test('tüm faturalar: anlık hata bir kez yeniden denenir', async () => {
+  let n = 0;
+  yanitla(() => (n++ === 0 ? sahteJsonYanit({}, 502) : sahteJsonYanit(sayfaYaniti(1, 1, ['A']))));
+  const s = await dvdTumFaturalariGetir('tok', [{ baslangic: '01/09/2026', bitis: '07/09/2026' }], {
+    bekleMs: 0,
+    tekrarBekleMs: 0,
+  });
+  assert.equal(sahteFetch.istekler.length, 2);
+  assert.deepEqual(s.faturalar.map((f) => f.faturaNo), ['A']);
+});
+
+test('tüm faturalar: iki kez başarısız olursa hangi sorguda koptuğu yazılır', async () => {
+  yanitla(() => sahteJsonYanit({}, 502));
+  const h = await hataBekle(
+    dvdTumFaturalariGetir('tok', [{ baslangic: '01/09/2026', bitis: '07/09/2026' }], { bekleMs: 0, tekrarBekleMs: 0 }),
+  );
+  assert.equal(sahteFetch.istekler.length, 2);
+  assert.match(h.message, /^01\/09\/2026 – 07\/09\/2026 \(sayfa 1\) sorgulanamadı: /);
+  assert.equal(h.oturumHatasi, false);
+});
+
+test('liste: "e-Arşiv Faturanız bulunmamaktadır." hata değil, boş sayfa (200 ya da 4xx)', async () => {
+  const mesaj = { messages: [{ text: 'e-Arşiv Faturanız bulunmamaktadır.', type: 'ERROR' }] };
+  for (const durum of [200, 400, 404]) {
+    yanitla(() => sahteJsonYanit(mesaj, durum));
+    const s = await dvdEarsivFaturalariGetir('tok', { baslangic: 'a', bitis: 'b', sayfa: 1 });
+    assert.deepEqual(s, { faturalar: [], sayfa: 1, toplam: 0, toplamSayfa: 0 });
+  }
+});
+
+test('tüm faturalar: faturasız hafta aktarmayı durdurmaz, yeniden denenmez', async () => {
+  yanitla((i) => {
+    const bas = JSON.parse(i.govde!).data.duzenlenmeTarihiBas;
+    if (bas === '16/09/2026') {
+      return sahteJsonYanit({ messages: [{ text: 'e-Arşiv Faturanız bulunmamaktadır.', type: 'ERROR' }] });
+    }
+    return sahteJsonYanit(sayfaYaniti(1, 1, ['A']));
+  });
+  const parcalar: [number, number][] = [];
+  const s = await dvdTumFaturalariGetir(
+    'tok',
+    [
+      { baslangic: '16/09/2026', bitis: '22/09/2026' },
+      { baslangic: '09/09/2026', bitis: '15/09/2026' },
+    ],
+    { bekleMs: 0, tekrarBekleMs: 0, parcaTamam: (i, n) => parcalar.push([i, n]) },
+  );
+  assert.equal(sahteFetch.istekler.length, 2);
+  assert.deepEqual(s.faturalar.map((f) => f.faturaNo), ['A']);
+  assert.deepEqual(parcalar, [
+    [1, 0],
+    [2, 1],
+  ]);
 });

@@ -124,3 +124,20 @@ export async function pdfIndir(html: string, filigranMetni?: string): Promise<vo
   );
   await FileSystem.writeAsStringAsync(safUri, base64, { encoding: FileSystem.EncodingType.Base64 });
 }
+
+/**
+ * Uygulamanın KENDİ ürettiği (betiksiz) HTML'in PDF'i, Base64. `yatay`:
+ * A4 yatay (842×595 pt) — geniş tablolar için (e-Arşiv Faturalarım listesi).
+ */
+export async function htmlPdfBase64(html: string, secenek: { yatay?: boolean } = {}): Promise<string> {
+  const { uri, base64 } = await Print.printToFileAsync({
+    html: utf8MetaEkle(html),
+    base64: true,
+    ...(secenek.yatay ? { width: 842, height: 595 } : {}),
+  });
+  FileSystem.deleteAsync(uri, { idempotent: true }).catch(() => undefined);
+  if (!base64) {
+    throw new Error('PDF oluşturulamadı (Base64 verisi alınamadı).');
+  }
+  return base64;
+}

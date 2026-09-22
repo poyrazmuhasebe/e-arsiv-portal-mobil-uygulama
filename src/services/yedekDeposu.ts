@@ -55,44 +55,120 @@ function klasorVarMi(d: Directory): boolean {
   }
 }
 
-/** Kayıtlı yedek klasörü; Android'de seçilmemişse ya da erişilemiyorsa null. */
-export async function yedekKlasoru(): Promise<Directory | null> {
+/**
+ * Kayıtlı bir klasör (anahtarı SecureStore'da); Android'de seçilmemişse ya da
+ * erişilemiyorsa null. iOS'ta uygulamanın Belgeler klasöründeki `iosAd`.
+ */
+async function kayitliKlasor(anahtar: string, iosAd: string): Promise<Directory | null> {
   if (!KLASOR_SECILEBILIR) {
-    const d = new Directory(Paths.document, IOS_KLASOR_ADI);
+    const d = new Directory(Paths.document, iosAd);
     if (!klasorVarMi(d)) d.create({ intermediates: true, idempotent: true });
     return d;
   }
-  const uri = await getSecureItem(KLASOR_ANAHTARI);
+  const uri = await getSecureItem(anahtar);
   if (!uri) return null;
   const d = new Directory(uri);
   // Klasör silindiyse ya da izin geri alındıysa kayıt temizlenir; kullanıcı
   // yeniden seçer.
   if (!klasorVarMi(d)) {
-    await deleteSecureItem(KLASOR_ANAHTARI);
+    await deleteSecureItem(anahtar);
     return null;
   }
   return d;
 }
 
-/** Android: sistem klasör seçicisini açar. Vazgeçilirse null. */
-export async function yedekKlasoruSec(): Promise<Directory | null> {
-  if (!KLASOR_SECILEBILIR) return yedekKlasoru();
+/** Android: sistem klasör seçicisini açar ve seçimi hatırlar. Vazgeçilirse null. */
+async function klasorSec(anahtar: string, iosAd: string): Promise<Directory | null> {
+  if (!KLASOR_SECILEBILIR) return kayitliKlasor(anahtar, iosAd);
   let secilen: Directory;
   try {
     secilen = await Directory.pickDirectoryAsync();
   } catch {
     return null; // vazgeçildi
   }
-  await setSecureItem(KLASOR_ANAHTARI, secilen.uri);
+  await setSecureItem(anahtar, secilen.uri);
   return secilen;
+}
+
+/** Kayıtlı yedek klasörü; Android'de seçilmemişse ya da erişilemiyorsa null. */
+export function yedekKlasoru(): Promise<Directory | null> {
+  return kayitliKlasor(KLASOR_ANAHTARI, IOS_KLASOR_ADI);
+}
+
+/** Android: sistem klasör seçicisini açar. Vazgeçilirse null. */
+export function yedekKlasoruSec(): Promise<Directory | null> {
+  return klasorSec(KLASOR_ANAHTARI, IOS_KLASOR_ADI);
+}
+
+// "e-Arşiv Faturalarım" (Dijital VD) PDF'leri: yedeklerden AYRI bir klasör.
+const RAPOR_KLASOR_ANAHTARI = 'dvd_rapor_klasor_uri';
+export const IOS_RAPOR_KLASOR_ADI = 'e-Arşiv Faturalarım PDF';
+
+/** e-Arşiv Faturalarım PDF klasörü; Android'de seçilmemişse null. */
+export function raporKlasoru(): Promise<Directory | null> {
+  return kayitliKlasor(RAPOR_KLASOR_ANAHTARI, IOS_RAPOR_KLASOR_ADI);
+}
+
+export function raporKlasoruSec(): Promise<Directory | null> {
+  return klasorSec(RAPOR_KLASOR_ANAHTARI, IOS_RAPOR_KLASOR_ADI);
+}
+
+/** PDF'i (Base64) klasöre yeni bir dosya olarak yazar. */
+export function pdfDosyasiYaz(klasor: Directory, ad: string, base64: string): File {
+  const dosya = klasor.createFile(ad, 'application/pdf');
+  try {
+    dosya.write(base64, { encoding: 'base64' });
+  } catch (err) {
+    // Yarım/boş dosya "Kaydedilen PDF'ler"de görünmesin.
+    try {
+      dosya.delete();
+    } catch {
+      // yoksay
+    }
+    throw err;
+  }
+  return dosya;
+}
+
+export interface KayitliPdf {
+  dosya: File;
+  ad: string;
+  boyut: number | null;
+}
+
+/** Klasördeki, adı `onEk` ile başlayan PDF'ler (ada göre yeniden eskiye). */
+export function pdfleriListele(klasor: Directory, onEk: string): KayitliPdf[] {
+  const sonuc: KayitliPdf[] = [];
+  for (const oge of klasor.list()) {
+    if (!(oge instanceof File)) continue;
+    if (!oge.name.startsWith(onEk) || !oge.name.toLowerCase().endsWith('.pdf')) continue;
+    let boyut: number | null = null;
+    try {
+      boyut = oge.size;
+    } catch {
+      boyut = null;
+    }
+    sonuc.push({ dosya: oge, ad: oge.name, boyut });
+  }
+  return sonuc.sort((a, b) => b.ad.localeCompare(a.ad));
+}
+
+/** Dosyayı siler; silinemezse false. */
+export function dosyaSil(dosya: File): boolean {
+  try {
+    dosya.delete();
+    return !dosya.exists;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Kullanıcıya gösterilecek klasör adı. SAF adresi okunaksız
  * ("content://…/tree/primary%3ADownload%2FYedek"); "Download/Yedek"e çevrilir.
  */
-export function klasorGorunenAdi(d: Directory): string {
-  if (!KLASOR_SECILEBILIR) return `Uygulama klasörü / ${IOS_KLASOR_ADI}`;
+export function klasorGorunenAdi(d: Directory, iosAd: string = IOS_KLASOR_ADI): string {
+  if (!KLASOR_SECILEBILIR) return `Uygulama klasörü / ${iosAd}`;
   const agac = /\/tree\/([^/]+)/.exec(d.uri);
   if (agac) {
     try {

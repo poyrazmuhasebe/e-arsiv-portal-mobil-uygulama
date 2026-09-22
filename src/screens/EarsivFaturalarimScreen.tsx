@@ -1,24 +1,31 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ActivityIndicator, TextInput } from 'react-native-paper';
+import { ActivityIndicator, ProgressBar, TextInput } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import type { File } from 'expo-file-system';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 
 import type { RootStackParamList } from '../../App';
 import TarihAraligiFiltresi, { tarihFormatla } from '../components/TarihAraligiFiltresi';
-import { varsayilanBaslangic } from '../utils/tarihAraligi';
+import { EN_FAZLA_GUN, aralikGecerliMi, varsayilanBaslangic } from '../utils/tarihAraligi';
 import {
+  Alert,
   AppCard,
+  AppDialog,
   AppHeader,
   AppIconButton,
   AppInput,
   AppScreen,
+  DangerSoftButton,
   DetailRow,
+  DialogText,
   EmptyState,
   InfoBox,
   PrimaryButton,
   SecondaryButton,
   SectionCard,
   StatusBadge,
+  TextButton,
 } from '../components/ui';
 import {
   DvdApiError,
@@ -26,6 +33,7 @@ import {
   dvdFaturalariSirala,
   dvdGuvenlikKoduGetir,
   dvdTarihiGoster,
+  type DvdToplamaIlerlemesi,
   type DvdEarsivFatura,
   type DvdGuvenlikKodu,
 } from '../services/dvdApi';
@@ -33,6 +41,16 @@ import { useAuthStore } from '../store/useAuthStore';
 import { dvdSifreGerekli, useDvdStore } from '../store/useDvdStore';
 import { colors, radius, spacing, typography } from '../theme';
 import { tutarEtiketi } from '../utils/paraBirimi';
+import { raporKlasoru, raporKlasoruSec, yedegiAc, yedegiPaylas } from '../services/yedekDeposu';
+import { dvdPdfAktar } from '../services/dvdPdfAktar';
+
+const KEEP_AWAKE_ETIKETI = 'dvd-pdf-aktar';
+
+type AktarmaDurumu =
+  | { tur: 'bosta' }
+  | { tur: 'suruyor'; ilerleme: DvdToplamaIlerlemesi | null; asama: 'topluyor' | 'pdf' }
+  | { tur: 'bitti'; dosya: File; adet: number; klasorAdi: string }
+  | { tur: 'hata'; mesaj: string };
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EarsivFaturalarim'>;
 
@@ -182,6 +200,93 @@ export default function EarsivFaturalarimScreen({ navigation, route }: Props) {
     setDahaYukleniyor(false);
   };
 
+  // --- PDF'e aktar ------------------------------------------------------
+  // PDF UYGULAMA İÇİNDE üretilir (utils/dvdRapor.ts + expo-print); Dijital
+  // VD'nin kendi "PDF'e Aktar" servisi (report/download) KULLANILMAZ.
+
+  const dvdKodu = useDvdStore((s) => s.kullaniciKodu);
+  const [aktarma, setAktarma] = useState<AktarmaDurumu>({ tur: 'bosta' });
+  const durdurIstendi = useRef(false);
+
+  useEffect(
+    () => () => {
+      durdurIstendi.current = true;
+      deactivateKeepAwake(KEEP_AWAKE_ETIKETI).catch(() => undefined);
+    },
+    [],
+  );
+
+  /**
+   * Ekrandaki tarih aralığının TÜM faturaları (tüm sayfalar) tek PDF'e. Uzun
+   * dönemler (son 1 / 2 ay) Toplu PDF'e Aktar sayfasında, parça parça.
+   */
+  const aralikPdfeAktar = async () => {
+    if (!aralikGecerliMi(baslangicTarih, bitisTarih)) {
+      Alert.alert(
+        'Tarih aralığı geçersiz',
+        `GİB en fazla ${EN_FAZLA_GUN} günlük ve aynı ay içindeki aralıkta sorgulamaya izin veriyor.`,
+      );
+      return;
+    }
+    if (!token || aktarma.tur === 'suruyor') return;
+    let klasor = await raporKlasoru();
+    if (!klasor) {
+      // Android: ilk kullanımda PDF'lerin kaydedileceği klasör seçilir.
+      klasor = await raporKlasoruSec();
+      if (!klasor) {
+        Alert.alert('Klasör seçilmedi', "PDF'in kaydedileceği klasörü seçmeden aktarma yapılamaz.");
+        return;
+      }
+    }
+    durdurIstendi.current = false;
+    setAktarma({ tur: 'suruyor', ilerleme: null, asama: 'topluyor' });
+    await activateKeepAwakeAsync(KEEP_AWAKE_ETIKETI).catch(() => undefined);
+    try {
+      const sonuc = await dvdPdfAktar({
+        token,
+        klasor,
+        parcalar: [{ baslangic: tarihFormatla(baslangicTarih), bitis: tarihFormatla(bitisTarih) }],
+        baslangic: baslangicTarih,
+        bitis: bitisTarih,
+        kullaniciKodu: dvdKodu ?? undefined,
+        durduruldu: () => durdurIstendi.current,
+        ilerleme: (d) => setAktarma({ tur: 'suruyor', ilerleme: d, asama: 'topluyor' }),
+        pdfAsamasi: () => setAktarma((d) => (d.tur === 'suruyor' ? { ...d, asama: 'pdf' } : d)),
+      });
+      if (sonuc.durduruldu) {
+        setAktarma({ tur: 'bosta' });
+        Alert.alert('Durduruldu', 'Aktarma durduruldu; PDF oluşturulmadı.');
+        return;
+      }
+      setAktarma({ tur: 'bitti', dosya: sonuc.dosya, adet: sonuc.adet, klasorAdi: sonuc.klasorAdi });
+    } catch (err) {
+      if (err instanceof DvdApiError && err.oturumHatasi) {
+        setAktarma({ tur: 'bosta' });
+        oturumuUnut();
+        setGirisHatasi(err.message);
+        return;
+      }
+      setAktarma({ tur: 'hata', mesaj: err instanceof Error ? err.message : "PDF'e aktarılamadı." });
+    } finally {
+      deactivateKeepAwake(KEEP_AWAKE_ETIKETI).catch(() => undefined);
+    }
+  };
+
+
+  const kaydedilenlereGit = () => {
+    setAktarma({ tur: 'bosta' });
+    navigation.navigate('DvdRaporlar');
+  };
+
+  const pdfIslemi = async (dosya: File, tur: 'ac' | 'paylas') => {
+    try {
+      if (tur === 'ac') await yedegiAc(dosya);
+      else await yedegiPaylas(dosya);
+    } catch (err) {
+      Alert.alert(tur === 'ac' ? 'PDF açılamadı' : 'PDF paylaşılamadı', err instanceof Error ? err.message : 'Bilinmeyen hata');
+    }
+  };
+
   // --- Görünüm ----------------------------------------------------------
 
   const baslik = (
@@ -190,9 +295,16 @@ export default function EarsivFaturalarimScreen({ navigation, route }: Props) {
       subtitle="Dijital Vergi Dairesi"
       onBack={() => navigation.goBack()}
       right={
-        token ? (
-          <AppIconButton icon="logout-variant" accessibilityLabel="Dijital VD oturumunu kapat" onPress={cikisYap} />
-        ) : undefined
+        <>
+          <AppIconButton
+            icon="folder-file-outline"
+            accessibilityLabel="Kaydedilen PDF'ler"
+            onPress={() => navigation.navigate('DvdRaporlar')}
+          />
+          {token ? (
+            <AppIconButton icon="logout-variant" accessibilityLabel="Dijital VD oturumunu kapat" onPress={cikisYap} />
+          ) : null}
+        </>
       }
     />
   );
@@ -326,6 +438,28 @@ export default function EarsivFaturalarimScreen({ navigation, route }: Props) {
         onSorgula={handleSorgula}
         yukleniyor={yukleniyor}
       />
+      <View style={styles.aktarSatiri}>
+        <View style={styles.flex}>
+          <SecondaryButton
+            icon="file-pdf-box"
+            onPress={aralikPdfeAktar}
+            disabled={yukleniyor || aktarma.tur === 'suruyor'}
+            fullWidth
+          >
+            PDF'e Aktar
+          </SecondaryButton>
+        </View>
+        <View style={styles.flex}>
+          <SecondaryButton
+            icon="file-multiple-outline"
+            onPress={() => navigation.navigate('DvdTopluAktar')}
+            disabled={yukleniyor || aktarma.tur === 'suruyor'}
+            fullWidth
+          >
+            Toplu PDF'e Aktar
+          </SecondaryButton>
+        </View>
+      </View>
 
       {yukleniyor ? (
         <View style={styles.merkezi}>
@@ -404,6 +538,81 @@ export default function EarsivFaturalarimScreen({ navigation, route }: Props) {
           }
         />
       )}
+
+      <AppDialog
+        visible={aktarma.tur !== 'bosta'}
+        title={
+          aktarma.tur === 'suruyor'
+            ? "PDF'e aktarılıyor"
+            : aktarma.tur === 'bitti'
+              ? 'PDF kaydedildi'
+              : "PDF'e aktarılamadı"
+        }
+        icon={
+          aktarma.tur === 'bitti'
+            ? 'check-circle-outline'
+            : aktarma.tur === 'hata'
+              ? 'alert-circle-outline'
+              : 'file-pdf-box'
+        }
+        tone={aktarma.tur === 'bitti' ? 'success' : aktarma.tur === 'hata' ? 'danger' : 'default'}
+        stackedActions={aktarma.tur === 'bitti'}
+        actions={
+          aktarma.tur === 'suruyor' ? (
+            <DangerSoftButton icon="stop" onPress={() => (durdurIstendi.current = true)} compact>
+              Durdur
+            </DangerSoftButton>
+          ) : aktarma.tur === 'bitti' ? (
+            <>
+              <PrimaryButton icon="file-eye-outline" onPress={() => pdfIslemi(aktarma.dosya, 'ac')} fullWidth>
+                PDF'i Aç
+              </PrimaryButton>
+              <SecondaryButton icon="share-variant-outline" onPress={() => pdfIslemi(aktarma.dosya, 'paylas')} fullWidth>
+                PDF'i Paylaş
+              </SecondaryButton>
+              <SecondaryButton icon="folder-file-outline" onPress={kaydedilenlereGit} fullWidth>
+                Kaydedilen PDF'ler
+              </SecondaryButton>
+              <TextButton onPress={() => setAktarma({ tur: 'bosta' })}>Kapat</TextButton>
+            </>
+          ) : (
+            <PrimaryButton onPress={() => setAktarma({ tur: 'bosta' })} compact>
+              Kapat
+            </PrimaryButton>
+          )
+        }
+      >
+        {aktarma.tur === 'suruyor' &&
+          (aktarma.asama === 'pdf' ? (
+            <DialogText>PDF oluşturuluyor…</DialogText>
+          ) : aktarma.ilerleme ? (
+            <>
+              <DialogText>
+                {aktarma.ilerleme.parca.baslangic} – {aktarma.ilerleme.parca.bitis} arası sorgulanıyor
+              </DialogText>
+              <Text style={typography.caption}>
+                Sorgu {aktarma.ilerleme.parcaSirasi} / {aktarma.ilerleme.parcaSayisi} · Bulunan fatura:{' '}
+                {aktarma.ilerleme.bulunan}
+              </Text>
+              <ProgressBar
+                progress={(aktarma.ilerleme.parcaSirasi - 1) / aktarma.ilerleme.parcaSayisi}
+                color={colors.primary}
+                style={styles.ilerlemeCubugu}
+              />
+            </>
+          ) : (
+            <DialogText>Hazırlanıyor…</DialogText>
+          ))}
+        {aktarma.tur === 'bitti' && (
+          <>
+            <DialogText>{aktarma.adet} fatura listelendi.</DialogText>
+            <Text style={typography.caption} selectable>
+              {aktarma.klasorAdi} / {aktarma.dosya.name}
+            </Text>
+          </>
+        )}
+        {aktarma.tur === 'hata' && <DialogText>{aktarma.mesaj}</DialogText>}
+      </AppDialog>
     </AppScreen>
   );
 }
@@ -432,4 +641,6 @@ const styles = StyleSheet.create({
   kartBasiMetin: { flex: 1, minWidth: 0, gap: 2 },
   detaylar: { gap: spacing.xxs },
   ayrac: { height: 1, backgroundColor: colors.border, marginVertical: spacing.xxs },
+  aktarSatiri: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.screen, paddingBottom: spacing.md },
+  ilerlemeCubugu: { marginVertical: spacing.xxs, borderRadius: radius.pill },
 });

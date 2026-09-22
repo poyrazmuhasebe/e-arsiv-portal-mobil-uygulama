@@ -283,37 +283,54 @@ export interface DvdSayfa {
 export const DVD_SAYFA_BOYUTU = 10;
 
 /**
+ * Kayıt yoksa GİB boş liste yerine bir mesaj döner: "e-Arşiv Faturanız
+ * bulunmamaktadır." (kullanıcının 2026-09-22 cihaz logu). Bu bir hata değil,
+ * boş sonuçtur.
+ */
+export function kayitYokMesajiMi(mesaj: string): boolean {
+  return /fatura\S*\s+bulunmamaktad[ıi]r/i.test(mesaj);
+}
+
+/**
  * Mükellefin alıcı olduğu e-Arşiv faturaları. Tarihler "GG/AA/YYYY".
  * GİB istenen sıralamayı uygulamıyor görünüyor (yakalamada sıra ne numaraya
- * ne tarihe göre) — sıralama ekranda yapılır.
+ * ne tarihe göre) — sıralama ekranda yapılır. Kayıt yoksa (GİB mesajı) boş
+ * sayfa döner, hata fırlatılmaz.
  */
 export async function dvdEarsivFaturalariGetir(
   token: string,
   filtre: { baslangic: string; bitis: string; sayfa: number },
 ): Promise<DvdSayfa> {
-  const veri = (await istek({
-    yol: '/eislemler/earsiv/alici-list',
-    yontem: 'POST',
-    token,
-    govde: {
-      data: { duzenlenmeTarihiBas: filtre.baslangic, duzenlenmeTarihiSon: filtre.bitis },
-      meta: {
-        pagination: { pageNo: filtre.sayfa, pageSize: DVD_SAYFA_BOYUTU },
-        sortFieldName: 'faturaNo',
-        sortType: 'DESC',
-        filters: [],
+  const bos: DvdSayfa = { faturalar: [], sayfa: filtre.sayfa, toplam: 0, toplamSayfa: 0 };
+  let veri: { resultListDenormalized?: unknown; pageDetail?: unknown };
+  try {
+    veri = (await istek({
+      yol: '/eislemler/earsiv/alici-list',
+      yontem: 'POST',
+      token,
+      govde: {
+        data: { duzenlenmeTarihiBas: filtre.baslangic, duzenlenmeTarihiSon: filtre.bitis },
+        meta: {
+          pagination: { pageNo: filtre.sayfa, pageSize: DVD_SAYFA_BOYUTU },
+          sortFieldName: 'faturaNo',
+          sortType: 'DESC',
+          filters: [],
+        },
       },
-    },
-  })) as { resultListDenormalized?: unknown; pageDetail?: unknown };
+    })) as { resultListDenormalized?: unknown; pageDetail?: unknown };
+  } catch (err) {
+    // Mesaj hatalı bir HTTP durum koduyla da gelebilir.
+    if (err instanceof DvdApiError && !err.oturumHatasi && kayitYokMesajiMi(err.message)) return bos;
+    throw err;
+  }
 
   const liste = veri.resultListDenormalized;
   if (!Array.isArray(liste)) {
     const mesaj = dvdMesajlari(veri)[0];
+    if (mesaj && kayitYokMesajiMi(mesaj)) return bos;
     if (mesaj) throw new DvdApiError(mesaj);
-    // Kayıt yoksa GİB boş dizi yerine alanı hiç göndermeyebilir (görülmedi).
-    if (veri.resultListDenormalized === null || veri.resultListDenormalized === undefined) {
-      return { faturalar: [], sayfa: filtre.sayfa, toplam: 0, toplamSayfa: 0 };
-    }
+    // Kayıt yoksa GİB boş dizi yerine alanı hiç göndermeyebilir.
+    if (veri.resultListDenormalized === null || veri.resultListDenormalized === undefined) return bos;
     throw new DvdApiError("Dijital Vergi Dairesi'nden beklenmeyen bir fatura listesi geldi.");
   }
   const sayfaBilgisi = (veri.pageDetail ?? {}) as Record<string, unknown>;
@@ -343,4 +360,116 @@ export function dvdFaturalariSirala(liste: DvdEarsivFatura[]): DvdEarsivFatura[]
     (a, b) =>
       (b.duzenlenmeTarihi ?? '').localeCompare(a.duzenlenmeTarihi ?? '') || b.faturaNo.localeCompare(a.faturaNo),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Kullanıcı bilgisi (PDF başlığı için)
+// ---------------------------------------------------------------------------
+
+export interface DvdKullanici {
+  adSoyad?: string;
+  vkn?: string;
+  tckn?: string;
+  kullaniciKodu?: string;
+}
+
+/**
+ * GET /auth/tdvd/user-info (Bearer) — yakalamayla doğrulandı. Yalnızca PDF
+ * başlığında alıcıyı yazmak için ad-soyad, VKN, TCKN ve kullanıcı kodu
+ * okunur; diğer alanlar (yetkiHash, sessionId, ipAddress…) kullanılmaz.
+ */
+export async function dvdKullaniciBilgisiGetir(token: string): Promise<DvdKullanici> {
+  const veri = (await istek({ yol: '/auth/tdvd/user-info', yontem: 'GET', token })) as Record<string, unknown>;
+  const ad = [metin(veri.name), metin(veri.surname)].filter(Boolean).join(' ');
+  return {
+    adSoyad: ad || undefined,
+    vkn: metin(veri.vkn),
+    tckn: metin(veri.tckn),
+    kullaniciKodu: metin(veri.userCode),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Bir dönemin TÜM faturaları (PDF'e aktarma için)
+// ---------------------------------------------------------------------------
+
+export interface DvdSorguParcasi {
+  /** GG/AA/YYYY */
+  baslangic: string;
+  /** GG/AA/YYYY */
+  bitis: string;
+}
+
+export interface DvdToplamaIlerlemesi {
+  parca: DvdSorguParcasi;
+  parcaSirasi: number; // 1'den başlar
+  parcaSayisi: number;
+  bulunan: number;
+}
+
+/**
+ * Parçaları (her biri GİB kuralına uygun: en fazla 7 gün, aynı ay) sırayla,
+ * her parçanın TÜM sayfalarını çekerek faturaları toplar. İstekler arasında
+ * `bekleMs` beklenir (GİB'i yormamak için). Aynı fatura iki kez gelirse bir
+ * kez sayılır. Durdurulursa o ana kadar toplananlar döner.
+ */
+export async function dvdTumFaturalariGetir(
+  token: string,
+  parcalar: DvdSorguParcasi[],
+  secenek: {
+    durduruldu?: () => boolean;
+    ilerleme?: (d: DvdToplamaIlerlemesi) => void;
+    /** Bir parçanın tüm sayfaları bitince: o parçada bulunan (yeni) fatura sayısı. */
+    parcaTamam?: (parcaSirasi: number, parcadakiFatura: number) => void;
+    bekleMs?: number;
+    /** Başarısız isteğin yeniden denenmeden önce beklenen süre. */
+    tekrarBekleMs?: number;
+  } = {},
+): Promise<{ faturalar: DvdEarsivFatura[]; durduruldu: boolean }> {
+  const bekleMs = secenek.bekleMs ?? 500;
+  const tekrarBekleMs = secenek.tekrarBekleMs ?? 1500;
+  const gorulen = new Set<string>();
+  const faturalar: DvdEarsivFatura[] = [];
+  let istekSayisi = 0;
+  for (let i = 0; i < parcalar.length; i++) {
+    const parca = parcalar[i];
+    const parcaBasindaki = faturalar.length;
+    let sayfa = 1;
+    let toplamSayfa = 1;
+    do {
+      if (secenek.durduruldu?.()) return { faturalar: dvdFaturalariSirala(faturalar), durduruldu: true };
+      secenek.ilerleme?.({ parca, parcaSirasi: i + 1, parcaSayisi: parcalar.length, bulunan: faturalar.length });
+      if (istekSayisi++ > 0 && bekleMs > 0) await new Promise((r) => setTimeout(r, bekleMs));
+      const sorgu = { baslangic: parca.baslangic, bitis: parca.bitis, sayfa };
+      let s: DvdSayfa;
+      try {
+        s = await dvdEarsivFaturalariGetir(token, sorgu);
+      } catch (ilk) {
+        // Oturum hatası hemen iletilir; diğerleri (bağlantı, zaman aşımı, GİB'in
+        // anlık hatası) bir kez, biraz bekleyip yeniden denenir.
+        if (ilk instanceof DvdApiError && ilk.oturumHatasi) throw ilk;
+        if (secenek.durduruldu?.()) return { faturalar: dvdFaturalariSirala(faturalar), durduruldu: true };
+        if (tekrarBekleMs > 0) await new Promise((r) => setTimeout(r, tekrarBekleMs));
+        try {
+          s = await dvdEarsivFaturalariGetir(token, sorgu);
+        } catch (ikinci) {
+          if (ikinci instanceof DvdApiError && !ikinci.oturumHatasi) {
+            // Hangi sorguda koptuğu mesajda görünsün.
+            throw new DvdApiError(`${parca.baslangic} – ${parca.bitis} (sayfa ${sayfa}) sorgulanamadı: ${ikinci.message}`);
+          }
+          throw ikinci;
+        }
+      }
+      for (const f of s.faturalar) {
+        const anahtar = `${f.faturaNo}|${f.saticiVknTckn ?? ''}`;
+        if (gorulen.has(anahtar)) continue;
+        gorulen.add(anahtar);
+        faturalar.push(f);
+      }
+      toplamSayfa = s.toplamSayfa;
+      sayfa++;
+    } while (sayfa <= toplamSayfa);
+    secenek.parcaTamam?.(i + 1, faturalar.length - parcaBasindaki);
+  }
+  return { faturalar: dvdFaturalariSirala(faturalar), durduruldu: false };
 }

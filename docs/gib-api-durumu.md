@@ -46,8 +46,18 @@ yakalamalarıyla birebir yazıldı.
 |---|---|---|
 | `dvdGuvenlikKoduGetir` | `GET /captcha/getnewcaptcha` → `{ captchaImgBase64, cid }` (PNG 135×45) | ✅ İstek ve yanıt yakalamayla doğrulandı |
 | `dvdGirisYap` | `POST /auth/tdvd/login`, başlık `page-name: login`, `ui-client: fe`, gövde `{ dk, userid, sifre, imageId }` (`imageId` = `cid`) → `{ result: true, token }` | ✅ Başarılı yanıt ve yanlış güvenlik kodu yanıtı (`{ messages: [{ text, type: "ERROR" }] }`) doğrulandı. ⚠️ Hatalı yanıtın HTTP durum kodu ve yanlış şifre metni görülmedi |
-| `dvdEarsivFaturalariGetir` | `POST /eislemler/earsiv/alici-list`, gövde `{ data: { duzenlenmeTarihiBas, duzenlenmeTarihiSon } (GG/AA/YYYY), meta: { pagination: { pageNo, pageSize: 10 }, sortFieldName: "faturaNo", sortType: "DESC", filters: [] } }` → `{ pageDetail, resultListDenormalized }` | ✅ İstek ve yanıt doğrulandı. ⚠️ GİB istenen sıralamayı uygulamıyor görünüyor (uygulama kendisi sıralar); tarih aralığı sınırı, `filters` yapısı, iptal/itiraz alanlarının dolu değerleri ve oturumu düşmüş token'ın yanıtı (401/403 varsayılıyor) görülmedi. Yanıtta faturayı açmaya yarayan kimlik yok; GİB'in sayfasında da liste yalnızca metin |
+| `dvdEarsivFaturalariGetir` | `POST /eislemler/earsiv/alici-list`, gövde `{ data: { duzenlenmeTarihiBas, duzenlenmeTarihiSon } (GG/AA/YYYY), meta: { pagination: { pageNo, pageSize: 10 }, sortFieldName: "faturaNo", sortType: "DESC", filters: [] } }` → `{ pageDetail, resultListDenormalized }` | ✅ İstek ve yanıt doğrulandı. ⚠️ GİB istenen sıralamayı uygulamıyor görünüyor (uygulama kendisi sıralar); tarih aralığı sınırı, `filters` yapısı, iptal/itiraz alanlarının dolu değerleri ve oturumu düşmüş token'ın yanıtı (401/403 varsayılıyor) görülmedi. Kayıt yoksa GİB boş liste yerine "e-Arşiv Faturanız bulunmamaktadır." mesajı döner (cihaz logu, 2026-09-22) — uygulama bunu boş sayfa sayar, hata saymaz. Yanıtta faturayı açmaya yarayan kimlik yok; GİB'in sayfasında da liste yalnızca metin |
 | `dvdCikisYap` | `POST /auth/tdvd/logout` (Bearer, gövde yok) → `{ data: { redirectUrl }, result: true }` | ✅ Doğrulandı |
 
 Güvenlik kodu (captcha) **otomatik okunmaz**; kullanıcı yazar (GİB'in insan
 doğrulaması aşılmaz).
+
+**PDF'e aktarma** için iki okuma daha kullanılır:
+
+| Fonksiyon | Uç nokta | Durum |
+|---|---|---|
+| `dvdKullaniciBilgisiGetir` | `GET /auth/tdvd/user-info` (Bearer) → yalnızca `name`, `surname`, `vkn`, `tckn`, `userCode` okunur | ✅ Yanıt yakalamayla görüldü; PDF başlığı için. Alınamazsa PDF yine üretilir |
+| `dvdTumFaturalariGetir` | `alici-list`'i her parça (≤ 7 gün, aynı ay) ve her sayfa için sırayla çağırır, istekler arası 300 ms | Yeni uç nokta yok |
+
+GİB'in kendi "PDF'e Aktar"ı (`GET /eislemler/report/download?uuid=…`, liste
+raporu) **kullanılmaz**; PDF uygulama içinde üretilir (`src/utils/dvdRapor.ts`).

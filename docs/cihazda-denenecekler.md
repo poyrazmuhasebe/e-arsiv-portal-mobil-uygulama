@@ -360,6 +360,30 @@ Seç"te kaç kayıt olduğunu ve ilk birkaçının sırasını not edin.
 - [ ] **Oturum** — GİB oturumunu kapatıp yeniden girince Dijital VD kodu tekrar
   isteniyor; başlıktaki çıkış düğmesi çalışıyor.
 
+### PDF'e Aktar (2026-09-22)
+
+- [ ] **İlk aktarma (Android)** — "PDF'e Aktar" klasör seçicisini açıyor; seçilen
+  klasöre `e-Arsiv-Faturalarim_….pdf` yazılıyor; "PDF'i Aç" telefonun PDF
+  görüntüleyicisinde açıyor.
+- [ ] **İçerik** — yatay A4; alıcı adı ve VKN/TCKN, dönem, fatura sayısı,
+  toplamlar doğru; tablo GİB'in listesiyle aynı (10'dan fazla faturalı aralıkta
+  tüm sayfalar gelmiş mi?). Türkçe karakterler düzgün; uzun unvanlar taşmıyor;
+  çok sayfalı PDF'te tablo başlığı her sayfada tekrarlanıyor.
+- [ ] **Toplu PDF'e Aktar sayfası** — e-Arşiv Faturalarım'daki düğme ayrı sayfa
+  açıyor. PDF'e Aktar'a basınca kapatılabilir ilerleme kutusu açılıyor (aralık,
+  sorgu x / N, bulunan fatura); bitince kutuda PDF'i Aç ve PDF'i Paylaş çalışıyor.
+  GİB çok sayıda ardışık sorguda hata veriyor mu?
+- [ ] **Arka planda iş kalmıyor** — kutuyu dışına dokunarak / geri tuşuyla ya da
+  "Durdur ve Kapat" ile kapatınca "Durduruluyor" görünüp kutu kapanıyor, PDF
+  oluşmuyor ve başka sorgu gitmiyor (ağ trafiği / GİB tarafı kontrol edilebilirse).
+- [ ] **Kaydedilen PDF'ler** — başlıktaki klasör düğmesi: dosyalar listeleniyor;
+  Aç, Paylaş, Sil (onaylı) çalışıyor; "Klasörü Değiştir" başka klasördekileri
+  gösteriyor.
+- [ ] **Oturum düşerse** — aktarma sırasında Dijital VD oturumu düşünce giriş
+  ekranına dönülüyor.
+- [ ] **iOS** — klasör sorulmuyor; PDF uygulama klasörüne yazılıyor, Kaydedilen
+  PDF'ler'de görünüyor.
+
 ## 1 haftalık aralık: uçlar dahil 7 gün (2026-09-22)
 
 - [ ] Taslaklar, İptal/İtiraz Talepleri, Adıma Düzenlenen Belgeler ve e-Arşiv

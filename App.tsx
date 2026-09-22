@@ -24,6 +24,8 @@ import HukukiMetinScreen from './src/screens/HukukiMetinScreen';
 import HesapSilScreen from './src/screens/HesapSilScreen';
 import AdimaDuzenlenenScreen from './src/screens/AdimaDuzenlenenScreen';
 import EarsivFaturalarimScreen from './src/screens/EarsivFaturalarimScreen';
+import DvdRaporlarScreen from './src/screens/DvdRaporlarScreen';
+import DvdTopluAktarScreen from './src/screens/DvdTopluAktarScreen';
 import YedekleScreen from './src/screens/YedekleScreen';
 import YedekleriGoruntuleScreen from './src/screens/YedekleriGoruntuleScreen';
 import { useAuthStore } from './src/store/useAuthStore';
@@ -55,6 +57,8 @@ export type RootStackParamList = {
   AdimaDuzenlenen: undefined;
   // kullaniciKodu: GİB giriş ekranından (e-Arşiv girişi yapılmadan) açılınca formdaki kod.
   EarsivFaturalarim: { kullaniciKodu?: string } | undefined;
+  DvdRaporlar: undefined;
+  DvdTopluAktar: undefined;
   Yedekle: undefined;
   YedekleriGoruntule: undefined;
 };
@@ -189,6 +193,8 @@ export default function App() {
                       <Stack.Screen name="Login" component={LoginScreen} />
                       {/* e-Arşiv Portal girişinden bağımsız (Dijital Vergi Dairesi). */}
                       <Stack.Screen name="EarsivFaturalarim" component={EarsivFaturalarimScreen} />
+                      <Stack.Screen name="DvdRaporlar" component={DvdRaporlarScreen} />
+                      <Stack.Screen name="DvdTopluAktar" component={DvdTopluAktarScreen} />
                       <Stack.Screen name="HesapSil" component={HesapSilScreen} />
                       <Stack.Screen name="HukukiMetin" component={HukukiMetinScreen} />
                     </Stack.Group>
@@ -203,6 +209,8 @@ export default function App() {
                       <Stack.Screen name="MalHizmetDefteri" component={MalHizmetDefteriScreen} />
                       <Stack.Screen name="AdimaDuzenlenen" component={AdimaDuzenlenenScreen} />
                       <Stack.Screen name="EarsivFaturalarim" component={EarsivFaturalarimScreen} />
+                      <Stack.Screen name="DvdRaporlar" component={DvdRaporlarScreen} />
+                      <Stack.Screen name="DvdTopluAktar" component={DvdTopluAktarScreen} />
                       <Stack.Screen name="Yedekle" component={YedekleScreen} />
                       <Stack.Screen name="YedekleriGoruntule" component={YedekleriGoruntuleScreen} />
                       <Stack.Screen name="HesapSil" component={HesapSilScreen} />
