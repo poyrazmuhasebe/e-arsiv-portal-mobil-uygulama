@@ -21,7 +21,7 @@ havası, yoğun cam efekti yok. Form okunabilirliği her şeyden önce gelir.
 
 | Bileşen | Ne için |
 |---|---|
-| `AppScreen` | Her ekranın kökü: güvenli alan + zemin + hafif üst ışıma + en altta çok küçük "Geliştirici: Dursun Can Poyraz" satırı (tüm sayfalarda). `edges` ile kenarlar seçilir |
+| `AppScreen` | Her ekranın kökü: güvenli alan + zemin + hafif üst ışıma + en altta çok küçük "Geliştirici: Dursun Can Poyraz" ve altında "dursun@poyrazmuhasebe.com" satırları (tüm sayfalarda). `edges` ile kenarlar seçilir |
 | `AppHeader` | Ortak başlık: `title`, `subtitle`, `eyebrow`, `onBack`, `right` (ikon düğmeleri), `large` |
 | `AppIconButton` | 44×44 ikon düğmesi. `accessibilityLabel` zorunlu |
 | `AppCard` | Temel kart. `onPress`, `tone` ('danger' / 'warning' / 'primary'), `elevated` |
