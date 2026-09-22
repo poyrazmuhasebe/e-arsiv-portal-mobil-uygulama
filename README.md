@@ -70,6 +70,19 @@ npx eas-cli build -p android --profile preview
 
 `preview` profili dahili dağıtım için APK üretir (`eas.json`). Derleme çıktıları `builds/` klasöründe tutulur ve git'e eklenmez.
 
+### Yerel APK derleme (EAS kuyruğu olmadan, Windows)
+
+```bash
+npm run apk:yerel
+```
+
+`scripts/yerel-apk.mjs`: `android/` yoksa `expo prebuild` ile üretir (`--temiz` ile baştan), `assembleRelease` çalıştırır ve APK'yı `builds/…-yerel.apk` olarak kopyalar. Sunucu adresi EAS `preview` profiliyle aynı olsun diye `eas.json`'dan okunur.
+
+- **Araçlar** kullanıcı klasörüne taşınabilir kurulumdur (sistem ayarı değiştirmez): `%LOCALAPPDATA%\Android\jdk17` (Microsoft OpenJDK 17) ve `%LOCALAPPDATA%\Android\Sdk` (platform 36, build-tools 36.0.0, NDK 27.1.12297006, CMake 3.22.1). Başka yerdeyse `JAVA_HOME` / `ANDROID_HOME` kullanılır.
+- **Sürüm (beta kuralı):** her `apk:yerel` derlemesi `app.json` → `android.versionCode`'u bir artırır ve sürüm adını `<taban>-beta.<versionCode>` yapar (ör. `1.0.1-beta.3`); derleme başarısız olursa `app.json` geri alınır. Taban sürümü değiştirmek için `expo.version`'u elle düzenleyin; `--kararli` ile `-beta` eki konmaz. `app.json` değişikliğini commit'leyin.
+- **Zorunlu güncelleme:** APK dağıtıldıktan sonra `npm run surum:yayinla` (isteğe bağlı `-- --adres https://…/x.apk`) sürümü hesap sunucusunun D1'indeki `uygulama_surumleri` tablosuna yazar; bundan eski kurulumlar açılışta kapatılamayan "Güncelleme gerekli" kutusunu görür. `npm run apk:yerel -- --yayinla` ikisini birden yapar. Yayın anında eski sürümdeki herkes kilitlenir — önce yeni APK'yı kurun. Geri çekmek için satırı silin (bkz. `scripts/surum-yayinla.mjs`). İlk kullanımdan önce bir kez: `cd worker && npx wrangler d1 migrations apply earsiv-hesap --remote` ve Worker deploy.
+- **İmza:** EAS APK'larının üzerine güncelleme olarak kurulabilmesi için EAS'teki keystore kullanılır: `npx eas-cli credentials -p android` → preview → Keystore → *Download existing keystore*; bilgiler proje kökündeki `yerel-imza.properties` dosyasına yazılır (git'e girmez; `*.jks` de girmez). Şifreler Gradle'a ortam değişkeniyle geçer, dosyalara yazılmaz. Yalnızca deneme için `npm run apk:yerel -- --hata-ayiklama-imzasi` (bu APK EAS sürümünün üzerine kurulmaz).
+
 ## Dokümantasyon
 
 Özellikler, mimari, GİB entegrasyonunun iç işleyişi, hesaplama mantığı,

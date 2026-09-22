@@ -53,3 +53,6 @@ yarn-error.*
 .dev.vars.*
 !.dev.vars.example
 .wrangler/
+
+# Yerel APK imzası (scripts/yerel-apk.mjs) — şifreler içerir, ASLA commit edilmez
+yerel-imza.properties
