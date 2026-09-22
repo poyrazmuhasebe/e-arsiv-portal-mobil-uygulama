@@ -272,8 +272,8 @@ Seç"te kaç kayıt olduğunu ve ilk birkaçının sırasını not edin.
   aralığını gösteriyor; bitince "Yedekleme tamamlanmıştır" ve Görüntüle
   ekranına geçiyor. Telefonun Dosyalar uygulamasında seçilen klasör altında
   "VKN - Unvan" klasörü ve PDF'ler var.
-- [ ] **Son 1 ay yedeği** — kutudaki tarih 4 kez değişiyor (14–21.09,
-  06–13.09, …); aynı dönemi ikinci kez başlatınca hepsi "Zaten yedekli"
+- [ ] **Son 1 ay yedeği** — kutudaki tarih 5 kez değişiyor (bugün 21.09 ise
+  15–21.09, 08–14.09, 01–07.09, 25–31.08, 21–24.08); aynı dönemi ikinci kez başlatınca hepsi "Zaten yedekli"
   sayılıyor, yeni dosya açılmıyor.
 - [ ] **Durdur** — uzun bir dönemde Durdur'a basın: kutu "Yedekleme
   durduruldu" diyor; tekrar başlatınca kaldığı yerden devam ediyor.
@@ -359,3 +359,10 @@ Seç"te kaç kayıt olduğunu ve ilk birkaçının sırasını not edin.
   çalışıyor.
 - [ ] **Oturum** — GİB oturumunu kapatıp yeniden girince Dijital VD kodu tekrar
   isteniyor; başlıktaki çıkış düğmesi çalışıyor.
+
+## 1 haftalık aralık: uçlar dahil 7 gün (2026-09-22)
+
+- [ ] Taslaklar, İptal/İtiraz Talepleri, Adıma Düzenlenen Belgeler ve e-Arşiv
+  Faturalarım'da başlangıç 01/08 seçilince bitiş en fazla 07/08 oluyor;
+  varsayılan aralık bugün dahil 7 gün (ör. 16.09–22.09).
+- [ ] GİB bu 7 günlük aralıkları kabul ediyor ("1 haftadan uzun" hatası yok).

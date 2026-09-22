@@ -1,11 +1,11 @@
 /**
  * Fatura yedekleme — tarih parçaları, dosya adları ve yedekleme döngüsü.
  *
- * GİB en fazla 7 günlük aralıkta sorgulamaya izin veriyor (bkz.
+ * GİB en fazla 7 günlük aralıkta sorgulamaya izin veriyor (uçlar dahil; bkz.
  * tarihAraligi.ts). "Son 1 ay" gibi uzun bir dönem bu yüzden en fazla
  * 1 haftalık parçalara bölünür ve BUGÜNDEN GERİYE doğru tek tek sorgulanır
- * (kullanıcının örneği, bugün 21.09.2026 iken: önce 14–21.09, sonra
- * 06–13.09, …).
+ * (bugün 21.09.2026 iken: önce 15–21.09, sonra 08–14.09, …; 2026-09-22'den
+ * önce parçalar 8 gündü, kullanıcı tarifiyle düzeltildi).
  *
  * Döngü (`yedekle`) dosya sistemine ve GİB'e doğrudan bağlı DEĞİL; hepsi
  * `YedekOrtami` ile verilir. Bu sayede testlidir ve ekran yalnızca gerçek
@@ -16,7 +16,7 @@
 
 import type { TaslakFatura } from '../types/gib';
 import { iptalItirazDurumMetni } from './faturaFiligran';
-import { EN_FAZLA_GUN } from './tarihAraligi';
+import { EN_FAZLA_FARK, EN_FAZLA_GUN } from './tarihAraligi';
 
 export type YedekSuresi = '1h' | '1a' | '3a' | '6a' | '1y';
 
@@ -39,14 +39,14 @@ function gunEkle(d: Date, gun: number): Date {
 }
 
 /**
- * Seçilen sürenin ilk günü. "Son 1 hafta" = bugün − 7 (sorgu ekranlarının
- * varsayılan aralığıyla aynı). Aylar takvim ayıdır: 21.09 → 21.08.
+ * Seçilen sürenin ilk günü. "Son 1 hafta" = bugün dahil 7 gün (bugün − 6;
+ * sorgu ekranlarının varsayılan aralığıyla aynı). Aylar takvim ayıdır: 21.09 → 21.08.
  * Ayın son günlerinde taşma olmasın diye (31.03 − 1 ay ≠ 03.03) gün,
  * hedef ayın son gününe kırpılır.
  */
 export function yedekBaslangici(sure: YedekSuresi, bugun: Date = new Date()): Date {
   const son = gunBasi(bugun);
-  if (sure === '1h') return gunEkle(son, -EN_FAZLA_GUN);
+  if (sure === '1h') return gunEkle(son, -EN_FAZLA_FARK);
   const ay = sure === '1a' ? 1 : sure === '3a' ? 3 : sure === '6a' ? 6 : 12;
   const hedefAy = son.getMonth() - ay;
   const ilk = new Date(son.getFullYear(), hedefAy, 1);
@@ -60,8 +60,8 @@ export interface TarihParcasi {
 }
 
 /**
- * [baslangic, bitis] aralığını en fazla EN_FAZLA_GUN gün farklı parçalara
- * böler, EN YENİDEN ESKİYE. Parçalar örtüşmez ve boşluk bırakmaz: bir sonraki
+ * [baslangic, bitis] aralığını uçlar dahil en fazla EN_FAZLA_GUN günlük
+ * parçalara böler, EN YENİDEN ESKİYE. Parçalar örtüşmez ve boşluk bırakmaz: bir sonraki
  * parçanın bitişi, öncekinin başlangıcından bir gün öncedir.
  */
 export function haftalikParcalar(baslangic: Date, bitis: Date): TarihParcasi[] {
@@ -69,7 +69,7 @@ export function haftalikParcalar(baslangic: Date, bitis: Date): TarihParcasi[] {
   let sonGun = gunBasi(bitis);
   const parcalar: TarihParcasi[] = [];
   while (sonGun >= ilk) {
-    const aday = gunEkle(sonGun, -EN_FAZLA_GUN);
+    const aday = gunEkle(sonGun, -EN_FAZLA_FARK);
     const parcaBasi = aday < ilk ? ilk : aday;
     parcalar.push({ baslangic: parcaBasi, bitis: sonGun });
     sonGun = gunEkle(parcaBasi, -1);

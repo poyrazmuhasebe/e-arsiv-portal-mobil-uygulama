@@ -5,6 +5,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
 import TarihAraligiFiltresi, { tarihFormatla } from '../components/TarihAraligiFiltresi';
+import { varsayilanBaslangic } from '../utils/tarihAraligi';
 import {
   AppCard,
   AppHeader,
@@ -35,10 +36,9 @@ import { tutarEtiketi } from '../utils/paraBirimi';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'EarsivFaturalarim'>;
 
+/** Bugün dahil son 7 gün (bkz. utils/tarihAraligi.ts → varsayilanBaslangic). */
 function yediGunOncesi(): Date {
-  const d = new Date();
-  d.setDate(d.getDate() - 7);
-  return d;
+  return varsayilanBaslangic();
 }
 
 function tutar(n: number | undefined, paraBirimi: string | undefined): string | undefined {

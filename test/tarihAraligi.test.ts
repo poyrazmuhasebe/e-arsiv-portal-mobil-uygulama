@@ -4,16 +4,30 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { EN_FAZLA_GUN, aralikGecerliMi, araligiSinirla, gunFarki } from '../src/utils/tarihAraligi';
+import {
+  EN_FAZLA_FARK,
+  EN_FAZLA_GUN,
+  aralikGecerliMi,
+  araligiSinirla,
+  gunFarki,
+  varsayilanBaslangic,
+} from '../src/utils/tarihAraligi';
 
 const g = (y: number, a: number, gun: number) => new Date(y, a - 1, gun, 15, 30);
 const gun = (d: Date) => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
 const BUGUN = g(2026, 9, 21);
 
-test('sınır 7 gün; varsayılan "son 7 gün" geçerli', () => {
+test('sınır uçlar dahil 7 gün (01/08–07/08, 15/08–21/08); varsayılan "son 7 gün" geçerli', () => {
   assert.equal(EN_FAZLA_GUN, 7);
-  assert.equal(aralikGecerliMi(g(2026, 9, 14), g(2026, 9, 21)), true);
-  assert.equal(aralikGecerliMi(g(2026, 9, 13), g(2026, 9, 21)), false);
+  assert.equal(EN_FAZLA_FARK, 6);
+  // Kullanıcının örnekleri (2026-09-22).
+  assert.equal(aralikGecerliMi(g(2026, 8, 1), g(2026, 8, 7)), true);
+  assert.equal(aralikGecerliMi(g(2026, 8, 15), g(2026, 8, 21)), true);
+  assert.equal(aralikGecerliMi(g(2026, 8, 1), g(2026, 8, 8)), false); // 8 gün
+  assert.equal(aralikGecerliMi(g(2026, 9, 15), g(2026, 9, 21)), true);
+  assert.equal(aralikGecerliMi(g(2026, 9, 14), g(2026, 9, 21)), false);
+  assert.equal(gun(varsayilanBaslangic(BUGUN)), '2026-9-15');
+  assert.ok(aralikGecerliMi(varsayilanBaslangic(BUGUN), BUGUN));
   assert.equal(aralikGecerliMi(g(2026, 9, 22), g(2026, 9, 21)), false);
 });
 
@@ -26,13 +40,13 @@ test('gün farkı saat ve ay/yıl geçişinden etkilenmez', () => {
 test('başlangıç geriye çekilirse BİTİŞ kaydırılır, başlangıca dokunulmaz', () => {
   const s = araligiSinirla(g(2026, 9, 1), g(2026, 9, 21), 'baslangic', BUGUN);
   assert.equal(gun(s.baslangic), '2026-9-1');
-  assert.equal(gun(s.bitis), '2026-9-8');
+  assert.equal(gun(s.bitis), '2026-9-7'); // 01–07: uçlar dahil 7 gün
   assert.equal(s.duzeltildi, true);
 });
 
 test('bitiş ileri alınırsa BAŞLANGIÇ kaydırılır, bitişe dokunulmaz', () => {
   const s = araligiSinirla(g(2026, 9, 1), g(2026, 9, 20), 'bitis', BUGUN);
-  assert.equal(gun(s.baslangic), '2026-9-13');
+  assert.equal(gun(s.baslangic), '2026-9-14'); // 14–20: uçlar dahil 7 gün
   assert.equal(gun(s.bitis), '2026-9-20');
   assert.equal(s.duzeltildi, true);
 });
@@ -46,7 +60,7 @@ test('aralık zaten geçerliyse hiçbir şey değişmez', () => {
 
 test('bitiş başlangıçtan önceye alınırsa başlangıç ona göre kaydırılır', () => {
   const s = araligiSinirla(g(2026, 9, 18), g(2026, 9, 10), 'bitis', BUGUN);
-  assert.equal(gun(s.baslangic), '2026-9-3');
+  assert.equal(gun(s.baslangic), '2026-9-4');
   assert.equal(gun(s.bitis), '2026-9-10');
   assert.ok(aralikGecerliMi(s.baslangic, s.bitis));
 });

@@ -42,7 +42,7 @@ const aralik = (p: TarihParcasi) => `${noktaliTarih(p.baslangic)}-${noktaliTarih
 
 test('yedekBaslangici: hafta ve takvim ayları', () => {
   const bugun = gun(21, 9);
-  assert.equal(noktaliTarih(yedekBaslangici('1h', bugun)), '14.09.2026');
+  assert.equal(noktaliTarih(yedekBaslangici('1h', bugun)), '15.09.2026'); // bugün dahil 7 gün
   assert.equal(noktaliTarih(yedekBaslangici('1a', bugun)), '21.08.2026');
   assert.equal(noktaliTarih(yedekBaslangici('3a', bugun)), '21.06.2026');
   assert.equal(noktaliTarih(yedekBaslangici('6a', bugun)), '21.03.2026');
@@ -54,14 +54,15 @@ test('yedekBaslangici: ay sonu taşmaz (31 Mart − 1 ay = 28 Şubat)', () => {
   assert.equal(noktaliTarih(yedekBaslangici('1a', gun(15, 1))), '15.12.2025');
 });
 
-test('haftalikParcalar: kullanıcının örneği (son 1 ay, bugün 21.09.2026)', () => {
+test('haftalikParcalar: son 1 ay, bugün 21.09.2026 — her parça uçlar dahil 7 gün', () => {
   const bugun = gun(21, 9);
   const parcalar = haftalikParcalar(yedekBaslangici('1a', bugun), bugun);
   assert.deepEqual(parcalar.map(aralik), [
-    '14.09.2026-21.09.2026',
-    '06.09.2026-13.09.2026',
-    '29.08.2026-05.09.2026',
-    '21.08.2026-28.08.2026',
+    '15.09.2026-21.09.2026',
+    '08.09.2026-14.09.2026',
+    '01.09.2026-07.09.2026',
+    '25.08.2026-31.08.2026',
+    '21.08.2026-24.08.2026',
   ]);
 });
 
@@ -71,7 +72,7 @@ test('haftalikParcalar: hiçbir parça 7 günü aşmaz, boşluk ve örtüşme yo
   const parcalar = haftalikParcalar(bas, bugun);
   const GUN = 86400000;
   for (const p of parcalar) {
-    assert.ok(Math.round((p.bitis.getTime() - p.baslangic.getTime()) / GUN) <= 7);
+    assert.ok(Math.round((p.bitis.getTime() - p.baslangic.getTime()) / GUN) <= 6); // uçlar dahil ≤ 7 gün
     assert.ok(p.baslangic <= p.bitis);
   }
   for (let i = 1; i < parcalar.length; i++) {
@@ -83,7 +84,7 @@ test('haftalikParcalar: hiçbir parça 7 günü aşmaz, boşluk ve örtüşme yo
 
 test('haftalikParcalar: son 1 hafta tek sorgu', () => {
   const bugun = gun(21, 9);
-  assert.deepEqual(haftalikParcalar(yedekBaslangici('1h', bugun), bugun).map(aralik), ['14.09.2026-21.09.2026']);
+  assert.deepEqual(haftalikParcalar(yedekBaslangici('1h', bugun), bugun).map(aralik), ['15.09.2026-21.09.2026']);
 });
 
 // ---------------------------------------------------------------------------
@@ -157,7 +158,7 @@ function sahteOrtam(listeler: TaslakFatura[][], ek: Partial<YedekOrtami> = {}) {
 const SECENEK = { taslaklarDahil: false, durduranHataMi: () => false };
 
 test('yedekle: parçaları sırayla sorgular, her faturayı ayrı dosyaya yazar', async () => {
-  const parcalar = haftalikParcalar(gun(6, 9), gun(21, 9));
+  const parcalar = haftalikParcalar(gun(8, 9), gun(21, 9)); // iki tam hafta
   const { ortam, yazilanlar, sorgular } = sahteOrtam([
     [fatura('A1', '20-09-2026'), fatura('A2', '15-09-2026', 'Onaylanmadı')],
     [fatura('B1', '10-09-2026')],
@@ -165,7 +166,7 @@ test('yedekle: parçaları sırayla sorgular, her faturayı ayrı dosyaya yazar'
   const ilerlemeler: YedekIlerleme[] = [];
   const sonuc = await yedekle(parcalar, ortam, SECENEK, (d) => ilerlemeler.push(d));
 
-  assert.deepEqual(sorgular, ['14.09.2026-21.09.2026', '06.09.2026-13.09.2026']);
+  assert.deepEqual(sorgular, ['15.09.2026-21.09.2026', '08.09.2026-14.09.2026']);
   assert.deepEqual([...yazilanlar.keys()], ['2026-09-20_A1.pdf', '2026-09-10_B1.pdf']);
   assert.equal(yazilanlar.get('2026-09-20_A1.pdf'), 'pdf:A1');
   assert.deepEqual(

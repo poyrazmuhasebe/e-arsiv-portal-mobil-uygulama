@@ -6,6 +6,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import FaturaWebView from '../components/FaturaWebView';
 import TarihAraligiFiltresi from '../components/TarihAraligiFiltresi';
+import { varsayilanBaslangic } from '../utils/tarihAraligi';
 import {
   Alert,
   AlertHost,
@@ -106,10 +107,9 @@ function asString(v: unknown): string | undefined {
   return typeof v === 'string' && v.length > 0 ? v : undefined;
 }
 
+/** Bugün dahil son 7 gün (bkz. utils/tarihAraligi.ts → varsayilanBaslangic). */
 function yediGunOncesi(): Date {
-  const d = new Date();
-  d.setDate(d.getDate() - 7);
-  return d;
+  return varsayilanBaslangic();
 }
 
 // "5551234567" -> "(555) 123 45 67" — GİB'in kendi SMS Onay ekranındaki

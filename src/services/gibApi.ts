@@ -30,6 +30,7 @@ import type {
 } from '../types/gib';
 import { KDV_TEVKIFAT_VERGI_TURU } from '../constants/faturaConstants';
 import { agHatasiMesaji, gibMesajiniAnlasilirYap } from './gibHataMesajlari';
+import { varsayilanBaslangic } from '../utils/tarihAraligi';
 
 // GİB'in yayınladığı test/sandbox portalı — gerçek mükellef hesaplarını
 // etkilemeden fatura kesim akışını (taslak kaydet, SMS onay vb.) denemek
@@ -778,10 +779,10 @@ export async function taslakGetir(
   filtre: TaslakGetirFiltre = {},
 ): Promise<TaslakFatura[]> {
   // GİB, tarih aralığı filtresi olmadan (boş jp: {}) "Bu işlem için yetkiniz
-  // yok" hatası veriyor — filtre verilmezse son 7 günü varsayılan alıyoruz.
+  // yok" hatası veriyor — filtre verilmezse bugün dahil son 7 günü
+  // (uçlar dahil 1 hafta, bkz. utils/tarihAraligi.ts) varsayılan alıyoruz.
   const bugun = new Date();
-  const yediGunOnce = new Date(bugun);
-  yediGunOnce.setDate(bugun.getDate() - 7);
+  const yediGunOnce = varsayilanBaslangic(bugun);
 
   const baslangic = filtre.baslangicTarihi ?? ggAaYyyy(yediGunOnce);
   const bitis = filtre.bitisTarihi ?? ggAaYyyy(bugun);
