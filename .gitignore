@@ -56,3 +56,6 @@ yarn-error.*
 
 # Yerel APK imzası (scripts/yerel-apk.mjs) — şifreler içerir, ASLA commit edilmez
 yerel-imza.properties
+
+# EAS credentials indirmesi (keystore şifreleri) — ASLA commit edilmez
+credentials.json
