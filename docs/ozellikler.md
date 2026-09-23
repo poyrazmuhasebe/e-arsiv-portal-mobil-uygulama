@@ -338,9 +338,13 @@ uyarıyı tetiklemez (onları zorunlu-alan kontrolü yakalar).
     modalında gösterilir; modalın üst çubuğunda **İndir** (PDF, paylaşım
     penceresi açmadan) ve **Paylaş** (native paylaşım sayfası) ikonları var.
   - **Düzenle** — yalnızca "Taslak" (onaylanmamış) durumundaki belgelerde
-    görünür; şu an yalnızca yer tutucu (`handleAksiyon`: geliştirme modunda
-    `console.log`, GİB'e istek yok), gerçek işlevi yok (bkz.
-    [Issue #11](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/11)).
+    görünür. Fatura kesim formu taslağın GİB'deki bilgileriyle açılır
+    ("Taslağı Düzenle"); **Kaydet** aynı taslağı yerinde günceller (yeni
+    taslak açılmaz, belge numarası değişmez) ve listeye dönülür. Formda
+    karşılığı olmayan bir alanı dolu taslaklar (tevkifat ya da başka vergi,
+    masraf/stopaj, özel matrah, arttırım) düzenlemeye açılmaz — kaydetme o
+    alanları silmesin diye; bunlar GİB portalından düzenlenir. Alıcının
+    il/ilçe/telefon/e-posta bilgisi formda görünmez ama korunur.
   - **Sil** — yalnızca "Taslak" durumunda; GİB'in kendi arayüzündeki gerçek
     iki adımlı akış birebir uygulandı: (1) "Bu belgeyi silmek üzeresiniz."
     uyarısı + "Uyarıyı okudum" onay kutusu işaretlenmeden ilerlenemez,

@@ -50,9 +50,11 @@ bu sayfa onların tematik bir özetidir.
   `utils/itirazTalebi.ts` (`itirazIstekVerisi`). Silinmiş faturada İtiraz
   düğmesi gösterilmiyor.
   ([Issue #7](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/7))
-- **Taslak Düzenle** — düğme görünür ama gerçek işlevi yok: `handleAksiyon`
-  yalnızca geliştirme modunda bir `console.log` yazar, GİB'e istek atmaz.
-  ([Issue #11](https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama/issues/11))
+- **Taslak Düzenle: yalnızca formun desteklediği taslaklar** — tevkifat ya da
+  başka vergi, masraf/stopaj, özel matrah ya da arttırım içeren taslaklar
+  uygulamada düzenlenmez ("Düzenlenemiyor" uyarısı), GİB portalından
+  düzenlenir. GİB'in düzenleme yanıtında not ve irsaliye alanları görülmedi;
+  bu alanlar formda boş gelebilir.
 - **"Adıma Düzenlenen Belgeler": yalnızca liste var** — liste isteği
   doğrulandı ama yanıtın şekli henüz görülmedi (alanların GİB tablosundaki
   sütun adlarıyla geldiği varsayılıyor). Bu ekrandaki İtiraz/İptal Talebi

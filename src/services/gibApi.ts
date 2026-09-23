@@ -579,7 +579,7 @@ function tutarStr(n: number): string {
  *   daha gönderiliyor: `tevkifataTabiIslemTutar`, `tevkifataTabiIslemKdv` ve
  *   dinamik `hesaplanan${vergiCesidi}` (ör. "hesaplananV9015").
  */
-function buildFaturaOlusturPayload(taslak: FaturaTaslagi) {
+function buildFaturaOlusturPayload(taslak: FaturaTaslagi, kimlik?: TaslakKimligi) {
   let malHizmetToplam = 0;
   let toplamIskonto = 0;
   let hesaplananKdv = 0;
@@ -635,8 +635,10 @@ function buildFaturaOlusturPayload(taslak: FaturaTaslagi) {
   const odenecekTutar = vergilerDahilToplam - hesaplananKdvTevkifat;
 
   const payload: Record<string, unknown> = {
-    faturaUuid: '',
-    belgeNumarasi: '',
+    // Yeni taslakta boş; mevcut taslağı güncellerken (Düzenle) taslağın ETTN'si
+    // ve belge numarası — GİB aynı komutla taslağı YERİNDE günceller.
+    faturaUuid: kimlik?.ettn ?? '',
+    belgeNumarasi: kimlik?.belgeNumarasi ?? '',
     faturaTarihi: taslak.faturaTarihi,
     saat: taslak.saat ?? new Date().toTimeString().slice(0, 8),
     paraBirimi: taslak.paraBirimi ?? 'TRY',
@@ -751,6 +753,58 @@ export async function faturaKaydet(
 
   // Taslak listesinde yeni bir kayıt çıkmadıysa gerçekten başarısız demektir.
   throw new GibApiError(hamMetin || 'GİB taslak faturayı oluşturmadı.', result);
+}
+
+// ---------------------------------------------------------------------------
+// Taslak düzenleme (GİB "Düzenlenen Belgeler" → Düzenle)
+// ---------------------------------------------------------------------------
+//
+// GİB'in kendi ekranından canlı yakalandı (2026-09-23, Chrome, gerçek taslak):
+// - Düzenle'ye basınca: EARSIV_PORTAL_FATURA_GETIR (RG_BASITFATURA),
+//   jp {"ettn": "<uuid>"} → taslağın tüm alanları (malHizmetTable dahil).
+// - Kaydet'e basınca: yeni fatura ile AYNI komut, EARSIV_PORTAL_FATURA_OLUSTUR
+//   (RG_BASITFATURA). Tek fark: faturaUuid = taslağın ETTN'si, belgeNumarasi =
+//   taslağın numarası (yeni faturada ikisi de boş). Yanıt yine "Faturanız
+//   başarıyla oluşturulmuştur..." metni; listede yeni kayıt ÇIKMADI, aynı
+//   numaralı taslak güncellendi.
+
+export interface TaslakKimligi {
+  ettn: string;
+  belgeNumarasi: string;
+}
+
+/** Taslağın düzenleme formunu dolduracak ham GİB verisi (FATURA_GETIR). */
+export async function faturaGetir(token: string, ettn: string): Promise<Record<string, unknown>> {
+  if (IS_TEST_MODE) {
+    return Promise.reject(new GibApiError('Test modunda taslak düzenleme desteklenmiyor.'));
+  }
+  const veri = await dispatch<unknown>('EARSIV_PORTAL_FATURA_GETIR', 'RG_BASITFATURA', { ettn }, token);
+  if (!veri || typeof veri !== 'object' || Array.isArray(veri)) {
+    throw new GibApiError('GİB taslağın bilgilerini döndürmedi.', veri);
+  }
+  return veri as Record<string, unknown>;
+}
+
+/** Mevcut taslağı yerinde günceller (GİB'in Düzenle → Kaydet akışı). */
+export async function faturaGuncelle(
+  token: string,
+  kimlik: TaslakKimligi,
+  taslak: FaturaTaslagi,
+): Promise<void> {
+  if (!kimlik.ettn || !kimlik.belgeNumarasi) {
+    // Boş kimlikle gönderilirse GİB güncellemek yerine YENİ taslak açar.
+    throw new GibApiError('Taslağın ETTN ya da belge numarası eksik; güncellenemez.');
+  }
+  if (IS_TEST_MODE) {
+    if (__DEV__) console.log('MOCK FATURA GUNCELLE:', kimlik.ettn);
+    return;
+  }
+  await dispatch<unknown>(
+    'EARSIV_PORTAL_FATURA_OLUSTUR',
+    'RG_BASITFATURA',
+    buildFaturaOlusturPayload(taslak, kimlik),
+    token,
+  );
 }
 
 // ---------------------------------------------------------------------------

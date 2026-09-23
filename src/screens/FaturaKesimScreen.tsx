@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../App';
 import { Alert, AppHeader, AppScreen, InfoBox, PrimaryButton } from '../components/ui';
-import { faturaKaydet, gibHatasiniIsle } from '../services/gibApi';
+import { faturaGetir, faturaGuncelle, faturaKaydet, gibHatasiniIsle } from '../services/gibApi';
+import { DuzenlemeHatasi, gibFaturasiniFormaCevir, type EkAliciBilgisi } from '../utils/faturaDuzenleme';
 import { useAuthStore } from '../store/useAuthStore';
 import { aliciKaydet } from '../utils/aliciDefteri';
 import { malHizmetKaydet } from '../utils/malHizmetDefteri';
 import { faturaOzetiHesapla, kalemHesapla, kalemlerAralikHatasi, parseNumara } from '../utils/faturaHesap';
 import { vknTcknGecerliMi } from '../utils/kimlikDogrula';
 import { vergiUyumsuzlukHatasi } from '../utils/vergiDestegi';
-import { spacing } from '../theme';
+import { colors, spacing } from '../theme';
 import {
   VARSAYILAN_BIRIM,
   VARSAYILAN_FATURA_TIPI,
@@ -57,8 +58,13 @@ function saatFormatla(d: Date): string {
   return `${ss}:${dd}:${sn}`;
 }
 
-export default function FaturaKesimScreen({ navigation }: Props) {
+export default function FaturaKesimScreen({ navigation, route }: Props) {
   const token = useAuthStore((s) => s.token);
+  // Taslaklar → "Düzenle": mevcut taslak GİB'den yüklenir, "Kaydet" onu yerinde günceller.
+  const duzenle = route.params?.duzenle;
+  const [duzenlemeYukleniyor, setDuzenlemeYukleniyor] = useState(!!duzenle);
+  // Formda alanı olmayan alıcı bilgileri (il, ilçe, telefon, e-posta) güncellemede korunur.
+  const [ekAlici, setEkAlici] = useState<EkAliciBilgisi>({});
 
   const [form, setForm] = useState<FaturaFormState>(() => ({
     faturaTarihi: new Date(),
@@ -74,6 +80,31 @@ export default function FaturaKesimScreen({ navigation }: Props) {
   }));
 
   const [kaydediliyor, setKaydediliyor] = useState(false);
+
+  useEffect(() => {
+    if (!duzenle || !token) return;
+    let iptal = false;
+    (async () => {
+      try {
+        const veri = await faturaGetir(token, duzenle.ettn);
+        const { form: yuklenen, ekAlici: ek } = gibFaturasiniFormaCevir(veri);
+        if (iptal) return;
+        setForm(yuklenen);
+        setEkAlici(ek);
+        setDuzenlemeYukleniyor(false);
+      } catch (err) {
+        if (iptal) return;
+        const baslik = err instanceof DuzenlemeHatasi ? 'Düzenlenemiyor' : 'Taslak Yüklenemedi';
+        const mesaj = err instanceof DuzenlemeHatasi ? err.message : (await gibHatasiniIsle(err)).mesaj;
+        Alert.alert(baslik, mesaj, [{ text: 'Tamam', onPress: () => navigation.goBack() }]);
+      }
+    })();
+    return () => {
+      iptal = true;
+    };
+    // Yalnızca ekran açılırken bir kez yüklenir.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const aliciGuncelle = (patch: Partial<AliciFormu>) => {
     setForm((prev) => ({ ...prev, alici: { ...prev.alici, ...patch } }));
@@ -135,6 +166,7 @@ export default function FaturaKesimScreen({ navigation }: Props) {
         vergiDairesi: form.alici.vergiDairesi || undefined,
         adres: form.alici.adres.trim(),
         ulke: form.alici.ulke,
+        ...ekAlici,
       },
       satirlar: form.kalemler.map((k) => {
         const hesap = kalemHesapla(k);
@@ -161,7 +193,8 @@ export default function FaturaKesimScreen({ navigation }: Props) {
 
     setKaydediliyor(true);
     try {
-      const sonuc = await faturaKaydet(token, taslak);
+      const sonuc = duzenle ? null : await faturaKaydet(token, taslak);
+      if (duzenle) await faturaGuncelle(token, duzenle, taslak);
       // Fatura başarıyla kaydedildiğinde alıcıyı adres defterine yaz —
       // bir sonraki faturada "Kayıtlı Alıcılardan Seç" ile tekrar
       // kullanılabilsin.
@@ -175,9 +208,15 @@ export default function FaturaKesimScreen({ navigation }: Props) {
       const defterNotu = kaydedilemeyenler.length
         ? `\n\n(Cihazdaki ${kaydedilemeyenler.join(' ve ')} kaydedilemedi.)`
         : '';
-      Alert.alert('Taslak Kaydedildi', `Belge No: ${sonuc.ettn}${defterNotu}`, [
-        { text: 'Tamam', onPress: () => navigation.navigate('Taslaklar') },
-      ]);
+      if (duzenle) {
+        Alert.alert('Taslak Güncellendi', `Belge No: ${duzenle.belgeNumarasi}${defterNotu}`, [
+          { text: 'Tamam', onPress: () => navigation.navigate('Taslaklar', { yenile: Date.now() }) },
+        ]);
+      } else {
+        Alert.alert('Taslak Kaydedildi', `Belge No: ${sonuc?.ettn}${defterNotu}`, [
+          { text: 'Tamam', onPress: () => navigation.navigate('Taslaklar') },
+        ]);
+      }
     } catch (err) {
       const { mesaj, oturumKapandi } = await gibHatasiniIsle(err);
       Alert.alert(oturumKapandi ? 'Oturum Sonlandı' : 'Kaydetme Başarısız', mesaj);
@@ -188,7 +227,13 @@ export default function FaturaKesimScreen({ navigation }: Props) {
 
   return (
     <AppScreen>
-      <AppHeader title="Yeni Fatura Kes" onBack={() => navigation.goBack()} />
+      <AppHeader title={duzenle ? 'Taslağı Düzenle' : 'Yeni Fatura Kes'} onBack={() => navigation.goBack()} />
+
+      {duzenlemeYukleniyor ? (
+        <View style={styles.yukleniyor}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      ) : (
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -243,16 +288,18 @@ export default function FaturaKesimScreen({ navigation }: Props) {
             loading={kaydediliyor}
             fullWidth
           >
-            Oluştur
+            {duzenle ? 'Kaydet' : 'Oluştur'}
           </PrimaryButton>
         </ScrollView>
       </KeyboardAvoidingView>
+      )}
     </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  yukleniyor: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   scrollContent: {
     paddingHorizontal: spacing.screen,
     paddingTop: spacing.xs,

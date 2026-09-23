@@ -34,6 +34,7 @@ import { eskiOrtakAliciDefteriniSil } from './src/utils/aliciDefteri';
 import { eskiFaturaPdfleriniSil } from './src/utils/dosyaTemizlik';
 import { kilitGerekliMi, zamanAsimiDolduMu } from './src/utils/uygulamaKilidi';
 import type { HukukiMetinAnahtari } from './src/constants/hukukiMetinler';
+import type { TaslakKimligi } from './src/services/gibApi';
 import { AlertHost } from './src/components/ui/AppAlert';
 import HtmlOnIsleyici from './src/components/HtmlOnIsleyici';
 import GuncellemeKutusu from './src/components/GuncellemeKutusu';
@@ -50,8 +51,10 @@ export type RootStackParamList = {
   HesapSil: undefined;
   Login: undefined;
   Dashboard: undefined;
-  FaturaKesim: undefined;
-  Taslaklar: undefined;
+  // duzenle: Taslaklar'daki "Düzenle" — mevcut taslağı yükleyip yerinde günceller.
+  FaturaKesim: { duzenle?: TaslakKimligi } | undefined;
+  // yenile: düzenlemeden dönünce listeyi yeniden sorgulatır.
+  Taslaklar: { yenile?: number } | undefined;
   IptalItirazTalepleri: undefined;
   KullaniciBilgileri: undefined;
   AliciDefteri: undefined;

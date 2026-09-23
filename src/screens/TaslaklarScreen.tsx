@@ -129,7 +129,7 @@ function telefonMaskele(rakamlar: string): string {
 
 const SMS_SURESI_SN = 180;
 
-export default function TaslaklarScreen({ navigation }: Props) {
+export default function TaslaklarScreen({ navigation, route }: Props) {
   const token = useAuthStore((s) => s.token);
   const kullaniciBilgisi = useAuthStore((s) => s.kullaniciBilgisi);
 
@@ -255,6 +255,13 @@ export default function TaslaklarScreen({ navigation }: Props) {
     setYukleniyor(false);
   };
 
+  // Düzenleme kaydedilip geri dönülünce (route.params.yenile) liste güncellenir.
+  const yenileIstegi = route.params?.yenile;
+  useEffect(() => {
+    if (yenileIstegi) void handleSorgula();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [yenileIstegi]);
+
   const handlePullYenile = async () => {
     setYenileniyor(true);
     await veriYukle(baslangicTarih, bitisTarih);
@@ -359,13 +366,15 @@ export default function TaslaklarScreen({ navigation }: Props) {
     return () => clearTimeout(zamanlayici);
   }, [smsHedefi, smsAsama, smsKalanSure]);
 
-  // Düzenle: gerçek GİB komutu henüz doğrulanmadığından şimdilik
-  // yalnızca konsola yazan yer tutucular. Sil ve İptal Talebi Oluştur ayrıca
-  // ele alınıyor (bkz. handleSilBaslat/handleSilOnayla,
-  // handleIptalBaslat/handleIptalOnayla) — ikisi de gerçek DevTools
-  // yakalamasıyla doğrulandı.
-  const handleAksiyon = (aksiyonAdi: string, item: TaslakFatura) => {
-    if (__DEV__) console.log(`${aksiyonAdi} tıklandı:`, item.ettn);
+  // Düzenle: fatura formu taslağın GİB'deki bilgileriyle açılır, "Kaydet"
+  // taslağı yerinde günceller (bkz. gibApi.ts → faturaGetir/faturaGuncelle).
+  const handleDuzenle = (item: TaslakFatura) => {
+    const belgeNumarasi = asString(item.belgeNumarasi);
+    if (!item.ettn || !belgeNumarasi) {
+      Alert.alert('Düzenlenemiyor', 'Taslağın belge numarası okunamadı. Listeyi yenileyip tekrar deneyin.');
+      return;
+    }
+    navigation.navigate('FaturaKesim', { duzenle: { ettn: item.ettn, belgeNumarasi } });
   };
 
   const handleItirazBaslat = (item: TaslakFatura) => {
@@ -640,7 +649,7 @@ export default function TaslaklarScreen({ navigation }: Props) {
             İndir
           </SecondaryButton>
           {duzenlenebilir && (
-            <SecondaryButton compact icon="pencil-outline" onPress={() => handleAksiyon('Düzenle', item)}>
+            <SecondaryButton compact icon="pencil-outline" onPress={() => handleDuzenle(item)}>
               Düzenle
             </SecondaryButton>
           )}
