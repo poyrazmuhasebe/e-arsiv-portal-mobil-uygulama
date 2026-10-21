@@ -200,7 +200,15 @@ if (!gradle.includes(ISARET)) {
 // x86/x86_64 emülatör ve bazı Chromebook'lar içindir; APK'da 35 MB tutuyordu
 // (84 MB → ~47 MB, 2026-10-21). Komut satırı, prebuild'in her seferinde
 // yeniden yazdığı gradle.properties'teki değeri geçersiz kılar.
-const gradleArgumanlari = ['assembleRelease', '--no-daemon', '-PreactNativeArchitectures=armeabi-v7a,arm64-v8a'];
+// kotlin.compiler.execution.strategy=in-process: ayrı Kotlin daemon'u Windows'ta
+// node_modules/*/android/build klasörlerini açık tutup "Unable to delete
+// directory" hatasına yol açıyordu (2026-10-21).
+const gradleArgumanlari = [
+  'assembleRelease',
+  '--no-daemon',
+  '-PreactNativeArchitectures=armeabi-v7a,arm64-v8a',
+  '-Pkotlin.compiler.execution.strategy=in-process',
+];
 const gradleOrtami = { ...ortam };
 if (imza) {
   // Gradle, ORG_GRADLE_PROJECT_<ad> ortam değişkenlerini proje özelliği
