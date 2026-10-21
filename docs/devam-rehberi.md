@@ -13,7 +13,7 @@ Son güncelleme: 2026-10-12.
   (AB yetki alanı). GİB verisi bu sunucuya HİÇ gitmez.
 - **Repo:** `https://github.com/poyrazmuhasebe/e-arsiv-portal-mobil-uygulama`
   (gizli, `poyrazmuhasebe` kişisel hesabı, dal: `master`).
-- **Yayındaki sürüm:** `1.0.1-beta.7` (versionCode 7) — sunucudaki
+- **Yayındaki sürüm:** `1.0.1-beta.9` (versionCode 9, 2026-10-21) — sunucudaki
   `uygulama_surumleri` tablosunda kayıtlı; daha eski kurulumlar kilitlenir.
 - Ayrıntılar: [ozellikler.md](ozellikler.md), [mimari.md](mimari.md),
   [gib-entegrasyonu.md](gib-entegrasyonu.md), [hesap-sistemi.md](hesap-sistemi.md).
@@ -183,3 +183,17 @@ Kural 3 gereği yeni GİB komutu canlı yakalamayla eklenir. 2026-09-23'te
 - Kopyalanmış üretim klasörlerinde salt okunur niteliği nedeniyle ilk derleme
   başarısız oldu. Yalnızca üretilen `build` ve `.cxx` öğelerinin niteliği
   düzeltildi; ikinci derleme başarılı.
+
+## Beta.9 ve APK boyutu — 2026-10-21
+
+- Beta.8 görselleri commit'lendi (); beta.8 hiç yayınlanmadı.
+-  (versionCode 9) derlendi ve  ile **yayınlandı**:
+  beta.7 ve öncesi açılışta zorunlu güncelleme kutusunu görür.
+- APK boyutu 84 MB → 46,8 MB:  yalnızca telefon işlemcileri için
+  derler (). x86/x86_64
+  (emülatör, bazı Chromebook'lar) çıkarıldı; hiçbir özellik değişmedi.
+- Windows'ta  hatası için betik
+  Kotlin derleyicisini Gradle içinde çalıştırır
+  (). Yine olursa
+   ve  silinip tekrar derlenir.
+- İmza beta.7 ile aynı (SHA-256 ). Cihazda kurulum bu oturumda denenmedi.
