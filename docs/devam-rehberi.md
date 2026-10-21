@@ -166,3 +166,20 @@ Kural 3 gereği yeni GİB komutu canlı yakalamayla eklenir. 2026-09-23'te
   iptal edilip yenisi oluşturulmalı.
 - Depoya yalnızca okuma yetkisiyle kişi eklemek için depo bir GitHub
   organizasyonuna taşınmalı (kişisel depoda "read" yetkisi yok).
+
+## Yerel görsel yenileme — 2026-10-21
+
+- Yerelde hazırlanan APK: `1.0.1-beta.8`, versionCode 8.
+- Çıktı: `builds/e-Arsiv-Portal-v1.0.1-beta.8-3e9459a-yerel.apk`.
+- Altı marka görseli yenilendi; karşılama/GİB giriş logosu ve native açılış
+  görseli bağlandı. Yerel derleme betiği her seferinde prebuild ile görselleri eşler.
+- 307 test, TypeScript kontrolü, Android export ve imzalı APK derlemesi geçti.
+- APK imzası mevcut 11 eski APK ile aynı; paket kimliği korunuyor.
+- Cihazda kurulum ve görsel kontrol yapılmadı; GİB'e canlı istek gönderilmedi.
+- Kullanıcı APK'yı doğrudan gönderiyor. Beta.8 uzak sürüm tablosuna YAZILMADI;
+  önce APK dağıtılmalı, ardından kullanıcı isteyince `npm run surum:yayinla`
+  ile zorunlu güncelleme etkinleştirilmeli. Uzak tablonun bu oturumda canlı
+  sorgusu yapılmadı; yukarıdaki beta.7 yayın bilgisi önceki oturum kaydıdır.
+- Kopyalanmış üretim klasörlerinde salt okunur niteliği nedeniyle ilk derleme
+  başarısız oldu. Yalnızca üretilen `build` ve `.cxx` öğelerinin niteliği
+  düzeltildi; ikinci derleme başarılı.

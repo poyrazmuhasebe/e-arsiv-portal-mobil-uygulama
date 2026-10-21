@@ -58,3 +58,17 @@ havası, yoğun cam efekti yok. Form okunabilirliği her şeyden önce gelir.
 5. Dokunma alanı en az 44dp; ikon düğmelerinde `accessibilityLabel`.
 6. Pasif durum yalnızca saydamlıkla değil, renk değişimiyle de belli olur.
 7. Ekran genişliği sabit yazılmaz; `flex`, `flexWrap`, `minWidth` kullanılır.
+## Görsel kimlik (2026-10-21)
+
+- Altı yerel marka görseli sıfırdan üretildi: `assets/icon.png`,
+  `android-icon-foreground.png`, `android-icon-background.png`,
+  `android-icon-monochrome.png`, `splash-icon.png`, `favicon.png`.
+- Tema: açık renk fatura belgesi, lavanta katlanmış köşe, turkuaz onay;
+  koyu lacivert zemin. Android ön plan/tek renk katmanında güvenli boşluk vardır.
+- Karşılama ve GİB giriş ekranları `splash-icon.png` marka işaretini kullanır.
+- `expo-splash-screen` eklentisi açılış görselini koyu zeminle bağlar.
+- Arayüz kontrol ikonları mevcut MaterialCommunityIcons setidir. Dijital VD
+  güvenlik kodu ve GİB fatura/PDF içerikleri çalışma sırasında gelir; bunlar
+  uygulamanın marka görselleri değildir ve yeniden üretilmez.
+- Yerel APK betiği mevcut Android klasörü varken de `prebuild` çalıştırır;
+  böylece simge ve açılış görseli değişiklikleri APK'ya yansır.

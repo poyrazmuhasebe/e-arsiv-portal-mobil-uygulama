@@ -134,7 +134,8 @@ console.log(`\n> Sürüm: ${surumAdi} (versionCode ${eskiKod} → ${surumKodu})`
 
 // --- Android projesi (prebuild) -----------------------------------------
 const androidDizini = path.join(kok, 'android');
-if (temiz || !existsSync(androidDizini)) {
+{
+  // Simge ve açılış görseli değişikliklerini mevcut Android projesine de uygula.
   // prebuild package.json'daki "android"/"ios" betiklerini değiştiriyor;
   // proje dosyası değişmesin diye önce/sonra aynı içerik yazılır.
   const paket = readFileSync(path.join(kok, 'package.json'), 'utf8');
@@ -184,8 +185,7 @@ if (!gradle.includes(ISARET)) {
   writeFileSync(gradleYolu, gradle);
 }
 
-// prebuild yalnızca android/ yoksa çalıştığı için sürüm bilgisi build.gradle'a
-// her derlemede ayrıca yazılır (app.json ile aynı değerler).
+// Sürüm bilgisinin app.json ile aynı olduğunu derlemeden önce garanti et.
 {
   let g = readFileSync(gradleYolu, 'utf8');
   if (!/versionCode \d+/.test(g) || !/versionName "[^"]*"/.test(g)) {
@@ -196,7 +196,11 @@ if (!gradle.includes(ISARET)) {
 }
 
 // --- Derleme ------------------------------------------------------------
-const gradleArgumanlari = ['assembleRelease', '--no-daemon'];
+// Yalnızca telefon işlemcileri (arm64 ve 32 bit eski telefonlar için armv7).
+// x86/x86_64 emülatör ve bazı Chromebook'lar içindir; APK'da 35 MB tutuyordu
+// (84 MB → ~47 MB, 2026-10-21). Komut satırı, prebuild'in her seferinde
+// yeniden yazdığı gradle.properties'teki değeri geçersiz kılar.
+const gradleArgumanlari = ['assembleRelease', '--no-daemon', '-PreactNativeArchitectures=armeabi-v7a,arm64-v8a'];
 const gradleOrtami = { ...ortam };
 if (imza) {
   // Gradle, ORG_GRADLE_PROJECT_<ad> ortam değişkenlerini proje özelliği

@@ -1,8 +1,8 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
-import { AppScreen, Icon, InfoBox, PrimaryButton, SecondaryButton } from '../components/ui';
+import { AppScreen, InfoBox, PrimaryButton, SecondaryButton } from '../components/ui';
 import { colors, radius, spacing, typography } from '../theme';
 import type { RootStackParamList } from '../../App';
 
@@ -19,7 +19,7 @@ export default function KarsilamaScreen({ navigation }: Props) {
         <View style={styles.govde}>
           <View style={styles.baslikGrubu}>
             <View style={styles.logo}>
-              <Icon name="file-document-outline" size={36} color={colors.primary} />
+              <Image source={require('../../assets/splash-icon.png')} style={styles.marka} resizeMode="contain" accessible={false} />
             </View>
             <Text style={styles.baslik} accessibilityRole="header">
               e-Arşiv Portal
@@ -71,6 +71,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   baslik: { ...typography.screenTitle, textAlign: 'center' },
+  marka: { width: 64, height: 64 },
   altBaslik: { ...typography.bodySecondary, textAlign: 'center', maxWidth: 420 },
   butonlar: { gap: spacing.sm },
 });

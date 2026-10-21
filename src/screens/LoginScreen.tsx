@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -132,7 +132,7 @@ export default function LoginScreen() {
 
             <View style={styles.header}>
               <View style={styles.logo}>
-                <Icon name="file-document-outline" size={32} color={colors.primary} />
+                <Image source={require('../../assets/splash-icon.png')} style={styles.marka} resizeMode="contain" accessible={false} />
               </View>
               <Text style={styles.title} accessibilityRole="header">
                 e-Arşiv Portal
@@ -300,6 +300,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xxs,
   },
   title: { ...typography.screenTitle, textAlign: 'center' },
+  marka: { width: 56, height: 56 },
   subtitle: { ...typography.bodySecondary, textAlign: 'center' },
   form: { gap: spacing.md },
   kodlar: { gap: spacing.xs },
