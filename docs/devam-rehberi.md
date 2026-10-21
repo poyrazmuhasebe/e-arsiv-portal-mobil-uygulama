@@ -186,14 +186,15 @@ Kural 3 gereği yeni GİB komutu canlı yakalamayla eklenir. 2026-09-23'te
 
 ## Beta.9 ve APK boyutu — 2026-10-21
 
-- Beta.8 görselleri commit'lendi (); beta.8 hiç yayınlanmadı.
--  (versionCode 9) derlendi ve  ile **yayınlandı**:
-  beta.7 ve öncesi açılışta zorunlu güncelleme kutusunu görür.
-- APK boyutu 84 MB → 46,8 MB:  yalnızca telefon işlemcileri için
-  derler (). x86/x86_64
+- Beta.8 görselleri commit'lendi (`187cf44`); beta.8 hiç yayınlanmadı.
+- `1.0.1-beta.9` (versionCode 9) derlendi ve `npm run surum:yayinla` ile
+  **yayınlandı**: beta.7 ve öncesi açılışta zorunlu güncelleme kutusunu görür.
+- APK boyutu 84 MB → 46,8 MB: `apk:yerel` yalnızca telefon işlemcileri için
+  derler (`-PreactNativeArchitectures=armeabi-v7a,arm64-v8a`). x86/x86_64
   (emülatör, bazı Chromebook'lar) çıkarıldı; hiçbir özellik değişmedi.
-- Windows'ta  hatası için betik
+- Windows'ta `Unable to delete directory … android/build` hatası için betik
   Kotlin derleyicisini Gradle içinde çalıştırır
-  (). Yine olursa
-   ve  silinip tekrar derlenir.
-- İmza beta.7 ile aynı (SHA-256 ). Cihazda kurulum bu oturumda denenmedi.
+  (`-Pkotlin.compiler.execution.strategy=in-process`). Yine olursa
+  `node_modules/*/android/build` ve `android/app/build` silinip tekrar derlenir.
+- İmza beta.7 ile aynı (SHA-256 `1aab8a9f…fd8fd9`). Cihazda kurulum bu
+  oturumda denenmedi.
